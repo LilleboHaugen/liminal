@@ -316,7 +316,8 @@ mod tests {
                 Outcome::Fail {
                     findings: vec![Finding::error(
                         "XTASK-R024",
-                        PathBuf::from("/repo/a.md").to_string_lossy(),
+                        // Built like `finds_one` builds it: `\` separator on Windows.
+                        PathBuf::from("/repo").join("a.md").to_string_lossy(),
                         "m",
                         "h"
                     )],
