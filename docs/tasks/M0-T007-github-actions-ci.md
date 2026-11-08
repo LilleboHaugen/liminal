@@ -2,7 +2,7 @@
 id: M0-T007
 title: GitHub Actions CI
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: []
@@ -42,11 +42,11 @@ Tier 1 builds natively on all three operating systems (ADR-0005).
 
 ## Acceptance criteria
 
-- [ ] CI is green on all three operating systems on `main`.
-- [ ] A test branch with a deliberate formatting error shows the `checks` job failing on all three.
+- [x] CI is green on all three operating systems on `main`.
+- [x] A test branch with a deliberate formatting error shows the `checks` job failing on all three.
       Link the run in the journal, then delete the branch.
-- [ ] Workflow uses least-privilege `permissions:` (`contents: read`).
-- [ ] Average wall time per job recorded in the journal (baseline for later CI-time budgets).
+- [x] Workflow uses least-privilege `permissions:` (`contents: read`).
+- [x] Average wall time per job recorded in the journal (baseline for later CI-time budgets).
 
 ## Test requirements
 
@@ -63,29 +63,65 @@ None in code. Verification is the CI runs linked in the journal.
 
 ## Handoff
 
-2026-11-08, implementation session (after the review of M0-T006 in the same session). Status
-`in-progress`.
+2026-11-08, implementation session (after the review of M0-T006 in the same session). Status →
+`review`.
 
-**Done:** `.github/workflows/ci.yml`: job `checks` (matrix macos/windows/ubuntu-latest,
-`cargo xtask ci --skip coverage`), job `coverage` (ubuntu, `cargo install cargo-llvm-cov
---version 0.9.1 --locked`, `cargo xtask ci --only coverage`), `permissions: contents: read`,
-summary artifact per job and OS with `if: always()`, rust-cache, toolchain from
-`rust-toolchain.toml` via `rustup toolchain install`. Actions pinned by commit SHA: checkout
-v7.0.1, upload-artifact v7.0.2, rust-cache v2.9.3 (annotated tag; the SHA is the peeled commit).
-Pushed to branch `task/M0-T007-github-actions-ci` (commit 0953417), which triggered the first run.
+**Done (all acceptance criteria met):**
+- `.github/workflows/ci.yml`: job `checks` (matrix `macos-latest` arm64, `windows-latest`,
+  `ubuntu-latest`; `fail-fast: false`; `cargo xtask ci --skip coverage`), job `coverage` (ubuntu;
+  `cargo install cargo-llvm-cov --version 0.9.1 --locked`, then `cargo xtask ci --only
+  coverage`). Triggers: every `push` and `pull_request`; concurrency cancels superseded runs of
+  the same ref and event. `permissions: contents: read`; checkout with
+  `persist-credentials: false`. `ci-summary.json` uploaded from every job with `if: always()`
+  as `ci-summary-<job>-<os>`. Toolchain: `rustup toolchain install` (reads
+  `rust-toolchain.toml`). Caching: `Swatinem/rust-cache` (also caches `~/.cargo/bin`, so the
+  `cargo-llvm-cov` install is a no-op on a warm cache). Env: `CARGO_TERM_COLOR=always`,
+  `RUST_BACKTRACE=1`. Pinned by commit SHA: `actions/checkout` v7.0.1,
+  `actions/upload-artifact` v7.0.2, `Swatinem/rust-cache` v2.9.3 (annotated tag; peeled
+  commit). How to re-pin is in the workflow header.
+- Windows fix: `process::tests::native_checks_run_on_the_root_and_map_findings_and_errors`
+  expected `/repo/a.md` while its check function builds the location with `Path::join`
+  (`\` on Windows). The expected value is now built the same way; the test still verifies that
+  the runner passes the root to the check. The only Windows failure; no product code changed.
+- The `.exe` relink problem from the Notes did not occur: `cargo test` and `cargo clippy` in
+  the running `xtask.exe` did not need to relink it. No workaround added.
+- `.gitattributes` (`eol=lf`) works: `fmt` passes on the Windows runner.
+- M0-T009 handoff: note to add the `deny` job and `--skip coverage,deny`.
 
-**Missing:** every acceptance criterion. The repository is private, so reading runs needs an
-authenticated `gh`. The owner approved `brew install gh` (2026-11-08, ADR-0022); gh 2.103.3 is
-installed, but `gh auth login` (owner, browser) has not been run yet. Next: read the first run,
-fix failures, merge, check `main` is green, run the deliberate-format-error branch, record job
-times.
+**Merged to `main` before review:** acceptance criterion 1 ("green on `main`") needs the
+workflow on `main`. Merged at 027dbcf, run below. If review requires changes, they follow on
+the task branch and are merged again.
 
-Note from M0-T006 (2026-11-08): the `coverage` step exists (last step of `ci`). Add the
-`coverage` job (`cargo install cargo-llvm-cov --locked`, then `cargo xtask ci --only coverage`)
-and pass `--skip coverage` in the `checks` job. The pinned toolchain already has the
-`llvm-tools` component (`rust-toolchain.toml`). The step takes about 4 s on an Apple M5 Pro
-with a warm `target/llvm-cov-target`; a cold CI runner builds everything once more under
-instrumentation.
+**Runs** (`https://github.com/LilleboHaugen/rust-game-engine/actions/runs/<id>`):
+
+| Run | Ref | Result |
+|---|---|---|
+| 42529862659 | task branch, 0953417 | cancelled by the next push (concurrency) |
+| 42529978816 | task branch, c1e6cc6 | `checks` windows failed (test above); others pass |
+| 42530266416 | task branch, Windows fix | all 4 jobs pass |
+| 42530471920 | `test/M0-T007-fmt-error` (deliberate fmt error in `xtask/src/lib.rs`) | `checks` fails on all three, `fmt: FAIL` on each; `coverage` passes (no fmt step). Branch deleted. |
+| 42530730963 | `main`, 027dbcf | all 4 jobs pass |
+
+**Wall time per job** (seconds, job start to end, the four completed runs above; every run ran
+all steps, because `ci` continues after a failing step):
+
+| Job | Runs | Mean | Range |
+|---|---|---|---|
+| checks (macos-latest) | 29, 24, 32, 41 | 32 | 24–41 |
+| checks (ubuntu-latest) | 44, 38, 57, 59 | 50 | 38–59 |
+| checks (windows-latest) | 79, 123, 105, 113 | 105 | 79–123 |
+| coverage (ubuntu-latest) | 135, 35, 128, 125 | 106 | 35–135 |
+
+`coverage` takes about 35 s with a warm cache of the same branch and about 130 s cold (new
+branch: `cargo install cargo-llvm-cov` from source). Caches are per branch (GitHub scoping), with
+fallback to `main`'s cache once `main` has one.
+
+**Not verified:** a `pull_request` run (no pull request opened; the `push` trigger covers every
+branch). GitHub announced that `ubuntu-latest` moves to Ubuntu 26 (run annotation); no action
+needed now.
+
+**Next:** review (fresh session). Then the first `todo` in M0 with all dependencies done:
+M0-T008 (status generator).
 
 ## Review
 

@@ -56,7 +56,12 @@ and skip behaviour).
 
 ## Handoff
 
-_Empty._
+_No session has worked on this task yet._
+
+Note from M0-T007 (2026-11-08): `.github/workflows/ci.yml` exists. Add a `deny` job modelled on
+the `coverage` job (ubuntu; install `cargo-deny` pinned with `--version … --locked`, then
+`cargo xtask ci --only deny`, summary artifact `ci-summary-deny-ubuntu-latest`), and change the
+`checks` job to `--skip coverage,deny`.
 
 ## Review
 
