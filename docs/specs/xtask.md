@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 10
+spec_version: 11
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -349,11 +349,44 @@ as `output_tail` in both output modes.
 
 | ID | Level | Requirement |
 |---|---|---|
-| XTASK-R060 | MUST | `coverage` runs `cargo llvm-cov --workspace --all-features --json --summary-only` and computes line coverage per workspace crate. |
+| XTASK-R060 | MUST | `coverage` runs `cargo llvm-cov --workspace --all-features --locked --json --summary-only` and computes line coverage per workspace crate. |
 | XTASK-R061 | MUST | Each crate's coverage is compared with its floor in `ci/coverage.toml`. Coverage below `floor − 0.5` percentage points is an error naming the crate, the floor and the actual value. |
 | XTASK-R062 | MUST | A workspace crate without an entry in `ci/coverage.toml` is an error, with help text showing the line to add. |
 | XTASK-R063 | MUST | `--update-floors` sets each floor to `max(current floor, measured value rounded down to 0.1)` and never lowers a floor. |
 | XTASK-R064 | MUST | If `cargo-llvm-cov` is not installed, the step is `skipped` with an install hint (R006). |
+
+`coverage` details (added in `spec_version` 11):
+
+- Measuring (R060). `--locked` (added in `spec_version` 11) keeps `Cargo.lock` unchanged, as in
+  every other cargo step (R010). The tool is installed if `cargo llvm-cov --version` succeeds;
+  otherwise, or if `cargo` cannot be started, the result is `skipped` (R064). Doc tests are not
+  measured. A crate's coverage is the sum of `summary.lines.covered` over the sum of
+  `summary.lines.count` of the export's files below its manifest directory; a file below nested
+  members belongs to the innermost one. Files outside the repository root or outside every
+  member are ignored. `\` in paths reads as `/`. If the export lists files but none is inside the
+  root, that is LIM-XTASK-0002, so a differently spelled root never makes every crate look
+  unmeasured. A crate with no measured lines is shown as such, is never below its floor and
+  keeps its floor on update. If `cargo llvm-cov` fails (for example a test fails), that is
+  LIM-XTASK-0006.
+- `ci/coverage.toml`. Exactly one top-level table, `[floors]`, mapping crate name to a TOML
+  integer or float from 0 to 100 with at most one decimal. Anything else is LIM-XTASK-0004.
+- Arithmetic. Floors are tenths of a point and measurements are line counts; comparisons are
+  exact integer arithmetic. R061: a crate fails if `covered × 1000 < (floor_tenths − 5) × count`
+  (a floor below 0.5 never fails). A drop of exactly 0.5 points passes. Messages show the
+  measured value with two decimals, rounded down.
+- R062 also reports an entry for a crate that is not a workspace crate (located at its line).
+  The help line of a missing entry is `<crate> = <measured value rounded down to 0.1>`.
+- R063. `--update-floors` replaces only the number of each raised entry, so comments and layout
+  are kept. It never adds a missing entry (that stays an R062 finding), and it writes the file
+  only if a floor rises. It then checks against the updated floors.
+- Output. Human mode: one line per crate (`<crate>  <percent>% (<covered>/<count> lines),
+  floor <floor>%`, or `no lines measured` / `no floor`), a `raised floor of `<crate>`: <old> ->
+  <new>` line per update, then the findings and result line of every check command. `--json`
+  prints `{ "version": 1, "ok", "findings", "crates": [ { "crate", "covered", "count",
+  "percent", "floor" } ] }` (`percent` and `floor` are `null` when absent). If the tool is
+  missing, the command prints `coverage: skipped: <reason>` and `help:` (in JSON a `skipped`
+  object with `reason` and `help`, and `ok: false`) and exits 1. The `ci` step reports the
+  findings only and never updates floors.
 
 ### `status` (R070–R079)
 
@@ -388,8 +421,9 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
+| LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
 
 ## 9. Performance budgets
 
@@ -442,3 +476,4 @@ Promotion to `usable` (M0 exit):
 | 8 | 2026-11-08 | `check-arch` details (model from `cargo metadata --no-deps`, R030 values and locations, R031 kind rule, R032/R036 overlap, R033/R034 scope table, R035 attribute rule, locations); R030: shape errors are LIM-XTASK-0003; LIM-XTASK-0005; `cargo_metadata` approved but unused | M0-T004 |
 | 9 | 2026-11-08 | `check-arch` details: R032–R036 skip a crate with an unregistered or invalid-layer entry entirely, and dependencies on it (clarified wording; review 1 of M0-T004) | M0-T004 |
 | 10 | 2026-11-08 | `trace` and `hygiene` details (scope, `ci/hygiene.toml` format, lexing, R040 malformed rows, R041 attachment, matrix and `--json`, R050/R051 pattern rules, locations); R040: `(withdrawn` counts only outside inline code spans (R040's own text names the marker); LIM-XTASK-0004 covers `ci/hygiene.toml` | M0-T005 |
+| 11 | 2026-11-08 | `coverage` details (measurement, file → crate mapping, `ci/coverage.toml` format, integer arithmetic, stale entries are R062, `--update-floors` keeps comments, output); R060: `--locked`; LIM-XTASK-0006 | M0-T006 |

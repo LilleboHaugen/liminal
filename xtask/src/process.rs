@@ -14,7 +14,7 @@ use crate::ci::{Action, CargoInvocation, Outcome, OutputMode, Step, StepRunner};
 pub(crate) const TAIL_LINES: usize = 50;
 
 /// Help text when `cargo` itself cannot be started.
-const CARGO_HELP: &str = "Install Rust through rustup (https://rustup.rs) and run from a shell \
+pub(crate) const CARGO_HELP: &str = "Install Rust through rustup (https://rustup.rs) and run from a shell \
                           where `cargo` works; `cargo xtask doctor` lists required tools.";
 
 /// Runs cargo steps as child processes in the repository root, and native check steps in-process.
@@ -66,6 +66,7 @@ impl StepRunner for RealRunner {
         match &step.action {
             Action::Cargo(invocation) => self.run_cargo(invocation, mode),
             Action::Check(check) => self.run_check(*check),
+            Action::Coverage => crate::coverage::run_real_step(&self.root, &self.cargo, mode),
         }
     }
 }

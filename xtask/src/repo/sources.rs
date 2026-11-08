@@ -5,7 +5,6 @@
 //! type, is internal error LIM-XTASK-0004. Value rules (path form, path exists, non-empty reason)
 //! are XTASK-R052 findings of `hygiene`.
 
-use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::Deserialize;
@@ -138,30 +137,23 @@ pub(crate) fn parse_config(text: &str) -> Result<ScanConfig, LoadError> {
 pub(crate) fn load(root: &Path) -> Result<SourceModel, LoadError> {
     let repo = super::load(root)?;
     let config = parse_config(&super::read(root, CONFIG_PATH)?)?;
-    let mut by_path = BTreeMap::new();
-    for member in &repo.members {
-        let prefix = format!("{}/", member.path.trim_end_matches('/'));
-        for path in &repo.paths {
-            let is_rust = Path::new(path).extension().is_some_and(|ext| ext == "rs");
-            if is_rust && path.starts_with(&prefix) && root.join(path).is_file() {
-                // A file inside two members' directories (nested crates) belongs to the inner one.
-                let inner = by_path
-                    .get(path)
-                    .is_none_or(|(owner, _): &(usize, String)| *owner < prefix.len());
-                if inner {
-                    by_path.insert(path.clone(), (prefix.len(), member.name.clone()));
-                }
-            }
-        }
-    }
     let mut sources = Vec::new();
-    for (path, (_, crate_name)) in by_path {
-        let text = super::read(root, &path)?;
-        sources.push(SourceFile {
-            path,
-            crate_name,
-            text,
-        });
+    // `repo.paths` is sorted, so `sources` is sorted by path.
+    for path in &repo.paths {
+        let is_rust = Path::new(path).extension().is_some_and(|ext| ext == "rs");
+        if !is_rust {
+            continue;
+        }
+        // A file inside two members' directories (nested crates) belongs to the inner one.
+        if let Some(member) = super::workspace::owner(&repo.members, path)
+            && root.join(path).is_file()
+        {
+            sources.push(SourceFile {
+                path: path.clone(),
+                crate_name: member.name.clone(),
+                text: super::read(root, path)?,
+            });
+        }
     }
     Ok(SourceModel {
         repo,

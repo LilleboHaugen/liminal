@@ -63,7 +63,14 @@ None in code. Verification is the CI runs linked in the journal.
 
 ## Handoff
 
-_Empty._
+_No session has worked on this task yet._
+
+Note from M0-T006 (2026-11-08): the `coverage` step exists (last step of `ci`). Add the
+`coverage` job (`cargo install cargo-llvm-cov --locked`, then `cargo xtask ci --only coverage`)
+and pass `--skip coverage` in the `checks` job. The pinned toolchain already has the
+`llvm-tools` component (`rust-toolchain.toml`). The step takes about 4 s on an Apple M5 Pro
+with a warm `target/llvm-cov-target`; a cold CI runner builds everything once more under
+instrumentation.
 
 ## Review
 

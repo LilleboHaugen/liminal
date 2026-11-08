@@ -43,7 +43,11 @@ and `hygiene` details". Paths that `trace` and `hygiene` skip (fixture repositor
 
 ## Coverage
 
-Measured with `cargo llvm-cov` (line coverage) per crate. Floors live in `ci/coverage.toml`.
+Measured with `cargo llvm-cov` (line coverage) per crate: `cargo xtask coverage`, and the `coverage`
+step of `cargo xtask ci`. Install the tool with `cargo install cargo-llvm-cov --locked`; without it
+the step is `skipped`, and a task cannot go to `review`. Doc tests are not measured. Floors live in
+`ci/coverage.toml` (format in its header and in `docs/specs/xtask.md` "`coverage` details"). Every
+workspace crate needs a floor: a new crate adds its line in the same change.
 
 - **Ratchet:** CI fails if a crate's coverage drops more than 0.5 percentage points below its floor.
   `cargo xtask coverage --update-floors` raises floors to the current values (never lowers them). Run it
