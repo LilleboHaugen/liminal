@@ -26,8 +26,34 @@ Check, in order:
 10. **Session boundaries (ADR-0020):** the journal entries for this task show that the work was done in
     owner-started sessions, with no sub-agent implementing or reviewing it.
 
-Outcome: either set `status: done` and add a "Review" note to the task (reviewer, date, what was
-checked), or set `status: in-progress` with a numbered list of required changes.
+### Findings and outcome (ADR-0021)
+
+Classify every finding. It is **blocking** only if it is one of:
+- **B1.** An acceptance criterion is not met, or `cargo xtask ci` fails.
+- **B2.** A non-negotiable rule in `AGENTS.md` is broken.
+- **B3.** Wrong behaviour on realistic input: a file now in the repository, or input an author or
+  agent on this project could plausibly write. Give the concrete input and the wrong result.
+  Input that only probes the edges of a standard is not realistic.
+- **B4.** A behaviour the task or handoff claims is untested: breaking it changes an outcome
+  (accepted/rejected, a value, a finding) and no test fails. Message wording alone is not B4.
+- **B5.** Code and spec disagree on behaviour.
+
+Everything else is a **follow-up**. Write all follow-ups of the review into one new task file
+(`status: todo`, next free ID, current milestone only if an exit criterion needs it) and name it
+in the review note. Follow-ups never block `done`.
+
+**Re-reviews** (the task had a review before) check only: each previous blocking finding is fixed,
+the diff since the previous review, and `cargo xtask ci`. A finding in unchanged code blocks only
+under B1, B2 or B3.
+
+Outcome, recorded in a "Review" note in the task (reviewer, date, what was checked, follow-up task):
+- No blocking findings: set `status: done`.
+- Blocking findings, and the task has had fewer than two "changes required" outcomes: set
+  `status: in-progress` with a numbered list of required changes, each with its class (B1–B5).
+- Blocking findings, and the task already had two "changes required" outcomes: set
+  `status: blocked`, state each finding, its class and the options, and list it under Blockers in
+  `docs/STATUS.md`. The project owner decides (accept as `done` with a follow-up task, or allow
+  one more round), and the decision is recorded in the task file.
 
 ## 2. Spec review (before a crate becomes `experimental`)
 

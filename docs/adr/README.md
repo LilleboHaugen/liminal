@@ -36,3 +36,4 @@ Rules (ADR-0001):
 | [0018](0018-unsafe-code-policy.md) | Unsafe code policy | accepted |
 | [0019](0019-agent-interface-revised.md) | Agent interface (revised) — probe protocol, CLI, MCP server and build gating | accepted |
 | [0020](0020-session-boundaries.md) | Session boundaries — owner-started sessions only, no sub-agents for task work | accepted |
+| [0021](0021-review-findings-and-round-limit.md) | Review findings — blocking criteria, follow-up tasks and a round limit | accepted |

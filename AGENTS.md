@@ -20,7 +20,9 @@ it works. Code without evidence is not progress.
 1. **Orient.** Read `docs/STATUS.md` and the three most recent entries in `docs/journal/`.
 2. **Pick work**, in this priority order:
    1. **Review** a task in status `review` that you did not work on (`docs/process/REVIEW.md`). Only a
-      reviewer can set a task to `done`, so reviews unblock everything else.
+      reviewer can set a task to `done`, so reviews unblock everything else. Only findings of class
+      B1–B5 block; all others go into one follow-up task. A task gets at most two "changes required"
+      outcomes; after that a blocking finding goes to the owner as `blocked` (ADR-0021).
    2. **Continue** an `in-progress` task that has a handoff note.
    3. **Start** the first `todo` task in the current milestone whose `depends_on` tasks are all `done`.
    Set the task's status accordingly. Never start a task whose dependencies are not `done`.
@@ -88,7 +90,8 @@ Full detail: `docs/process/WORKFLOW.md`.
 - Requirement IDs covered by the task have `Verifies:` tests.
 - Spec, ADRs, task file, journal and any affected docs are updated in the same change.
 - The task is set to `review`, not `done`. A new session, started by the project owner (ADR-0020),
-  reviews it with `docs/process/REVIEW.md` and sets it to `done`.
+  reviews it with `docs/process/REVIEW.md` and sets it to `done`, possibly with a follow-up task
+  for non-blocking findings (ADR-0021).
 
 ## Where things live
 

@@ -11,7 +11,10 @@ Last updated: 2026-11-08 (M0-T003 review 4: changes required, then made in the s
 review 4 required two changes (parser: reject U+FEFF, which YAML 1.2 excludes from `nb-char`;
 test tab indentation), which the same session then made.
 **Next step for the project owner:** start a new session. It will review M0-T003, then continue with
-M0-T004 (ADR-0020: sessions do not start other agents for task work).
+M0-T004 (ADR-0020: sessions do not start other agents for task work). M0-T003 has had four
+"changes required" outcomes, so under ADR-0021 its next review ends as `done` (non-blocking
+findings go into a follow-up task) or `blocked` for the owner's decision; it cannot go back to
+`in-progress`.
 
 Prerequisites the project owner handles (not agent tasks):
 - ~~Install the Rust toolchain (`rustup`).~~ Done 2026-11-08: rustup via Homebrew

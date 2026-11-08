@@ -24,6 +24,10 @@ sessions the owner started. One session does at most:
    (§8). Then:
 2. one implementation task (priority 2 or 3).
 
+A review blocks a task only on the findings listed in `docs/process/REVIEW.md` (ADR-0021). Other
+findings become one follow-up task. After two "changes required" outcomes, a remaining blocking
+finding goes to the owner (`blocked`), not to another round.
+
 Never start sub-agents, background agents, forks or new sessions to review, implement or change the
 status of a task. Read-only lookups that change no files and decide nothing may use helpers. Never
 review a task you worked on in this session.
