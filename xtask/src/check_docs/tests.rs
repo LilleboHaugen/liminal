@@ -470,6 +470,37 @@ fn r023_a_task_without_a_valid_id_still_exists_by_its_file_name() {
     );
 }
 
+/// Verifies: XTASK-R023
+#[test]
+fn r023_a_task_with_a_duplicate_id_does_not_exist_by_its_file_name() {
+    // M0-T003-third.md declares `id: M0-T001`, which M0-T001-first.md already has. The file is
+    // known by its `id`, so it does not also exist as M0-T003: depending on M0-T003 is reported.
+    let mut model = valid();
+    let text = model.markdown[T1].clone();
+    put(&mut model, "docs/tasks/M0-T003-third.md", &text);
+    edit(
+        &mut model,
+        T2,
+        "depends_on: [M0-T001]",
+        "depends_on: [M0-T001, M0-T003]",
+    );
+    let found = findings_of(&model);
+    assert!(
+        found
+            .iter()
+            .any(|(rule, location, message)| rule == "XTASK-R023"
+                && location == &format!("{T2}:7")
+                && message.contains("depends on M0-T003, which is not an existing task")),
+        "{found:#?}"
+    );
+    assert!(
+        found
+            .iter()
+            .any(|(_, _, message)| message.contains("task ID M0-T001 is already used")),
+        "{found:#?}"
+    );
+}
+
 // ---------------------------------------------------------------- R024
 
 /// Verifies: XTASK-R024

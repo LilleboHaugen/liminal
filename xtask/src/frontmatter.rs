@@ -58,8 +58,14 @@ impl fmt::Display for ParseError {
 }
 
 /// First characters a value or list item must not have: YAML gives them a meaning, and the
-/// subset has no quoting to escape them.
-const FORBIDDEN_START: &[char] = &['"', '\'', '|', '>', '&', '*', '!', '{', '}', '%', '@', '`'];
+/// subset has no quoting to escape them. With `[` (starts a list), `#` (starts a comment) and
+/// [`INDICATORS_BEFORE_SPACE`], this covers every YAML indicator character.
+const FORBIDDEN_START: &[char] = &[
+    '"', '\'', '|', '>', '&', '*', '!', '{', '}', '%', '@', '`', ',', ']',
+];
+
+/// Characters a list item must not contain anywhere: YAML flow indicators. `,` separates items.
+const FLOW_INDICATORS: &[char] = &['[', ']', '{', '}'];
 
 /// First characters a value or list item must not have when whitespace or the end of the text
 /// follows: YAML reads them as a sequence entry (`- `), a complex key (`? `) or a mapping value
@@ -185,10 +191,10 @@ fn strip_comment(rest: &str) -> &str {
 }
 
 fn parse_list(inner: &str, number: usize) -> Result<Vec<String>, ParseError> {
-    if inner.contains(['[', ']']) {
+    if inner.contains(FLOW_INDICATORS) {
         return Err(error(
             number,
-            "list items must not contain `[` or `]`; nested lists are not allowed",
+            "list items must not contain `[`, `]`, `{` or `}`; nested lists and mappings are not allowed",
         ));
     }
     if inner.trim().is_empty() {

@@ -129,6 +129,11 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: [- a]\n---\n", 2, "starts with `- `"),
         ("---\nkey: [a, ? b]\n---\n", 2, "starts with `? `"),
         ("---\nkey: [:]\n---\n", 2, "starts with `: `"),
+        ("---\nkey: ]x\n---\n", 2, "starts with `]`"),
+        ("---\nkey: ,x\n---\n", 2, "starts with `,`"),
+        ("---\nkey: [a{b}]\n---\n", 2, "must not contain"),
+        ("---\nkey: [a, b}]\n---\n", 2, "must not contain"),
+        ("---\nkey: [{a}]\n---\n", 2, "must not contain"),
     ];
     for (text, line, message) in cases {
         let error = parse_err(text);
@@ -214,6 +219,8 @@ fn invalid_line() -> impl Strategy<Value = String> {
             .prop_map(|(key, c)| format!("{key}: [a, {c}]")),
         key.prop_map(|key| format!("{key}: x:")),
         key.prop_map(|key| format!("{key}: [a:, b]")),
+        (key, proptest::sample::select(vec!['{', '}']))
+            .prop_map(|(key, c)| format!("{key}: [a, b{c}c]")),
     ]
 }
 
@@ -264,6 +271,9 @@ proptest! {
                     prop_assert!(!text.is_empty() && text.trim() == text);
                     prop_assert!(!text.contains(": ") && !text.contains(" #"));
                     prop_assert!(!text.starts_with(FORBIDDEN_START));
+                    if matches!(field.value, Value::List(_)) {
+                        prop_assert!(!text.contains(['[', ']', '{', '}', ',']), "{:?}", text);
+                    }
                     prop_assert!(!text.ends_with(':'));
                     let mut chars = text.chars();
                     let first = chars.next();

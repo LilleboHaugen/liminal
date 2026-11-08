@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -134,6 +134,26 @@ these changes.
   injected `title:` values now each give exactly one R020 finding, and no false R023 on M0-T010.
   The two surviving mutants of the review and two new mutants (ends-with-`:` check removed,
   file-name fallback removed) are each killed. Not verified: Windows, Linux (M0-T007).
+
+**Review 2 changes (2026-11-08, third session; same session that wrote Review 2 below).**
+Status → `review`. The next review must be done by a new session: this session wrote both
+Review 2 and these changes.
+1. `frontmatter.rs`: `,` and `]` added to `FORBIDDEN_START`. With `[` (list), `#` (comment) and
+   `INDICATORS_BEFORE_SPACE`, every YAML indicator character is now handled.
+2. `frontmatter.rs`: list items must not contain `FLOW_INDICATORS` (`[`, `]`, `{`, `}`) anywhere.
+   Scalars may still contain `{`/`}` after the first character (YAML reads `a{b}` as plain text).
+3. Spec: a well-formed but duplicate `id` is a valid `id`; the file is not also known by its
+   file-name ID. Test `r023_a_task_with_a_duplicate_id_does_not_exist_by_its_file_name`.
+- New rejection cases in the unit test; `invalid_line()` generates list items with `{`/`}`; the
+  arbitrary-input property asserts list items contain no `[]{},`.
+- Spec `spec_version` 5 (§6 details: also states that YAML type resolution is not modelled;
+  History). `docs/process/DOCUMENTATION.md`: forbidden list-item characters.
+- Verified (macOS 27.2, Rust 1.99.1): `cargo xtask ci` passes; 103 lib tests. Mutants killed: the
+  review's surviving mutant (`fields_have_valid_id` guard removed), `]` removed from
+  `FORBIDDEN_START`, `}` removed from `FLOW_INDICATORS`. YAML differential (Ruby Psych) re-run:
+  the remaining differences are scalar typing, Psych's `:x` symbol extension, and libyaml's YAML 1.1
+  reading of `[a:b]`, `[:x]`, `[a ?b]`, all out of scope by the spec. Not verified: Windows,
+  Linux (M0-T007).
 
 ## Review
 
