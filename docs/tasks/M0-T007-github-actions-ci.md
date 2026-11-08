@@ -63,7 +63,22 @@ None in code. Verification is the CI runs linked in the journal.
 
 ## Handoff
 
-_No session has worked on this task yet._
+2026-11-08, implementation session (after the review of M0-T006 in the same session). Status
+`in-progress`.
+
+**Done:** `.github/workflows/ci.yml`: job `checks` (matrix macos/windows/ubuntu-latest,
+`cargo xtask ci --skip coverage`), job `coverage` (ubuntu, `cargo install cargo-llvm-cov
+--version 0.9.1 --locked`, `cargo xtask ci --only coverage`), `permissions: contents: read`,
+summary artifact per job and OS with `if: always()`, rust-cache, toolchain from
+`rust-toolchain.toml` via `rustup toolchain install`. Actions pinned by commit SHA: checkout
+v7.0.1, upload-artifact v7.0.2, rust-cache v2.9.3 (annotated tag; the SHA is the peeled commit).
+Pushed to branch `task/M0-T007-github-actions-ci` (commit 0953417), which triggered the first run.
+
+**Missing:** every acceptance criterion. The repository is private, so reading runs needs an
+authenticated `gh`. The owner approved `brew install gh` (2026-11-08, ADR-0022); gh 2.103.3 is
+installed, but `gh auth login` (owner, browser) has not been run yet. Next: read the first run,
+fix failures, merge, check `main` is green, run the deliberate-format-error branch, record job
+times.
 
 Note from M0-T006 (2026-11-08): the `coverage` step exists (last step of `ci`). Add the
 `coverage` job (`cargo install cargo-llvm-cov --locked`, then `cargo xtask ci --only coverage`)
