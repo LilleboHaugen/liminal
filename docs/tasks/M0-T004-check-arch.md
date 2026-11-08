@@ -2,7 +2,7 @@
 id: M0-T004
 title: check-arch
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R030, XTASK-R031, XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036, XTASK-R037]
@@ -179,3 +179,27 @@ Required changes:
    tests for both, each asserting the exact finding list.
 
 Follow-ups (non-blocking) → [M1-T003](M1-T003-check-arch-follow-ups.md).
+
+### Review 2
+
+2026-11-08, new owner-started session (fresh context; wrote neither M0-T004 nor review 1).
+Re-review (ADR-0021): the two previous blocking findings, the diff since review 1 (`05c5196`),
+and `cargo xtask ci`. Outcome: **no blocking findings**, status → `done`. No new follow-ups;
+the follow-ups of review 1 stay in [M1-T003](M1-T003-check-arch-follow-ups.md).
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-arch 10 ms, check-docs); 141 lib tests.
+2. Finding 1 (B5) fixed: `rules::judged` (registered and layer 0–5) is used by `dependencies`
+   for the dependent crate, by `internal` for the target, and by `forbid_unsafe`. Spec v9
+   wording matches: no R032–R036 finding for such a crate or a dependency on it.
+3. Finding 2 (B4) fixed: the two new tests assert the exact finding list (`one`: exactly one
+   finding, rule, message, location). The layer-0 → layer-7 case of 2(a) and the registered →
+   unregistered workspace crate case of 2(b) are both present.
+4. Own mutants, each run and reverted, each killed by at least one test: `judged` without the
+   layer filter; the `internal` target guard replaced by `panic!()`; `forbid_unsafe`,
+   `dependencies` and the `internal` target via `entry` instead of `judged`.
+5. Diff since review 1: only `rules.rs`, `tests.rs`, the spec, the task file, `STATUS.md` and a
+   journal entry. No weakened or deleted tests, no oracle changes, no new dependency.
+6. Session boundaries: review 1 and its changes were made in one owner-started session
+   (`2026-11-08-M0-T004-review.md`, `2026-11-08-M0-T004-2.md`); this re-review is a different
+   session. No sub-agents.
