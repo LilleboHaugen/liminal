@@ -16,6 +16,19 @@ pub(crate) struct Member {
     pub name: String,
 }
 
+/// The member whose manifest directory contains the repository-relative, `/`-separated file
+/// `path`. If members are nested, the innermost one (longest directory) owns the file, whatever
+/// the member order. `None` if no member's directory contains it.
+pub(crate) fn owner<'a>(members: &'a [Member], path: &str) -> Option<&'a Member> {
+    members
+        .iter()
+        .filter(|member| {
+            path.strip_prefix(member.path.trim_end_matches('/'))
+                .is_some_and(|rest| rest.starts_with('/'))
+        })
+        .max_by_key(|member| member.path.trim_end_matches('/').len())
+}
+
 #[derive(Deserialize)]
 struct RootManifest {
     workspace: Option<WorkspaceTable>,

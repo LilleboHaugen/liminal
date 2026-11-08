@@ -124,6 +124,11 @@ pub const COMMANDS: &[Command] = &[
         summary: "Find forbidden macros, untracked task markers, unreasoned ignores (XTASK-R050 … R052).",
         run: crate::hygiene::command,
     },
+    Command {
+        name: "coverage",
+        summary: "Line coverage per crate (cargo llvm-cov) against ci/coverage.toml floors (XTASK-R060 … R064).",
+        run: crate::coverage::command,
+    },
 ];
 
 /// Runs xtask with the given arguments (the process arguments without the program name).

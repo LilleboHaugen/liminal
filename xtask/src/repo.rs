@@ -5,6 +5,7 @@
 //! Every check extends this module instead of reading files itself.
 
 pub(crate) mod architecture;
+pub(crate) mod coverage;
 pub(crate) mod metadata;
 pub(crate) mod sources;
 pub(crate) mod workspace;

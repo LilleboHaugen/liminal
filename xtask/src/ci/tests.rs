@@ -573,12 +573,16 @@ fn ci_writes_only_under_target() {
 fn real_steps_do_not_modify_the_repository() {
     // The cargo steps write only to `target/`: fmt checks instead of rewriting, and `--locked`
     // forbids Cargo.lock updates. Native checks only read: they are `CheckFn`s, which load the
-    // repository model and return findings (INV-1, INV-3).
+    // repository model and return findings (INV-1, INV-3). `coverage` runs `cargo llvm-cov` with
+    // `--locked` and never updates floors (only the `coverage --update-floors` command does).
     for step in STEPS {
         match (step.name, &step.action) {
             ("fmt", Action::Cargo(invocation)) => assert!(invocation.args.contains(&"--check")),
             (_, Action::Cargo(invocation)) => {
                 assert!(invocation.args.contains(&"--locked"), "step {}", step.name);
+            }
+            (_, Action::Coverage) => {
+                assert!(crate::repo::coverage::LLVM_COV_ARGS.contains(&"--locked"));
             }
             (_, Action::Check(_)) => {}
         }
@@ -595,7 +599,7 @@ fn real_steps_run_the_exact_commands_of_the_spec() {
             Action::Cargo(invocation) => {
                 Some((step.name, invocation.args.to_vec(), invocation.env.to_vec()))
             }
-            Action::Check(_) => None,
+            Action::Check(_) | Action::Coverage => None,
         })
         .collect();
     assert_eq!(
@@ -645,6 +649,13 @@ fn native_check_steps_are_registered_by_name() {
         .map(|step| step.name)
         .collect();
     assert_eq!(native, ["check-arch", "check-docs", "trace", "hygiene"]);
+    let coverage: Vec<&str> = STEPS
+        .iter()
+        .filter(|step| matches!(step.action, Action::Coverage))
+        .map(|step| step.name)
+        .collect();
+    assert_eq!(coverage, ["coverage"]);
+    assert_eq!(STEPS.last().map(|step| step.name), Some("coverage"));
 }
 
 #[test]

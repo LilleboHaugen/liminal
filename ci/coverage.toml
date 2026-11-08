@@ -1,0 +1,14 @@
+# Per-crate line-coverage floors, in percent with at most one decimal (docs/specs/xtask.md
+# XTASK-R060 … R064, "`coverage` details"; docs/process/TESTING.md §Coverage; ADR-0010).
+#
+# `cargo xtask coverage` (and the `coverage` step of `cargo xtask ci`) measures line coverage per
+# workspace crate with `cargo llvm-cov` and fails if a crate is more than 0.5 percentage points
+# below its floor (XTASK-R061). Every workspace crate needs an entry, and every entry must name a
+# workspace crate (XTASK-R062).
+#
+# `cargo xtask coverage --update-floors` raises each floor to the measured value rounded down to
+# 0.1 and never lowers one (XTASK-R063). It replaces only the numbers: comments are kept. Commit
+# the result when coverage improves. Lowering a floor by hand requires a journal entry saying why.
+
+[floors]
+xtask = 97.6

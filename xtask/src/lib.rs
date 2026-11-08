@@ -12,6 +12,7 @@ mod check_arch;
 mod check_docs;
 mod ci;
 mod cli;
+mod coverage;
 mod finding;
 mod frontmatter;
 mod hygiene;

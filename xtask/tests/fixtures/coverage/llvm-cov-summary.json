@@ -1,0 +1,1037 @@
+{
+ "data": [
+  {
+   "files": [
+    {
+     "filename": "/work/liminal/xtask/src/check.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 18,
+       "covered": 17,
+       "percent": 94.44444444444444
+      },
+      "instantiations": {
+       "count": 27,
+       "covered": 17,
+       "percent": 62.96296296296296
+      },
+      "lines": {
+       "count": 151,
+       "covered": 140,
+       "percent": 92.71523178807945
+      },
+      "regions": {
+       "count": 231,
+       "covered": 213,
+       "notcovered": 18,
+       "percent": 92.2077922077922
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_arch.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 3,
+       "covered": 2,
+       "percent": 66.66666666666666
+      },
+      "instantiations": {
+       "count": 6,
+       "covered": 2,
+       "percent": 33.33333333333333
+      },
+      "lines": {
+       "count": 17,
+       "covered": 14,
+       "percent": 82.35294117647058
+      },
+      "regions": {
+       "count": 40,
+       "covered": 31,
+       "notcovered": 9,
+       "percent": 77.5
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_arch/attributes.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 10,
+       "covered": 10,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 17,
+       "covered": 10,
+       "percent": 58.82352941176471
+      },
+      "lines": {
+       "count": 106,
+       "covered": 106,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 130,
+       "covered": 130,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_arch/rules.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 32,
+       "covered": 32,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 68,
+       "covered": 34,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 378,
+       "covered": 376,
+       "percent": 99.47089947089947
+      },
+      "regions": {
+       "count": 463,
+       "covered": 459,
+       "notcovered": 4,
+       "percent": 99.13606911447084
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_docs.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 12,
+       "covered": 11,
+       "percent": 91.66666666666666
+      },
+      "instantiations": {
+       "count": 24,
+       "covered": 11,
+       "percent": 45.83333333333333
+      },
+      "lines": {
+       "count": 108,
+       "covered": 104,
+       "percent": 96.29629629629629
+      },
+      "regions": {
+       "count": 209,
+       "covered": 201,
+       "notcovered": 8,
+       "percent": 96.17224880382776
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_docs/fields.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 13,
+       "covered": 13,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 40,
+       "covered": 20,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 99,
+       "covered": 99,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 127,
+       "covered": 126,
+       "notcovered": 1,
+       "percent": 99.21259842519686
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_docs/indexes.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 16,
+       "covered": 16,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 32,
+       "covered": 16,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 157,
+       "covered": 157,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 203,
+       "covered": 203,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/check_docs/rules.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 28,
+       "covered": 28,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 56,
+       "covered": 28,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 364,
+       "covered": 362,
+       "percent": 99.45054945054946
+      },
+      "regions": {
+       "count": 610,
+       "covered": 605,
+       "notcovered": 5,
+       "percent": 99.18032786885246
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/ci.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 21,
+       "covered": 21,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 42,
+       "covered": 27,
+       "percent": 64.28571428571429
+      },
+      "lines": {
+       "count": 227,
+       "covered": 227,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 345,
+       "covered": 339,
+       "notcovered": 6,
+       "percent": 98.26086956521739
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/cli.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 25,
+       "covered": 24,
+       "percent": 96.0
+      },
+      "instantiations": {
+       "count": 36,
+       "covered": 33,
+       "percent": 91.66666666666666
+      },
+      "lines": {
+       "count": 150,
+       "covered": 143,
+       "percent": 95.33333333333334
+      },
+      "regions": {
+       "count": 245,
+       "covered": 230,
+       "notcovered": 15,
+       "percent": 93.87755102040816
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/finding.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 2,
+       "covered": 2,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 14,
+       "covered": 8,
+       "percent": 57.14285714285714
+      },
+      "lines": {
+       "count": 18,
+       "covered": 18,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 14,
+       "covered": 14,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/frontmatter.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 25,
+       "covered": 24,
+       "percent": 96.0
+      },
+      "instantiations": {
+       "count": 52,
+       "covered": 25,
+       "percent": 48.07692307692308
+      },
+      "lines": {
+       "count": 199,
+       "covered": 196,
+       "percent": 98.49246231155779
+      },
+      "regions": {
+       "count": 264,
+       "covered": 260,
+       "notcovered": 4,
+       "percent": 98.48484848484848
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/hygiene.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 26,
+       "covered": 25,
+       "percent": 96.15384615384616
+      },
+      "instantiations": {
+       "count": 52,
+       "covered": 25,
+       "percent": 48.07692307692308
+      },
+      "lines": {
+       "count": 272,
+       "covered": 262,
+       "percent": 96.32352941176472
+      },
+      "regions": {
+       "count": 439,
+       "covered": 421,
+       "notcovered": 18,
+       "percent": 95.8997722095672
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/main.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 1,
+       "covered": 1,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 2,
+       "covered": 1,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 14,
+       "covered": 14,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 26,
+       "covered": 26,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/markdown.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 29,
+       "covered": 29,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 51,
+       "covered": 29,
+       "percent": 56.86274509803921
+      },
+      "lines": {
+       "count": 270,
+       "covered": 268,
+       "percent": 99.25925925925925
+      },
+      "regions": {
+       "count": 445,
+       "covered": 441,
+       "notcovered": 4,
+       "percent": 99.10112359550561
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/process.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 24,
+       "covered": 23,
+       "percent": 95.83333333333334
+      },
+      "instantiations": {
+       "count": 34,
+       "covered": 25,
+       "percent": 73.52941176470588
+      },
+      "lines": {
+       "count": 211,
+       "covered": 202,
+       "percent": 95.73459715639812
+      },
+      "regions": {
+       "count": 312,
+       "covered": 296,
+       "notcovered": 16,
+       "percent": 94.87179487179486
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/repo.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 40,
+       "covered": 37,
+       "percent": 92.5
+      },
+      "instantiations": {
+       "count": 73,
+       "covered": 38,
+       "percent": 52.054794520547944
+      },
+      "lines": {
+       "count": 194,
+       "covered": 189,
+       "percent": 97.42268041237114
+      },
+      "regions": {
+       "count": 364,
+       "covered": 341,
+       "notcovered": 23,
+       "percent": 93.68131868131869
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/repo/architecture.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 9,
+       "covered": 9,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 14,
+       "covered": 9,
+       "percent": 64.28571428571429
+      },
+      "lines": {
+       "count": 92,
+       "covered": 92,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 151,
+       "covered": 151,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/repo/metadata.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 30,
+       "covered": 28,
+       "percent": 93.33333333333333
+      },
+      "instantiations": {
+       "count": 48,
+       "covered": 28,
+       "percent": 58.333333333333336
+      },
+      "lines": {
+       "count": 213,
+       "covered": 211,
+       "percent": 99.06103286384976
+      },
+      "regions": {
+       "count": 332,
+       "covered": 330,
+       "notcovered": 2,
+       "percent": 99.3975903614458
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/repo/sources.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 19,
+       "covered": 19,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 29,
+       "covered": 19,
+       "percent": 65.51724137931035
+      },
+      "lines": {
+       "count": 142,
+       "covered": 142,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 231,
+       "covered": 227,
+       "notcovered": 4,
+       "percent": 98.26839826839827
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/repo/workspace.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 15,
+       "covered": 13,
+       "percent": 86.66666666666667
+      },
+      "instantiations": {
+       "count": 26,
+       "covered": 14,
+       "percent": 53.84615384615385
+      },
+      "lines": {
+       "count": 142,
+       "covered": 140,
+       "percent": 98.59154929577466
+      },
+      "regions": {
+       "count": 227,
+       "covered": 218,
+       "notcovered": 9,
+       "percent": 96.0352422907489
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/requirements.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 22,
+       "covered": 22,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 44,
+       "covered": 22,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 144,
+       "covered": 143,
+       "percent": 99.30555555555556
+      },
+      "regions": {
+       "count": 240,
+       "covered": 239,
+       "notcovered": 1,
+       "percent": 99.58333333333333
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/rust_lexer.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 26,
+       "covered": 26,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 44,
+       "covered": 26,
+       "percent": 59.09090909090909
+      },
+      "lines": {
+       "count": 268,
+       "covered": 267,
+       "percent": 99.6268656716418
+      },
+      "regions": {
+       "count": 403,
+       "covered": 395,
+       "notcovered": 8,
+       "percent": 98.01488833746899
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/test_support.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 4,
+       "covered": 4,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 4,
+       "covered": 4,
+       "percent": 100.0
+      },
+      "lines": {
+       "count": 23,
+       "covered": 23,
+       "percent": 100.0
+      },
+      "regions": {
+       "count": 43,
+       "covered": 43,
+       "notcovered": 0,
+       "percent": 100.0
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/trace.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 25,
+       "covered": 24,
+       "percent": 96.0
+      },
+      "instantiations": {
+       "count": 50,
+       "covered": 24,
+       "percent": 48.0
+      },
+      "lines": {
+       "count": 266,
+       "covered": 262,
+       "percent": 98.49624060150376
+      },
+      "regions": {
+       "count": 393,
+       "covered": 382,
+       "notcovered": 11,
+       "percent": 97.20101781170484
+      }
+     }
+    },
+    {
+     "filename": "/work/liminal/xtask/src/trace/annotations.rs",
+     "summary": {
+      "branches": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "mcdc": {
+       "count": 0,
+       "covered": 0,
+       "notcovered": 0,
+       "percent": 0.0
+      },
+      "functions": {
+       "count": 6,
+       "covered": 6,
+       "percent": 100.0
+      },
+      "instantiations": {
+       "count": 12,
+       "covered": 6,
+       "percent": 50.0
+      },
+      "lines": {
+       "count": 65,
+       "covered": 63,
+       "percent": 96.92307692307692
+      },
+      "regions": {
+       "count": 134,
+       "covered": 122,
+       "notcovered": 12,
+       "percent": 91.04477611940298
+      }
+     }
+    }
+   ],
+   "totals": {
+    "branches": {
+     "count": 0,
+     "covered": 0,
+     "notcovered": 0,
+     "percent": 0
+    },
+    "functions": {
+     "count": 481,
+     "covered": 466,
+     "percent": 96.88149688149689
+    },
+    "instantiations": {
+     "count": 897,
+     "covered": 501,
+     "percent": 55.852842809364546
+    },
+    "lines": {
+     "count": 4290,
+     "covered": 4220,
+     "percent": 98.36829836829837
+    },
+    "mcdc": {
+     "count": 0,
+     "covered": 0,
+     "notcovered": 0,
+     "percent": 0
+    },
+    "regions": {
+     "count": 6621,
+     "covered": 6443,
+     "notcovered": 178,
+     "percent": 97.3115843528168
+    }
+   }
+  }
+ ],
+ "type": "llvm.coverage.json.export",
+ "version": "3.1.0",
+ "cargo_llvm_cov": {
+  "version": "0.9.1",
+  "manifest_path": "/work/liminal/Cargo.toml"
+ }
+}

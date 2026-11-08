@@ -105,6 +105,10 @@ pub(crate) const STEPS: &[Step] = &[
         name: crate::hygiene::NAME,
         action: Action::Check(crate::hygiene::run_check),
     },
+    Step {
+        name: crate::coverage::NAME,
+        action: Action::Coverage,
+    },
 ];
 
 /// One step of `ci`.
@@ -123,6 +127,9 @@ pub(crate) enum Action {
     Cargo(CargoInvocation),
     /// A native check, run inside xtask on the repository root (spec "native check step").
     Check(CheckFn),
+    /// `coverage`: runs `cargo llvm-cov`, then checks the floors inside xtask (XTASK-R060 … R064).
+    /// Skipped if `cargo-llvm-cov` is missing; never updates floors.
+    Coverage,
 }
 
 /// A `cargo` command line (the program itself is chosen by the runner).
@@ -358,6 +365,7 @@ pub(crate) fn run_steps(
             let command = match &step.action {
                 Action::Cargo(invocation) => invocation.args.join(" "),
                 Action::Check(_) => format!("xtask {}", step.name),
+                Action::Coverage => crate::repo::coverage::LLVM_COV_ARGS.join(" "),
             };
             writeln!(out, "==> {}: cargo {command}", step.name)?;
             // The child writes to the same stdout; our line must come first.
