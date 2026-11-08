@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -179,6 +179,21 @@ Review 3 and these changes.
 - Observation, not in scope: `markdown.rs` table cells use Unicode `trim`, but GFM trims only ASCII
   whitespace. An ADR title with a trailing U+00A0 would give a false R025 title mismatch. Not
   fixed: no rule requires it and the case is unlikely. A later task that touches `markdown.rs` should fix it.
+
+**Review 4 changes (2026-11-08, fifth session; same session that wrote Review 4 below).**
+Status → `review`. The next review must be done by a new session: this session wrote both
+Review 4 and these changes.
+1. `frontmatter.rs`: `is_allowed_character` rejects U+FEFF (`c != '\u{feff}'`). Doc comment now
+   names YAML 1.2 `nb-char` as the reference set. Tests: four rejection cases (U+FEFF inside, at the
+   start of a value, in a list item, in a comment) and one for a BOM before line 1's `---`. The
+   `bom` case is removed from the acceptance test. U+FEFF added to `REJECTED_CHARACTERS`, the dense
+   alphabet and the arbitrary-input assertion.
+2. Rejection case `"---\n\tkey: v\n---\n"` → line 2, "indented line".
+- Spec `spec_version` 7 (§6 details, History). `docs/process/DOCUMENTATION.md` updated.
+- Verified (macOS 27.2, Rust 1.99.1): `cargo xtask ci` passes; 104 lib tests. The new tests failed
+  before the fix (3 tests). Review 4's injection (`title: car<U+FEFF>go …` in M0-T009, reverted)
+  now gives one R020 finding naming U+FEFF. Mutants killed: tab-indent check → space only, the
+  U+FEFF exclusion removed, U+FEFF → U+FFFE in the exclusion. Not verified: Windows, Linux (M0-T007).
 
 ## Review
 

@@ -84,9 +84,10 @@ fn accepts_indicator_characters_that_yaml_reads_as_plain_text() {
 fn only_space_and_tab_are_trimmed_and_other_printable_characters_are_text() {
     // YAML's whitespace is space and tab only: U+00A0 and U+3000 are text, also at the edges and
     // before `#`, and `-`/`?` followed by U+00A0 are plain text. A tab inside a value is text.
+    // U+FEFF is not: YAML 1.2 excludes it from `nb-char` (see the rejection cases).
     let frontmatter = parse(
         "---\ntrail: x\u{a0}\nlead: \u{a0}x\nideo: x\u{3000}  # c\nhash: x\u{a0}#y\n\
-         dash: -\u{a0}x\nq: ?\u{a0}x\ntab: a\tb\nbom: a\u{feff}b\nitems: [a\u{a0}, \u{3000}b, \u{e9}]\n---\n",
+         dash: -\u{a0}x\nq: ?\u{a0}x\ntab: a\tb\nitems: [a\u{a0}, \u{3000}b, \u{e9}]\n---\n",
     )
     .unwrap();
     let expected = [
@@ -97,7 +98,6 @@ fn only_space_and_tab_are_trimmed_and_other_printable_characters_are_text() {
         ("dash", scalar("-\u{a0}x")),
         ("q", scalar("?\u{a0}x")),
         ("tab", scalar("a\tb")),
-        ("bom", scalar("a\u{feff}b")),
         ("items", list(&["a\u{a0}", "\u{3000}b", "\u{e9}"])),
     ];
     for (key, value) in expected {
@@ -114,6 +114,7 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: value\n", 1, "never closed"),
         ("---\n\nkey: value\n---\n", 2, "blank lines"),
         ("---\nkey: v\n  nested: x\n---\n", 3, "indented line"),
+        ("---\n\tkey: v\n---\n", 2, "indented line"),
         ("---\n# comment\n---\n", 2, "comment lines"),
         ("---\nno colon here\n---\n", 2, "expected `key: value`"),
         ("---\nCamelCase: x\n---\n", 2, "not snake_case"),
@@ -173,6 +174,11 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: [a, b\u{2029}]\n---\n", 2, "U+2029"),
         ("---\nkey: a\u{fffe}b\n---\n", 2, "U+FFFE"),
         ("---\nkey: a\u{ffff}\n---\n", 2, "U+FFFF"),
+        ("---\nkey: a\u{feff}b\n---\n", 2, "U+FEFF"),
+        ("---\nkey: \u{feff}ab\n---\n", 2, "U+FEFF"),
+        ("---\nkey: [a, b\u{feff}]\n---\n", 2, "U+FEFF"),
+        ("---\nkey: a  # c\u{feff}\n---\n", 2, "U+FEFF"),
+        ("\u{feff}---\nkey: a\n---\n", 1, "line 1 must be `---`"),
         ("---\nkey: a  # c\u{1}\n---\n", 2, "U+0001"),
         ("---\nk\u{1}ey: a\n---\n", 2, "U+0001"),
         ("---\n\u{a0}key: a\n---\n", 2, "not snake_case"),
@@ -280,16 +286,16 @@ fn invalid_line() -> impl Strategy<Value = String> {
 }
 
 /// One sample per class of character YAML rejects or reads as a line break: C0 controls (not
-/// tab, not LF), DEL, C1 controls (U+0085 included), U+2028, U+2029, U+FFFE, U+FFFF.
+/// tab, not LF), DEL, C1 controls (U+0085 included), U+2028, U+2029, U+FEFF, U+FFFE, U+FFFF.
 const REJECTED_CHARACTERS: &[char] = &[
     '\u{0}', '\u{1}', '\u{b}', '\u{c}', '\r', '\u{1b}', '\u{7f}', '\u{80}', '\u{85}', '\u{9f}',
-    '\u{2028}', '\u{2029}', '\u{fffe}', '\u{ffff}',
+    '\u{2028}', '\u{2029}', '\u{feff}', '\u{fffe}', '\u{ffff}',
 ];
 
 /// Input for the arbitrary-input property: any text, or text dense in the characters that matter
 /// (indicators, ASCII and non-ASCII whitespace, rejected characters).
 fn arbitrary_line() -> impl Strategy<Value = String> {
-    let dense = "[a-z:#,\\[\\]{}?\\- \t\u{a0}\u{3000}\u{0}\u{1}\u{b}\u{c}\r\u{7f}\u{85}\u{9f}\u{2028}\u{2029}\u{fffe}\u{ffff}]{0,24}";
+    let dense = "[a-z:#,\\[\\]{}?\\- \t\u{a0}\u{3000}\u{0}\u{1}\u{b}\u{c}\r\u{7f}\u{85}\u{9f}\u{2028}\u{2029}\u{feff}\u{fffe}\u{ffff}]{0,24}";
     prop_oneof![
         ".{0,40}",
         "[a-z]{1,4}: "
@@ -349,7 +355,7 @@ proptest! {
                     // Rust's `char::is_control` is general category Cc: C0, DEL and C1.
                     prop_assert!(
                         !text.chars().any(|c| (c.is_control() && c != '\t')
-                            || matches!(c, '\u{2028}' | '\u{2029}' | '\u{fffe}' | '\u{ffff}')),
+                            || matches!(c, '\u{2028}' | '\u{2029}' | '\u{feff}' | '\u{fffe}' | '\u{ffff}')),
                         "{:?}", text
                     );
                     prop_assert!(!text.contains(": ") && !text.contains(" #"));

@@ -123,17 +123,19 @@ fn normalize(line: &str) -> &str {
     line.trim_end_matches(WHITESPACE)
 }
 
-/// Whether YAML accepts `c` in a document without reading it as a line break: YAML 1.2
-/// `c-printable` minus the characters YAML 1.1 reads as line breaks (U+0085, U+2028, U+2029), so
-/// the subset means the same in both versions. LF never reaches this check (`str::lines`).
+/// Whether `c` may appear on a frontmatter line. Keys, values and comments are built from YAML
+/// 1.2 `nb-char` (`c-printable` minus line breaks and U+FEFF). The characters YAML 1.1 reads as
+/// line breaks (U+0085, U+2028, U+2029) are also excluded, so the subset means the same in both
+/// versions. LF never reaches this check (`str::lines`).
 fn is_allowed_character(c: char) -> bool {
-    matches!(c,
-        '\t'
-        | '\u{20}'..='\u{7e}'
-        | '\u{a0}'..='\u{2027}'
-        | '\u{202a}'..='\u{d7ff}'
-        | '\u{e000}'..='\u{fffd}'
-        | '\u{10000}'..)
+    c != '\u{feff}'
+        && matches!(c,
+            '\t'
+            | '\u{20}'..='\u{7e}'
+            | '\u{a0}'..='\u{2027}'
+            | '\u{202a}'..='\u{d7ff}'
+            | '\u{e000}'..='\u{fffd}'
+            | '\u{10000}'..)
 }
 
 /// Rejects a line that contains a character outside [`is_allowed_character`], anywhere (key,
