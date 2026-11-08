@@ -97,7 +97,7 @@ pub(crate) fn finding_lines(findings: &[Finding]) -> String {
 }
 
 /// The human-readable report: [`finding_lines`], then a result line.
-fn human(name: &str, findings: &[Finding]) -> String {
+pub(crate) fn human(name: &str, findings: &[Finding]) -> String {
     let mut text = finding_lines(findings);
     let _ = match findings.len() {
         0 => writeln!(text, "{name}: ok"),
@@ -110,17 +110,20 @@ fn human(name: &str, findings: &[Finding]) -> String {
 /// Sorts findings by location (path, then line number), then rule, then message (the spec's
 /// fixed order).
 pub(crate) fn sort(findings: &mut [Finding]) {
-    findings.sort_by(|a, b| {
-        (location_key(&a.location), &a.rule, &a.message).cmp(&(
-            location_key(&b.location),
-            &b.rule,
-            &b.message,
-        ))
-    });
+    findings.sort_by(order);
+}
+
+/// The order of [`sort`].
+pub(crate) fn order(a: &Finding, b: &Finding) -> std::cmp::Ordering {
+    (location_key(&a.location), &a.rule, &a.message).cmp(&(
+        location_key(&b.location),
+        &b.rule,
+        &b.message,
+    ))
 }
 
 /// `path:line` → (`path`, Some(line)); `path` → (`path`, None), which sorts first.
-fn location_key(location: &str) -> (&str, Option<u64>) {
+pub(crate) fn location_key(location: &str) -> (&str, Option<u64>) {
     match location.rsplit_once(':') {
         Some((path, line)) => match line.parse() {
             Ok(line) => (path, Some(line)),

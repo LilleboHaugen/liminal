@@ -1,4 +1,4 @@
-//! The `check-docs` command and `ci` step (`docs/specs/xtask.md` XTASK-R020 … R027 and the
+//! The `check-docs` command and `ci` step (`docs/specs/xtask.md` XTASK-R020 … R028 and the
 //! "`check-docs` details").
 //!
 //! [`check`] is a pure function of the [`RepoModel`]. Only [`run_check`] touches the file system,
@@ -17,6 +17,7 @@ use crate::finding::Finding;
 use crate::frontmatter::{self, Frontmatter};
 use crate::markdown;
 use crate::repo::{self, LoadError, RepoModel};
+use crate::requirements;
 
 /// Command and step name.
 pub(crate) const NAME: &str = "check-docs";
@@ -45,6 +46,7 @@ pub(crate) fn check(model: &RepoModel) -> Vec<Finding> {
     indexes::adr_index(model, &adrs, &mut findings);
     member_specs(model, &mut findings);
     indexes::spec_index(model, &specs, &mut findings);
+    task_requirements(model, &mut findings);
     check::sort(&mut findings);
     findings
 }
@@ -141,6 +143,35 @@ fn member_specs(model: &RepoModel, findings: &mut Vec<Finding>) {
                 format!("workspace member `{}` has no spec at {spec}", member.name),
                 "Write the spec from docs/specs/_TEMPLATE.md before writing code for the crate",
             ));
+        }
+    }
+}
+
+/// XTASK-R028: every entry of a task's `requirements` is a requirement ID of some spec (valid or
+/// malformed row, so a malformed row gives only its XTASK-R040 finding in `trace`). Task files
+/// whose frontmatter fails XTASK-R020 are skipped; that rule reports them.
+fn task_requirements(model: &RepoModel, findings: &mut Vec<Finding>) {
+    let extracted = requirements::extract(model);
+    for (path, text) in model.task_files() {
+        let Ok(frontmatter) = frontmatter::parse(text) else {
+            continue;
+        };
+        let Some(field) = frontmatter.get("requirements") else {
+            continue; // XTASK-R023 reports the missing field.
+        };
+        let frontmatter::Value::List(ids) = &field.value else {
+            continue; // XTASK-R023 reports a scalar where a list belongs.
+        };
+        for id in ids {
+            if !extracted.is_known(id) {
+                findings.push(Finding::error(
+                    "XTASK-R028",
+                    format!("{path}:{}", field.line),
+                    format!("`requirements` names `{id}`, which is not a requirement in any spec"),
+                    "Use a requirement ID from a spec's section 6 table, or add the requirement \
+                     to the spec first",
+                ));
+            }
         }
     }
 }

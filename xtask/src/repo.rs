@@ -6,6 +6,7 @@
 
 pub(crate) mod architecture;
 pub(crate) mod metadata;
+pub(crate) mod sources;
 pub(crate) mod workspace;
 
 use std::collections::{BTreeMap, BTreeSet};

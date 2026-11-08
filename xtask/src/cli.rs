@@ -111,8 +111,18 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         name: "check-docs",
-        summary: "Check doc frontmatter, links and indexes (XTASK-R020 … R027).",
+        summary: "Check doc frontmatter, links and indexes (XTASK-R020 … R028).",
         run: crate::check_docs::command,
+    },
+    Command {
+        name: "trace",
+        summary: "Requirement -> test matrix; gate untested MUSTs by maturity (XTASK-R040 … R045).",
+        run: crate::trace::command,
+    },
+    Command {
+        name: "hygiene",
+        summary: "Find forbidden macros, untracked task markers, unreasoned ignores (XTASK-R050 … R052).",
+        run: crate::hygiene::command,
     },
 ];
 

@@ -1,0 +1,3 @@
+[[trace.exclude]]
+path = "crates/demo/tests/data"
+reason = "Annotations with unknown IDs on purpose."

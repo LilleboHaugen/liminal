@@ -37,7 +37,7 @@ fn locations(findings: &[Finding]) -> Vec<&str> {
     findings.iter().map(|f| f.location.as_str()).collect()
 }
 
-/// Verifies: XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027
+/// Verifies: XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027, XTASK-R028
 #[test]
 fn valid_fixture_passes() {
     let findings = run_fixture(None);
@@ -65,6 +65,7 @@ fn every_case_directory_is_tested() {
             "r025_adr_index",
             "r026_member_spec",
             "r027_spec_index",
+            "r028_task_requirements",
         ]
     );
 }
@@ -162,4 +163,11 @@ fn invalid_architecture_toml_is_an_internal_error() {
     std::fs::write(root.path().join("architecture.toml"), "schema_version = [").unwrap();
     let error = run_check(root.path()).unwrap_err();
     assert_eq!(error.code, "LIM-XTASK-0003");
+}
+
+/// Verifies: XTASK-R028
+#[test]
+fn r028_task_requirements_fixture() {
+    let findings = fails_with_exactly("r028_task_requirements", "XTASK-R028");
+    assert_eq!(locations(&findings), ["docs/tasks/M0-T002-second.md:8"]);
 }

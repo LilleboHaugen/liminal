@@ -35,6 +35,12 @@ fn despawned_entity_ids_are_not_reused_until_generation_wraps() { … }
 higher, every `MUST` requirement needs at least one verifying test. `SHOULD` requirements are reported
 but do not fail the gate. Tests that name unknown IDs fail the gate.
 
+The annotation belongs in the doc comment directly above the function; attributes and comments may
+come between. A `/// Verifies:` line that is malformed or not followed by a function fails `trace`,
+as does an annotation naming a withdrawn requirement. Exact rules: `docs/specs/xtask.md`, "`trace`
+and `hygiene` details". Paths that `trace` and `hygiene` skip (fixture repositories) are listed in
+`ci/hygiene.toml`, each with a reason.
+
 ## Coverage
 
 Measured with `cargo llvm-cov` (line coverage) per crate. Floors live in `ci/coverage.toml`.

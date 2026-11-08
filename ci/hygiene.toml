@@ -1,0 +1,14 @@
+# Paths excluded from `cargo xtask hygiene` and from `cargo xtask trace` (docs/specs/xtask.md
+# XTASK-R052 and the "`trace` and `hygiene` details"). This file is the only exclusion mechanism.
+#
+# Each entry: `path` (repository-relative file or directory, `/`-separated) and a non-empty
+# `reason`. A directory entry covers every file below it. `hygiene` reports an entry whose path
+# does not exist or has the wrong form (XTASK-R052).
+
+[[hygiene.exclude]]
+path = "xtask/tests/fixtures"
+reason = "Fixture repositories deliberately contain the forbidden patterns that the hygiene and trace fixture tests must detect. They are test inputs, not workspace code: no Cargo.toml under this directory is a workspace member."
+
+[[trace.exclude]]
+path = "xtask/tests/fixtures"
+reason = "Fixture repositories contain annotations naming unknown, withdrawn and fixture-only requirement IDs, which the trace fixture tests must detect. They are test inputs, not tests of the workspace."

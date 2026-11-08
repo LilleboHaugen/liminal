@@ -1,0 +1,15 @@
+schema_version = 1
+
+[layers]
+"5" = "tools"
+
+[[crate]]
+name = "demo"
+path = "crates/demo"
+layer = 5
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = []

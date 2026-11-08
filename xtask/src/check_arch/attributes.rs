@@ -1,10 +1,13 @@
 //! Detects `#![forbid(unsafe_code)]` at a crate root (XTASK-R035) with a token-level scan, without
-//! a Rust parser (the M0-T004 notes rule out `syn` in xtask).
+//! a Rust parser (the M0-T004 notes rule out `syn` in xtask). Tokens come from
+//! [`crate::rust_lexer`].
 //!
 //! Only the crate's leading inner attributes count: the `#![…]` attributes before the first item,
 //! with whitespace and comments (doc comments included) skipped between and inside them. An inner
 //! attribute inside an inline `mod m { … }` applies to that module only, and text in comments or
 //! string literals is not an attribute, so neither is found.
+
+use crate::rust_lexer::{self, Kind};
 
 /// One token of an attribute.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,20 +53,27 @@ fn is_forbid_unsafe_code(tokens: &[Token]) -> bool {
 /// The token lists of the leading inner attributes (the text between `#![` and the matching `]`).
 /// Stops at the first token that does not start an inner attribute, or at malformed input.
 fn leading_inner_attributes(source: &str) -> Vec<Vec<Token>> {
-    let mut lexer = Lexer::new(source);
-    lexer.skip_shebang();
+    // Comments are trivia here; string and other literals are one opaque token each.
+    let mut lexer = rust_lexer::tokens(source)
+        .into_iter()
+        .filter_map(|token| match token.kind {
+            Kind::Ident(name) => Some(Token::Ident(name)),
+            Kind::Punct(c) => Some(Token::Punct(c)),
+            Kind::Str(_) | Kind::Literal => Some(Token::Literal),
+            Kind::Comment(_) => None,
+        });
     let mut attributes = Vec::new();
     loop {
-        let opens = lexer.next_token() == Some(Token::Punct('#'))
-            && lexer.next_token() == Some(Token::Punct('!'))
-            && lexer.next_token() == Some(Token::Punct('['));
+        let opens = lexer.next() == Some(Token::Punct('#'))
+            && lexer.next() == Some(Token::Punct('!'))
+            && lexer.next() == Some(Token::Punct('['));
         if !opens {
             return attributes;
         }
         let mut depth = 0usize;
         let mut tokens = Vec::new();
         loop {
-            match lexer.next_token() {
+            match lexer.next() {
                 None => return attributes,
                 Some(Token::Punct(']')) if depth == 0 => break,
                 Some(token) => {
@@ -77,191 +87,6 @@ fn leading_inner_attributes(source: &str) -> Vec<Vec<Token>> {
             }
         }
         attributes.push(tokens);
-    }
-}
-
-/// A minimal Rust lexer: identifiers, punctuation and literals; whitespace and comments skipped.
-struct Lexer<'a> {
-    source: &'a str,
-    /// Byte offset of the next character.
-    position: usize,
-}
-
-impl<'a> Lexer<'a> {
-    fn new(source: &'a str) -> Self {
-        let source = source.strip_prefix('\u{feff}').unwrap_or(source);
-        Self {
-            source,
-            position: 0,
-        }
-    }
-
-    fn rest(&self) -> &'a str {
-        &self.source[self.position..]
-    }
-
-    fn peek(&self) -> Option<char> {
-        self.rest().chars().next()
-    }
-
-    fn bump(&mut self) -> Option<char> {
-        let c = self.peek()?;
-        self.position += c.len_utf8();
-        Some(c)
-    }
-
-    /// A first line `#!…` is a shebang unless the next token after `#!` is `[` (Rust reference,
-    /// "Shebang").
-    fn skip_shebang(&mut self) {
-        if !self.rest().starts_with("#!") {
-            return;
-        }
-        self.position = 2;
-        let is_attribute = self.skip_trivia() && self.peek() == Some('[');
-        self.position = if is_attribute {
-            0
-        } else {
-            self.source.find('\n').unwrap_or(self.source.len())
-        };
-    }
-
-    /// Skips whitespace and comments. Returns `false` on an unterminated block comment.
-    fn skip_trivia(&mut self) -> bool {
-        loop {
-            let rest = self.rest();
-            if rest.starts_with(char::is_whitespace) {
-                self.bump();
-            } else if rest.starts_with("//") {
-                self.position += rest.find('\n').unwrap_or(rest.len());
-            } else if rest.starts_with("/*") {
-                // Block comments nest.
-                let mut depth = 0usize;
-                loop {
-                    let rest = self.rest();
-                    if rest.starts_with("/*") {
-                        depth += 1;
-                        self.position += 2;
-                    } else if rest.starts_with("*/") {
-                        depth -= 1;
-                        self.position += 2;
-                        if depth == 0 {
-                            break;
-                        }
-                    } else if self.bump().is_none() {
-                        return false;
-                    }
-                }
-            } else {
-                return true;
-            }
-        }
-    }
-
-    /// The next token, or `None` at the end of input or on malformed input.
-    fn next_token(&mut self) -> Option<Token> {
-        if !self.skip_trivia() {
-            return None;
-        }
-        let c = self.peek()?;
-        if c == '_' || c.is_alphabetic() {
-            let ident = self.identifier();
-            return match (ident.as_str(), self.peek()) {
-                ("r" | "br" | "cr", Some('"' | '#')) => self.raw_string(),
-                ("b" | "c", Some('"')) => {
-                    self.bump();
-                    self.string('"')
-                }
-                ("b", Some('\'')) => {
-                    self.bump();
-                    self.string('\'')
-                }
-                _ => Some(Token::Ident(ident)),
-            };
-        }
-        if c.is_ascii_digit() {
-            while self
-                .peek()
-                .is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.')
-            {
-                self.bump();
-            }
-            return Some(Token::Literal);
-        }
-        self.bump();
-        match c {
-            '"' => self.string('"'),
-            '\'' => self.char_or_lifetime(),
-            c => Some(Token::Punct(c)),
-        }
-    }
-
-    /// An identifier; a raw identifier `r#name` yields `name`.
-    fn identifier(&mut self) -> String {
-        let take = |lexer: &mut Self| {
-            let start = lexer.position;
-            while lexer
-                .peek()
-                .is_some_and(|c| c == '_' || c.is_alphanumeric())
-            {
-                lexer.bump();
-            }
-            lexer.source[start..lexer.position].to_string()
-        };
-        let ident = take(self);
-        if ident == "r" && self.rest().starts_with('#') {
-            let after = &self.rest()[1..];
-            if after.starts_with(|c: char| c == '_' || c.is_alphabetic()) {
-                self.position += 1;
-                return take(self);
-            }
-        }
-        ident
-    }
-
-    /// The rest of a quoted literal after its opening `quote`, with `\` escapes.
-    fn string(&mut self, quote: char) -> Option<Token> {
-        loop {
-            match self.bump()? {
-                '\\' => {
-                    self.bump()?;
-                }
-                c if c == quote => return Some(Token::Literal),
-                _ => {}
-            }
-        }
-    }
-
-    /// A raw string after its `r`/`br`/`cr` prefix: `#…#"…"#…#`.
-    fn raw_string(&mut self) -> Option<Token> {
-        let mut hashes = 0;
-        while self.peek() == Some('#') {
-            self.bump();
-            hashes += 1;
-        }
-        if self.bump()? != '"' {
-            return None;
-        }
-        let close = format!("\"{}", "#".repeat(hashes));
-        let end = self.rest().find(&close)?;
-        self.position += end + close.len();
-        Some(Token::Literal)
-    }
-
-    /// After a `'`: a character literal (`'x'`, `'\n'`) or a lifetime (`'a`).
-    fn char_or_lifetime(&mut self) -> Option<Token> {
-        let rest = self.rest();
-        let mut chars = rest.chars();
-        match (chars.next()?, chars.next()) {
-            ('\\', _) => self.string('\''),
-            (c, Some('\'')) => {
-                self.position += c.len_utf8() + 1;
-                Some(Token::Literal)
-            }
-            _ => {
-                self.identifier();
-                Some(Token::Punct('\''))
-            }
-        }
     }
 }
 

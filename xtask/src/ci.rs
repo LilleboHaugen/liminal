@@ -97,6 +97,14 @@ pub(crate) const STEPS: &[Step] = &[
         name: crate::check_docs::NAME,
         action: Action::Check(crate::check_docs::run_check),
     },
+    Step {
+        name: crate::trace::NAME,
+        action: Action::Check(crate::trace::run_check),
+    },
+    Step {
+        name: crate::hygiene::NAME,
+        action: Action::Check(crate::hygiene::run_check),
+    },
 ];
 
 /// One step of `ci`.

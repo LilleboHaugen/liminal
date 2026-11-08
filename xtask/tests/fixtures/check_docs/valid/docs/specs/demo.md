@@ -9,3 +9,9 @@ adrs: [ADR-0002]
 ---
 
 # Spec: `demo`
+
+## 6. Requirements
+
+| ID | Level | Requirement |
+|---|---|---|
+| DEMO-R001 | MUST | The demo crate exists. |

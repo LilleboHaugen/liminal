@@ -14,10 +14,14 @@ mod ci;
 mod cli;
 mod finding;
 mod frontmatter;
+mod hygiene;
 mod markdown;
 mod process;
 mod repo;
+mod requirements;
+mod rust_lexer;
 #[cfg(test)]
 mod test_support;
+mod trace;
 
 pub use cli::{COMMANDS, Command, CommandError, CommandFn, Exit, run};

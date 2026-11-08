@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 9
+spec_version: 10
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -275,7 +275,7 @@ as `output_tail` in both output modes.
 
 | ID | Level | Requirement |
 |---|---|---|
-| XTASK-R040 | MUST | Requirements are extracted from tables in section 6 of each spec: a row whose first cell matches `^[A-Z]+-R\d{3}$`, whose second cell is MUST, SHOULD or MAY, and whose third cell is the text. A requirement is withdrawn if its text contains `(withdrawn`. The prefix MUST equal the spec's `req_prefix`. |
+| XTASK-R040 | MUST | Requirements are extracted from tables in section 6 of each spec: a row whose first cell matches `^[A-Z]+-R\d{3}$`, whose second cell is MUST, SHOULD or MAY, and whose third cell is the text. A requirement is withdrawn if its text contains `(withdrawn` outside inline code spans (`spec_version` 10). The prefix MUST equal the spec's `req_prefix`. |
 | XTASK-R041 | MUST | Test annotations are lines in `.rs` files of workspace crates matching `^\s*///\s*Verifies:\s*ID(\s*,\s*ID)*\s*$`. Each annotation is attached to the next `fn` item, and the function name is recorded. |
 | XTASK-R042 | MUST | `trace` reports, per requirement, the verifying tests (`path:line fn_name`), and per crate the count of MUST/SHOULD/MAY requirements with and without tests. |
 | XTASK-R043 | MUST | An annotation naming an unknown or withdrawn requirement ID is an error. |
@@ -284,6 +284,66 @@ as `output_tail` in both output modes.
 | XTASK-R050 | MUST | `hygiene` reports, in `.rs` files of the workspace: `todo!(`, `unimplemented!(`, `dbg!(`; comments containing `TODO`, `FIXME`, `XXX` or `HACK` not immediately followed by `(M<n>-T<nnn>)`; and `#[ignore]` without a reason string containing a task ID. |
 | XTASK-R051 | MUST | Task IDs referenced by TODO comments exist in `docs/tasks/` and are not `done` (a TODO pointing at a finished task is stale). Task IDs in `#[ignore]` reasons only need to exist: long-lived ignores (e.g. "needs network", "needs GPU") legitimately outlive the task that added them. |
 | XTASK-R052 | MUST | Paths excluded from `hygiene` are listed in `ci/hygiene.toml`, each with a `reason` field. No other exclusion mechanism exists. |
+
+`trace` and `hygiene` details (added in `spec_version` 10):
+
+- Scope. Both read the `.rs` files below the manifest directory of each workspace member
+  (`[workspace].members`, as for R026), minus the exclusions in `ci/hygiene.toml`:
+  `[[hygiene.exclude]]` for `hygiene`, `[[trace.exclude]]` for `trace`. Each entry has exactly the
+  fields `path` (repository-relative file or directory; a directory covers every file below it) and
+  `reason`. A missing or unknown field, or a wrong TOML type, is LIM-XTASK-0004. `hygiene` reports
+  as R052, for entries of both sections: a reason that is empty or whitespace only, a path that is
+  absolute, contains `\`, `.` or `..` components or empty components, and a path that does not
+  exist.
+- Lexing. Files are split into tokens by a small Rust lexer (identifiers, punctuation, string
+  literals of every form, other literals, line and nested block comments). It is not a parser.
+  Comments, string contents and code are told apart exactly, so patterns inside string literals
+  are never findings, and `trace` and `hygiene` need no exclusion for xtask's own source.
+- Requirements (R040). Section 6 is the text from the level-2 heading that starts with `6.` or
+  `6 ` up to the next level-1 or level-2 heading, outside fenced code. A row whose first cell is a
+  requirement ID but whose second cell is not MUST, SHOULD or MAY, or whose third cell is empty,
+  is an R040 finding. So is an ID whose prefix differs from the spec's `req_prefix`; that
+  requirement still counts. Extraction does not need valid frontmatter: the crate is the spec's
+  file name, and `req_prefix` and `maturity` are used only when readable. A malformed row's ID is
+  a known ID for R028 and R043, so one mistake gives one finding. R045 reports a repeated ID at
+  each later row and keeps the first.
+- Annotations (R041). An annotation is a `///` line comment (not `////`) that is the first token
+  on its line and whose text after `///` and whitespace starts with `Verifies:`. If the rest does
+  not match `\s*ID(\s*,\s*ID)*\s*`, the line is an R041 finding (malformed). It is attached to the
+  item that follows, after comments and outer attributes (`#[…]`, any number of lines): that item
+  must start with qualifiers (`pub`, `pub(…)`, `const`, `async`, `unsafe`, `safe`, `extern` with an
+  optional ABI string, `default`) and `fn <name>`, otherwise the annotation is an R041 finding (not
+  attached). This replaces the M0-T005 note's "within 10 lines" heuristic: the token rule is exact.
+  A test is reported at the line of its function name. A function that names an ID twice is listed
+  once.
+- Matrix and gate (R042, R044). `trace` lists, per spec (sorted by path), each requirement with its
+  tests (`path:line fn_name`, sorted by path and line), `untested`, or `withdrawn`, then the counts
+  of tested requirements per level. Withdrawn requirements are not counted and never gated. For a
+  spec below `usable` (or with unreadable `maturity`), an untested MUST is shown in the matrix and
+  the counts only; it is not a finding. `--crate <name>` limits the matrix and the findings to the
+  spec `docs/specs/<name>.md` (findings about a spec row belong to its spec's crate, findings about
+  an annotation to the crate of its file); a name without a spec, a missing name or a repeated
+  `--crate` is a usage error. `trace --json` prints `{ "version": 1, "ok", "findings",
+  "requirements": [ { "id", "level", "crate", "spec": "path:line", "withdrawn", "tests": [
+  { "location", "function" } ] } ], "crates": [ { "crate", "spec", "maturity", "gated", "levels":
+  { "MUST" | "SHOULD" | "MAY": { "tested", "untested" } } } ] }`. The `ci` step reports the findings
+  only.
+- Forbidden macros (R050): an identifier `todo`, `unimplemented` or `dbg` in code, followed by `!`
+  and `(`, `[` or `{` (whitespace and comments between are allowed, as in Rust).
+- Task markers (R050, R051): in comments only (line, block and doc comments). A marker is `TODO`,
+  `FIXME`, `XXX` or `HACK`, case-sensitive, as a whole word (the characters around it are not
+  ASCII letters, digits or `_`); the plural with `s` is a marker too. It is tracked only if the
+  singular marker is immediately followed by `(M<n>-T<nnn>)`. A task ID is `M\d+-T\d{3}` not
+  inside a longer word or number. A task exists if a task file name starts with its ID; it is
+  `done` if that file's frontmatter says `status: done`. A task file with unreadable frontmatter
+  exists and is not `done`.
+- Ignore attributes (R050, R051): `ignore` as a meta item inside an outer or inner attribute
+  (directly after `[`, `(` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). Without
+  `= "reason"`, or with a reason that contains no task ID, it is R050. Every task ID in the reason
+  must exist (R051); its status does not matter.
+- Locations: `path:line`. For R040, R044 and R045 the spec row; for R041 and R043 the annotation
+  line; for R050 and R051 the line of the macro name, the marker, or `ignore`; for R052 the
+  entry's `[[…]]` line in `ci/hygiene.toml`.
 
 ### `coverage` (R060–R069)
 
@@ -328,7 +388,7 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`) is invalid, misses a field xtask needs, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 
 ## 9. Performance budgets
@@ -381,3 +441,4 @@ Promotion to `usable` (M0 exit):
 | 7 | 2026-11-08 | Frontmatter: reject U+FEFF (not in YAML 1.2 `nb-char`) | M0-T003 (review 4 changes) |
 | 8 | 2026-11-08 | `check-arch` details (model from `cargo metadata --no-deps`, R030 values and locations, R031 kind rule, R032/R036 overlap, R033/R034 scope table, R035 attribute rule, locations); R030: shape errors are LIM-XTASK-0003; LIM-XTASK-0005; `cargo_metadata` approved but unused | M0-T004 |
 | 9 | 2026-11-08 | `check-arch` details: R032–R036 skip a crate with an unregistered or invalid-layer entry entirely, and dependencies on it (clarified wording; review 1 of M0-T004) | M0-T004 |
+| 10 | 2026-11-08 | `trace` and `hygiene` details (scope, `ci/hygiene.toml` format, lexing, R040 malformed rows, R041 attachment, matrix and `--json`, R050/R051 pattern rules, locations); R040: `(withdrawn` counts only outside inline code spans (R040's own text names the marker); LIM-XTASK-0004 covers `ci/hygiene.toml` | M0-T005 |

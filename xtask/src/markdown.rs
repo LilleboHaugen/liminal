@@ -31,7 +31,7 @@ pub(crate) struct Row {
 
 /// The lines of `text` that are not inside fenced code blocks (fence lines excluded), paired with
 /// their 1-based line numbers.
-fn prose_lines(text: &str) -> Vec<(usize, &str)> {
+pub(crate) fn prose_lines(text: &str) -> Vec<(usize, &str)> {
     let mut fence: Option<(u8, usize)> = None;
     let mut lines = Vec::new();
     for (index, line) in text.lines().enumerate() {

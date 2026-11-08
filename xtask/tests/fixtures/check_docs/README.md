@@ -15,3 +15,4 @@ other rule (`xtask/src/check_docs/fixture_tests.rs`).
 | `r025_adr_index` | ADR-0002 missing from the ADR index | XTASK-R025 |
 | `r026_member_spec` | workspace member without a spec | XTASK-R026 |
 | `r027_spec_index` | spec index maturity disagrees with the spec | XTASK-R027 |
+| `r028_task_requirements` | task `requirements` names `DEMO-R002`, which no spec defines | XTASK-R028 |

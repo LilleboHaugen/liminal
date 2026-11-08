@@ -748,3 +748,61 @@ fn r027_spec_index_lists_every_spec_with_its_maturity() {
         "demo.md (docs/specs/demo.md) is not listed",
     );
 }
+
+// ---------------------------------------------------------------- R028
+
+/// Verifies: XTASK-R028
+#[test]
+fn r028_task_requirements_must_exist_in_some_spec() {
+    let mut model = valid();
+    edit(
+        &mut model,
+        T2,
+        "requirements: []",
+        "requirements: [DEMO-R001, DEMO-R002, DEMO-R003, DEMO-R009]",
+    );
+    // DEMO-R002 is withdrawn and DEMO-R003 is a malformed row: both exist in the spec.
+    edit(
+        &mut model,
+        SPEC,
+        "| DEMO-R001 | MUST | The demo crate exists. |",
+        "| DEMO-R001 | MUST | The demo crate exists. |\n\
+         | DEMO-R002 | MUST | Old (withdrawn in v2). |\n| DEMO-R003 | must | Malformed. |",
+    );
+    assert_one(
+        &model,
+        "XTASK-R028",
+        "docs/tasks/M0-T002-second.md:8",
+        "`requirements` names `DEMO-R009`, which is not a requirement in any spec",
+    );
+}
+
+/// Verifies: XTASK-R028
+#[test]
+fn r028_skips_tasks_with_broken_frontmatter_or_a_scalar_requirements_field() {
+    let mut model = valid();
+    edit(
+        &mut model,
+        T2,
+        "requirements: []",
+        "requirements: DEMO-R009",
+    );
+    let found = findings_of(&model);
+    assert!(
+        found.iter().all(|(rule, _, _)| rule == "XTASK-R023"),
+        "{found:#?}"
+    );
+    let mut model = valid();
+    edit(
+        &mut model,
+        T2,
+        "requirements: []",
+        "requirements: [DEMO-R009]",
+    );
+    edit(&mut model, T2, "status: todo", "status:todo");
+    let found = findings_of(&model);
+    assert!(
+        found.iter().all(|(rule, _, _)| rule == "XTASK-R020"),
+        "{found:#?}"
+    );
+}

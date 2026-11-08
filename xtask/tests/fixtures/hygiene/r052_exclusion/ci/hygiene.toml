@@ -1,0 +1,7 @@
+[[hygiene.exclude]]
+path = "crates/demo/tests/data"
+reason = "   "
+
+[[trace.exclude]]
+path = "crates/demo/tests/missing"
+reason = "Stale."
