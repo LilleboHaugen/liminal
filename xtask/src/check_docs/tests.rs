@@ -434,6 +434,42 @@ fn r023_dependencies_must_exist_and_have_no_cycles() {
     );
 }
 
+/// Verifies: XTASK-R023
+#[test]
+fn r023_a_task_without_a_valid_id_still_exists_by_its_file_name() {
+    // Broken frontmatter in M0-T001: only the R020 finding, no "M0-T002 depends on M0-T001, which
+    // is not an existing task".
+    let mut model = valid();
+    edit(&mut model, T1, "status: done", "status:done");
+    let found = findings_of(&model);
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert_eq!(found[0].0, "XTASK-R020");
+
+    // Readable frontmatter with an invalid `id`: only the finding on that field.
+    let mut model = valid();
+    edit(&mut model, T1, "id: M0-T001", "id: M0-T1");
+    assert_one(&model, "XTASK-R023", &format!("{T1}:2"), "`id` is `M0-T1`");
+
+    // A file name without a task ID prefix gives no ID: the dependency is reported.
+    let mut model = valid();
+    let text = model.markdown[T1].replace("status: done", "status:done");
+    remove(&mut model, T1);
+    put(&mut model, "docs/tasks/M0-T1-first.md", &text);
+    // The rename also breaks M0-T002's link to the file (R024), which is not under test here.
+    let found: Vec<_> = findings_of(&model)
+        .into_iter()
+        .filter(|f| f.0 != "XTASK-R024")
+        .collect();
+    let rules: Vec<&str> = found.iter().map(|f| f.0.as_str()).collect();
+    // Sorted by path: M0-T002-second.md before M0-T1-first.md.
+    assert_eq!(rules, ["XTASK-R023", "XTASK-R020"], "{found:#?}");
+    assert!(
+        found[0]
+            .2
+            .contains("depends on M0-T001, which is not an existing task")
+    );
+}
+
 // ---------------------------------------------------------------- R024
 
 /// Verifies: XTASK-R024
@@ -538,6 +574,24 @@ fn r025_status_must_match_including_superseded_by() {
         "XTASK-R025",
         "docs/adr/README.md:7",
         "its frontmatter says `superseded by ADR-0002`",
+    );
+}
+
+/// Verifies: XTASK-R025
+#[test]
+fn r025_adr_status_cell_must_not_be_in_backticks() {
+    let mut model = valid();
+    edit(
+        &mut model,
+        "docs/adr/README.md",
+        "| Second decision | accepted |",
+        "| Second decision | `accepted` |",
+    );
+    assert_one(
+        &model,
+        "XTASK-R025",
+        "docs/adr/README.md:8",
+        "listed with status ``accepted``",
     );
 }
 

@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::fields::{self, Fields, one_of};
 use super::parse_frontmatter;
 use crate::finding::Finding;
-use crate::frontmatter::{is_date, is_integer};
+use crate::frontmatter::{Frontmatter, Value, is_date, is_integer};
 use crate::repo::{RepoModel, file_name};
 
 const ADR_FIELDS: &[&str] = &[
@@ -310,8 +310,11 @@ pub(super) fn tasks(model: &RepoModel, findings: &mut Vec<Finding>) {
         .map(|c| c.name.as_str())
         .collect();
     let mut tasks: BTreeMap<String, TaskData> = BTreeMap::new();
+    // Task files without a valid `id`, by the ID their file name starts with.
+    let mut unreadable: BTreeSet<String> = BTreeSet::new();
     for (path, text) in model.task_files() {
         let Some(frontmatter) = parse_frontmatter(path, text, findings) else {
+            unreadable.extend(file_task_id(path));
             continue;
         };
         let mut fields = Fields::new("XTASK-R023", path, &frontmatter, TASK_FIELDS, findings);
@@ -369,6 +372,9 @@ pub(super) fn tasks(model: &RepoModel, findings: &mut Vec<Finding>) {
         }
         fields.list("requirements");
         let depends = fields.list("depends_on");
+        if id.is_none() && !fields_have_valid_id(&frontmatter) {
+            unreadable.extend(file_task_id(path));
+        }
         if let Some(id) = id {
             tasks.insert(
                 id.to_string(),
@@ -380,14 +386,36 @@ pub(super) fn tasks(model: &RepoModel, findings: &mut Vec<Finding>) {
             );
         }
     }
-    dependencies(&tasks, findings);
+    dependencies(&tasks, &unreadable, findings);
+}
+
+/// The task ID a task file name starts with (`^M\d+-T\d{3}`), if any.
+fn file_task_id(path: &str) -> Option<String> {
+    let name = file_name(path).strip_suffix(".md")?;
+    let mut parts = name.splitn(3, '-');
+    let id = format!("{}-{}", parts.next()?, parts.next()?);
+    fields::is_task_id(&id).then_some(id)
+}
+
+/// Whether the frontmatter has an `id` of the task ID form (then the file is in the task set, or
+/// its ID is a duplicate of one that is).
+fn fields_have_valid_id(frontmatter: &Frontmatter) -> bool {
+    frontmatter
+        .get("id")
+        .is_some_and(|field| matches!(&field.value, Value::Scalar(id) if fields::is_task_id(id)))
 }
 
 /// R023 cross-file rules: every `depends_on` ID exists; the dependency graph has no cycles.
-fn dependencies(tasks: &BTreeMap<String, TaskData>, findings: &mut Vec<Finding>) {
+/// `unreadable` holds the file-name IDs of task files without a valid `id`. They exist for
+/// `depends_on`, but their own dependencies are unknown.
+fn dependencies(
+    tasks: &BTreeMap<String, TaskData>,
+    unreadable: &BTreeSet<String>,
+    findings: &mut Vec<Finding>,
+) {
     for (id, task) in tasks {
         for dependency in &task.depends_on {
-            if !tasks.contains_key(dependency) {
+            if !tasks.contains_key(dependency) && !unreadable.contains(dependency) {
                 findings.push(Finding::error(
                     "XTASK-R023",
                     format!("{}:{}", task.path, task.depends_line),

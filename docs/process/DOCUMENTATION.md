@@ -35,8 +35,8 @@ can be parsed without a YAML library (xtask parser, task M0-T003):
 - No quoting or escaping exists. Therefore scalar values MUST NOT contain ` #` (space + hash), and list
   items MUST NOT contain `,`, `[` or `]`. Leading and trailing whitespace is trimmed.
 - `cargo xtask check-docs` enforces the subset (XTASK-R020). The exact grammar, including what it
-  rejects (blank and comment-only lines inside frontmatter, values containing `: ` or starting with a
-  YAML indicator such as `"` or `|`), is in `docs/specs/xtask.md` ("`check-docs` details").
+  rejects (blank and comment-only lines inside frontmatter, values containing `: `, starting with a
+  YAML indicator such as `"`, `|` or `- `, or ending with `:`), is in `docs/specs/xtask.md` ("`check-docs` details").
 
 ### ADR fields
 ```

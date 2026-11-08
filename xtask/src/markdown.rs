@@ -316,6 +316,13 @@ mod tests {
         );
     }
 
+    /// Verifies: XTASK-R024
+    #[test]
+    fn footnote_definitions_are_not_reference_definitions() {
+        let text = "Text[^1].\n\n[^1]: footnote.md is not a target, but [a](a.md) is.\n";
+        assert_eq!(targets(text), [(3, "a.md".to_string())]);
+    }
+
     #[test]
     fn indented_lines_with_four_spaces_are_not_fences_or_definitions() {
         let text = "    ```\n[a](a.md)\n    [b]: b.md\n";

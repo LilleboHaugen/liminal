@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 3
+spec_version: 4
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -143,8 +143,11 @@ Summary details (added in `spec_version` 2):
   `^[a-z][a-z0-9_]*$` and is followed by `:` and at least one space or tab. Each key appears at most
   once. A comment starts at a `#` preceded by a space or tab and runs to the end of the line. Rejected:
   blank lines, comment-only lines, an empty value (an empty list is `[]`), and a value or list item
-  that contains `: ` or starts with one of `"`, `'`, `|`, `>`, `&`, `*`, `!`, `{`, `}`, `%`, `@` or
-  `` ` ``. YAML would read these differently, and the subset has no quoting. A value that starts
+  that contains `: `, starts with one of `"`, `'`, `|`, `>`, `&`, `*`, `!`, `{`, `}`, `%`, `@` or
+  `` ` ``, starts with `-`, `?` or `:` followed by whitespace or the end of the text, or ends with
+  `:` (added in `spec_version` 4). YAML would read these differently (quoting, block scalars,
+  sequence entries, complex keys, mappings), and the subset has no quoting. `-1`, `--all`, `?x` and
+  `a:b` are plain strings. A value that starts
   with `[` is a list. It ends with `]`, and its items, split on `,` and trimmed, are non-empty and
   contain no `[` or `]`. Every other value is a string. Integers (`^\d+$`) and dates
   (`^\d{4}-\d{2}-\d{2}$`, calendar not checked) are strings that the field rules check.
@@ -153,10 +156,14 @@ Summary details (added in `spec_version` 2):
   as above; `layer` and `spec_version` integers (`spec_version` ≥ 1); `req_prefix` `^[A-Z]+$`; task
   `milestone` `^M\d+$`, equal to the milestone part of `id`. A spec's `crate` equals its file name
   without `.md`. A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
-  and maturity comparisons of R025 and R027.
+  and maturity comparisons of R025 and R027. For the `depends_on` existence check (R023), a task
+  file without a valid `id` (including one that fails R020) exists under the task ID its file name
+  starts with (`^M\d+-T\d{3}` before the next `-` or `.md`), if any. This avoids a second, false
+  finding on every task that depends on it. Its own `depends_on` is not known and not checked.
 - Links (R024): inline links and images (`[text](target)`, `![alt](target)`, also
   `<target>` and an optional title) and reference definitions (`[label]: target`). Ignored: fenced
-  code blocks (```` ``` ```` or `~~~`), inline code spans (on one line), targets with a URI scheme
+  code blocks (```` ``` ```` or `~~~`), inline code spans (on one line), footnote definitions
+  (`[^label]: text` is not a reference definition; links inside its text count), targets with a URI scheme
   (`^[A-Za-z][A-Za-z0-9+.-]*:`, e.g. `https:`, `mailto:`), and pure anchors (`#…`). From the
   target, `#…` and `?…` are removed. The rest is resolved against the linking file's directory, or
   against the repository root if it starts with `/`. It is not percent-decoded. A target that
@@ -301,3 +308,4 @@ Promotion to `usable` (M0 exit):
 | 1 | 2026-11-08 | Initial spec | Planning session |
 | 2 | 2026-11-08 | §5 summary details: optional `output_tail`, `--fail-fast` stopping rule, list option forms, empty selection is a usage error | M0-T002 |
 | 3 | 2026-11-08 | `check-docs` details (exact frontmatter subset, field forms, unknown fields, link and index rules, member patterns), check command output, native `ci` steps, LIM-XTASK-0004 | M0-T003 |
+| 4 | 2026-11-08 | Frontmatter: reject values starting with `- `, `? `, `: ` or ending with `:`. Links: footnote definitions. R023: a task file without a valid `id` exists by its file-name ID for `depends_on` | M0-T003 (review changes) |

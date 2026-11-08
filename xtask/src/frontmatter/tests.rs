@@ -66,6 +66,21 @@ fn accepts_crlf_tabs_hash_without_space_and_body_after_close() {
 
 /// Verifies: XTASK-R020
 #[test]
+fn accepts_indicator_characters_that_yaml_reads_as_plain_text() {
+    let frontmatter =
+        parse("---\nneg: -1\nflag: --all\nq: ?x\nurl: a:b\nitems: [-x, a:b, ?y]\n---\n").unwrap();
+    assert_eq!(frontmatter.get("neg").unwrap().value, scalar("-1"));
+    assert_eq!(frontmatter.get("flag").unwrap().value, scalar("--all"));
+    assert_eq!(frontmatter.get("q").unwrap().value, scalar("?x"));
+    assert_eq!(frontmatter.get("url").unwrap().value, scalar("a:b"));
+    assert_eq!(
+        frontmatter.get("items").unwrap().value,
+        list(&["-x", "a:b", "?y"])
+    );
+}
+
+/// Verifies: XTASK-R020
+#[test]
 fn rejects_every_construct_outside_the_subset_with_its_line() {
     let cases: &[(&str, usize, &str)] = &[
         ("", 1, "line 1 must be `---`"),
@@ -103,6 +118,17 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: [\"a\"]\n---\n", 2, "starts with `\"`"),
         ("---\nkey: a: b\n---\n", 2, "contains `: `"),
         ("---\nkey: [a: b]\n---\n", 2, "contains `: `"),
+        ("---\nkey: - item\n---\n", 2, "starts with `- `"),
+        ("---\nkey: -\n---\n", 2, "starts with `- `"),
+        ("---\nkey: ? question\n---\n", 2, "starts with `? `"),
+        ("---\nkey: ?\tq\n---\n", 2, "starts with `? `"),
+        ("---\nkey: : x\n---\n", 2, "starts with `: `"),
+        ("---\nkey: Ends with colon:\n---\n", 2, "ends with `:`"),
+        ("---\nkey: x: # comment\n---\n", 2, "ends with `:`"),
+        ("---\nkey: [a:, b]\n---\n", 2, "ends with `:`"),
+        ("---\nkey: [- a]\n---\n", 2, "starts with `- `"),
+        ("---\nkey: [a, ? b]\n---\n", 2, "starts with `? `"),
+        ("---\nkey: [:]\n---\n", 2, "starts with `: `"),
     ];
     for (text, line, message) in cases {
         let error = parse_err(text);
@@ -128,7 +154,7 @@ fn integer_and_date_forms() {
 fn plain_text() -> impl Strategy<Value = String> {
     "[A-Za-z0-9][A-Za-z0-9 ._()/#:=+-]{0,24}".prop_filter_map("not representable", |text| {
         let text = text.trim_end().to_string();
-        let representable = !text.contains(" #") && !text.contains(": ");
+        let representable = !text.contains(" #") && !text.contains(": ") && !text.ends_with(':');
         representable.then_some(text)
     })
 }
@@ -182,6 +208,12 @@ fn invalid_line() -> impl Strategy<Value = String> {
             .prop_map(|(key, c)| format!("{key}: {c}x")),
         key.prop_map(|key| format!("{key}: a: b")),
         key.prop_map(|key| format!("- {key}")),
+        (key, proptest::sample::select(vec!['-', '?']))
+            .prop_map(|(key, c)| format!("{key}: {c} x")),
+        (key, proptest::sample::select(vec!['-', '?', ':']))
+            .prop_map(|(key, c)| format!("{key}: [a, {c}]")),
+        key.prop_map(|key| format!("{key}: x:")),
+        key.prop_map(|key| format!("{key}: [a:, b]")),
     ]
 }
 
@@ -232,6 +264,15 @@ proptest! {
                     prop_assert!(!text.is_empty() && text.trim() == text);
                     prop_assert!(!text.contains(": ") && !text.contains(" #"));
                     prop_assert!(!text.starts_with(FORBIDDEN_START));
+                    prop_assert!(!text.ends_with(':'));
+                    let mut chars = text.chars();
+                    let first = chars.next();
+                    let second = chars.next();
+                    prop_assert!(
+                        !(matches!(first, Some('-' | '?' | ':'))
+                            && second.is_none_or(char::is_whitespace)),
+                        "{:?}", text
+                    );
                 }
             }
         }

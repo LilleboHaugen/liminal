@@ -61,6 +61,11 @@ impl fmt::Display for ParseError {
 /// subset has no quoting to escape them.
 const FORBIDDEN_START: &[char] = &['"', '\'', '|', '>', '&', '*', '!', '{', '}', '%', '@', '`'];
 
+/// First characters a value or list item must not have when whitespace or the end of the text
+/// follows: YAML reads them as a sequence entry (`- `), a complex key (`? `) or a mapping value
+/// (`: `). Followed by other text (`-1`, `?x`), YAML reads them as plain text.
+const INDICATORS_BEFORE_SPACE: &[char] = &['-', '?', ':'];
+
 /// Parses the frontmatter at the start of `text`.
 ///
 /// # Errors
@@ -210,6 +215,23 @@ fn check_text(text: &str, what: &str, number: usize) -> Result<(), ParseError> {
             format!(
                 "{what} `{text}` starts with `{first}`, which YAML interprets; the subset has no quoting"
             ),
+        ));
+    }
+    let mut chars = text.chars();
+    if let Some(first) = chars.next().filter(|c| INDICATORS_BEFORE_SPACE.contains(c))
+        && chars.next().is_none_or(char::is_whitespace)
+    {
+        return Err(error(
+            number,
+            format!(
+                "{what} `{text}` starts with `{first} `, which YAML reads as a sequence, key or mapping indicator"
+            ),
+        ));
+    }
+    if text.ends_with(':') {
+        return Err(error(
+            number,
+            format!("{what} `{text}` ends with `:`, which YAML reads as a mapping key"),
         ));
     }
     if text.contains(": ") || text.contains(":\t") {

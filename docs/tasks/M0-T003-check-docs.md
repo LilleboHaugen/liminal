@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -114,6 +114,26 @@ killed. Not verified: Windows and Linux (M0-T007). On Windows, `paths` uses `/` 
 **Next:** review (fresh session). Then the first `todo` with all dependencies done is M0-T004
 (check-arch). It extends `repo::Architecture` (drop the `expect(dead_code)`) and adds `cargo
 metadata` loading to `repo`.
+
+**Review changes (2026-11-08, second session; same session that wrote the review below).** Status →
+`review`. The next review must be done by a new session: this session wrote both the review and
+these changes.
+1. `frontmatter.rs`: a value or list item starting with `-`, `?` or `:` followed by whitespace or
+   the end, or ending with `:`, is rejected (`INDICATORS_BEFORE_SPACE`). `-1`, `--all`, `?x`, `a:b`
+   stay plain strings (test `accepts_indicator_characters_that_yaml_reads_as_plain_text`). New
+   rejection cases in the unit test; the `invalid_line()` generator and the arbitrary-input
+   property cover the new forms; `plain_text()` no longer generates values ending with `:`.
+2. Test `r025_adr_status_cell_must_not_be_in_backticks`.
+3. Footnote definitions specified (spec v4) and tested
+   (`markdown::tests::footnote_definitions_are_not_reference_definitions`).
+4. `rules.rs`: task files without a valid `id` (R020 failure, or missing/invalid `id`) exist for
+   `depends_on` under their file-name ID (`file_task_id`). Test
+   `r023_a_task_without_a_valid_id_still_exists_by_its_file_name`.
+- Spec `spec_version` 4 (§6 details, History). `docs/process/DOCUMENTATION.md` names the new rejected forms.
+- Verified (macOS 27.2, Rust 1.99.1): `cargo xtask ci` passes; 102 lib tests. The review's three
+  injected `title:` values now each give exactly one R020 finding, and no false R023 on M0-T010.
+  The two surviving mutants of the review and two new mutants (ends-with-`:` check removed,
+  file-name fallback removed) are each killed. Not verified: Windows, Linux (M0-T007).
 
 ## Review
 
