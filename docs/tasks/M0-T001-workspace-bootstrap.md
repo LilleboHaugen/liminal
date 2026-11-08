@@ -27,7 +27,7 @@ crate that answers `cargo xtask help`. Every later task builds on this.
 **In:**
 - Root `Cargo.toml`: `[workspace]` with `members = ["xtask"]` and `resolver = "3"`;
   `[workspace.package]` (edition 2024, `license = "MIT OR Apache-2.0"`, `rust-version` equal to the
-  pinned version); `[workspace.lints]` implementing CODE_STYLE.md §Lints; `[workspace.dependencies]`
+  pinned version, `repository = "https://github.com/LilleboHaugen/rust-game-engine"`); `[workspace.lints]` implementing CODE_STYLE.md §Lints; `[workspace.dependencies]`
   with the four `tool`-scope crates xtask will use (exact minor versions).
 - `rust-toolchain.toml`: `channel` = the **current stable release at the time of this task, as an exact
   version** (find it with `rustup check` or the Rust release notes). Components `rustfmt`, `clippy`,

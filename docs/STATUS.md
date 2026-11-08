@@ -13,7 +13,8 @@ Prerequisites the project owner handles (not agent tasks):
 - ~~Install the Rust toolchain (`rustup`).~~ Done 2026-11-08: rustup via Homebrew
   (`/opt/homebrew/opt/rustup/bin` on PATH), stable 1.99.1 installed. M0-T001 pins the then-current
   stable version in `rust-toolchain.toml`.
-- `git init` and create the GitHub repository (needed by M0-T007 CI).
+- ~~`git init` and create the GitHub repository.~~ Done 2026-11-08:
+  `https://github.com/LilleboHaugen/rust-game-engine` (branch `main`).
 
 Tools every agent machine needs once the matching task lands (otherwise `cargo xtask ci` reports
 skipped steps and the task cannot go to `review`): `cargo-llvm-cov` (from M0-T006) and `cargo-deny`
@@ -43,4 +44,4 @@ a spec (`docs/specs/xtask.md`).
 
 ## Blockers
 
-None. M0-T007 needs the GitHub repository to exist.
+None.
