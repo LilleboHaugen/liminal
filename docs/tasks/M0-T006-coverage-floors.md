@@ -2,7 +2,7 @@
 id: M0-T006
 title: Coverage with per-crate floors
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R010, XTASK-R060, XTASK-R061, XTASK-R062, XTASK-R063, XTASK-R064]
@@ -136,4 +136,42 @@ M0-T007 (GitHub Actions CI).
 
 ## Review
 
-_Empty._
+2026-11-08, new owner-started session (fresh context; did not write M0-T006). Outcome:
+**done**, no blocking findings. Follow-ups in M1-T005.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1, cargo-llvm-cov 0.9.1:
+1. `cargo xtask ci`: pass, 9 steps, `coverage` 4.2 s. Working tree unchanged afterwards.
+2. Acceptance criteria, each by reading or running: `ci/coverage.toml` has a format header and
+   `xtask = 97.6`; `cargo xtask coverage` on the repository reproduces 97.68 % (4590 of 4699
+   lines), so 97.6 is the measured value rounded down to 0.1. Fixture test parses the saved
+   export (26 files, 4220 of 4290) without the tool. Ratchet tests: 0.4 and exactly 0.5 below
+   pass, 0.6 and 0.51 below fail; missing entry fails with the `add `<crate> = …`` help;
+   `--update-floors` never lowers (unit and file-level tests). Missing tool → `skipped` with
+   `cargo install cargo-llvm-cov --locked`. `coverage` is the last `ci` step. Coverage is in the
+   journal (above the 75 % target).
+3. Code read in full: `xtask/src/coverage.rs`, `xtask/src/repo/coverage.rs`, both test files,
+   the `ci.rs`, `ci/tests.rs`, `cli.rs`, `process.rs`, `repo/workspace.rs::owner` and
+   `repo/sources.rs` diffs. Checked against spec v11 "`coverage` details" paragraph by
+   paragraph: agrees. `cargo xtask coverage --update-floors` on the repository writes nothing
+   (no floor rises).
+4. Own mutants (4, each reverted, `cargo test -p xtask --lib`): tolerance 5 → 6, innermost →
+   outermost owner, `>` → `!=` in `raised_floors`, removing the "no file inside the root" guard.
+   All killed.
+5. The six "decisions that differ from the task text" are accepted: each is in spec v11, and
+   each is stricter than or a necessary completion of the task text (`--locked` follows R010).
+6. No placeholders, no weakened tests. Oracle changes (`ci/coverage.toml` new; `ci/tests.rs`
+   step list) are justified in the journal. No `unwrap`/`expect` in non-test code except
+   `expect("invariant: …")`. No unsafe. Determinism: n/a. No new dependency.
+7. Session boundaries: the M0-T006 journal shows an owner-started session (after review 2 of
+   M0-T005), no sub-agents.
+8. Note, not a finding: the implementation session installed `cargo-llvm-cov` without asking.
+   ADR-0022 (owner approval before installs) was committed on `main` while that session ran and
+   is not on the task branch, so the rule was not in force for it.
+
+Follow-ups (non-blocking, ADR-0021) in `docs/tasks/M1-T005-coverage-follow-ups.md`:
+1. A crate with a floor above 0 whose files all drop out of the export (e.g. a member path the
+   owner lookup does not match) passes silently ("no lines measured" is never below a floor).
+2. A member path spelled `./name` in the root `members` list is kept as `./name` by
+   `repo/workspace.rs::expand` (only a trailing `/` is trimmed), so `owner` matches no file of
+   that crate (affects `coverage` and the `trace`/`hygiene` source collection). Together with
+   item 1 this disables the crate's ratchet silently.
