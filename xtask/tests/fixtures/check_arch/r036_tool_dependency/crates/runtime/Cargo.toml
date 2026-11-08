@@ -1,0 +1,16 @@
+[package]
+name = "runtime"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+base = { path = "../base" }
+macros = { path = "../macros" }
+cli = { path = "../../tools/cli" }
+
+[target.'cfg(windows)'.dependencies]
+winit = "0.30"
+
+[dev-dependencies]
+proptest = "1"

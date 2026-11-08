@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 mod check;
+mod check_arch;
 mod check_docs;
 mod ci;
 mod cli;

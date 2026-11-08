@@ -644,7 +644,7 @@ fn native_check_steps_are_registered_by_name() {
         .filter(|step| matches!(step.action, Action::Check(_)))
         .map(|step| step.name)
         .collect();
-    assert_eq!(native, ["check-docs"]);
+    assert_eq!(native, ["check-arch", "check-docs"]);
 }
 
 #[test]

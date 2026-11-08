@@ -90,6 +90,10 @@ pub(crate) const STEPS: &[Step] = &[
         }),
     },
     Step {
+        name: crate::check_arch::NAME,
+        action: Action::Check(crate::check_arch::run_check),
+    },
+    Step {
         name: crate::check_docs::NAME,
         action: Action::Check(crate::check_docs::run_check),
     },

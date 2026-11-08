@@ -1,0 +1,106 @@
+# check-arch fixture registry (see ../README.md).
+schema_version = 1
+
+[layers]
+"0" = "foundation"
+"1" = "runtime"
+"2" = "platform-gpu"
+"3" = "subsystems"
+"4" = "agent-interface-integration"
+"5" = "tools"
+
+[[crate]]
+name = "base"
+path = "crates/base"
+layer = 0
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "macros"
+path = "crates/macros"
+layer = 0
+kind = "proc-macro"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = ["syn"]
+dev_external = []
+
+[[crate]]
+name = "runtime"
+path = "crates/runtime"
+layer = 1
+kind = "lib"
+unsafe = "allow"
+deterministic = false
+same_layer_deps = []
+external = ["winit", "serde"]
+dev_external = ["proptest"]
+
+[[crate]]
+name = "peer"
+path = "crates/peer"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["runtime"]
+external = ["cc"]
+dev_external = []
+
+[[crate]]
+name = "planned"
+path = "crates/planned"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = []
+
+[[crate]]
+name = "cli"
+path = "tools/cli"
+layer = 5
+kind = "bin"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = ["serde"]
+dev_external = ["proptest", "serde_json"]
+
+[external.syn]
+scope = "build"
+adr = "ADR-0001"
+reason = "Fixture."
+
+[external.winit]
+scope = "runtime"
+adr = "ADR-0001"
+reason = "Fixture."
+
+[external.cc]
+scope = "build"
+adr = "ADR-0001"
+reason = "Fixture."
+
+[external.proptest]
+scope = "dev"
+adr = "ADR-0001"
+reason = "Fixture."
+
+[external.serde]
+scope = "tool"
+adr = "ADR-0001"
+reason = "Fixture."
+
+[external.serde_json]
+scope = "tool"
+adr = "ADR-0001"
+reason = "Fixture."

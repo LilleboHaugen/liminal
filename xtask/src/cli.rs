@@ -105,6 +105,11 @@ pub const COMMANDS: &[Command] = &[
         run: crate::ci::command,
     },
     Command {
+        name: "check-arch",
+        summary: "Check the crate graph against architecture.toml (XTASK-R030 … R037).",
+        run: crate::check_arch::command,
+    },
+    Command {
         name: "check-docs",
         summary: "Check doc frontmatter, links and indexes (XTASK-R020 … R027).",
         run: crate::check_docs::command,

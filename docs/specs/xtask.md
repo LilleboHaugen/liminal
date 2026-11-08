@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 7
+spec_version: 8
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -29,7 +29,9 @@ pattern detection; coverage floors; STATUS.md generation; tool availability repo
 ## 3. Dependencies
 
 - Engine crates: **none**. `xtask` MUST work even when engine crates do not compile.
-- External (`tool` scope, ADR-0003): `serde`, `serde_json`, `toml`, `cargo_metadata`.
+- External (`tool` scope, ADR-0003): `serde`, `serde_json`, `toml`. `cargo_metadata` is approved
+  but not used (`spec_version` 8): `check-arch` reads the few fields it needs from
+  `cargo metadata` JSON with `serde_json`, which adds no transitive dependencies.
 - External programs invoked: `cargo` (fmt, clippy, test, doc, metadata), `cargo-llvm-cov`, `cargo-deny`.
 - Argument parsing is hand-written (no CLI-parsing crate), to keep `xtask` fast to build.
 - Structure: all logic in a library target (`xtask/src/lib.rs` and modules), with a thin
@@ -37,7 +39,8 @@ pattern detection; coverage floors; STATUS.md generation; tool availability repo
   on it.
 - One shared repo-model loader module (`xtask/src/repo.rs` or `repo/`) is used by every check. Workspace
   members come from `[workspace].members` in the root `Cargo.toml` (no cargo needed). Full dependency
-  data comes from `cargo metadata` (added by M0-T004).
+  data comes from `cargo metadata --format-version 1 --no-deps --offline`, run in the repository
+  root by the `check-arch` loader (M0-T004).
 
 ## 4. Concepts
 
@@ -209,7 +212,7 @@ as `output_tail` in both output modes.
 
 | ID | Level | Requirement |
 |---|---|---|
-| XTASK-R030 | MUST | `architecture.toml` is validated: `schema_version = 1`; every `[[crate]]` has `name, path, layer, kind, unsafe, deterministic, same_layer_deps, external, dev_external` with valid values (layer 0–5, kind ∈ {lib, proc-macro, bin}, unsafe ∈ {forbid, allow}). Crate names are unique. Every `same_layer_deps` entry is a registered crate of the same layer. Every `external`/`dev_external` entry has an `[external.<name>]` entry with `scope` ∈ {runtime, build, dev, tool}, `adr` and `reason`. |
+| XTASK-R030 | MUST | `architecture.toml` is validated: `schema_version = 1`; every `[[crate]]` has `name, path, layer, kind, unsafe, deterministic, same_layer_deps, external, dev_external` with valid values (layer 0–5, kind ∈ {lib, proc-macro, bin}, unsafe ∈ {forbid, allow}). Crate names are unique. Every `same_layer_deps` entry is a registered crate of the same layer. Every `external`/`dev_external` entry has an `[external.<name>]` entry with `scope` ∈ {runtime, build, dev, tool}, `adr` and `reason`. A missing or unknown field, or a value of the wrong TOML type, is internal error LIM-XTASK-0003 with its line (no model can be built); every other violation is an R030 finding (`spec_version` 8). |
 | XTASK-R031 | MUST | Every workspace member is registered, with a `path` equal to its manifest directory (relative to the repository root, compared with `/` separators on every OS) and a matching `kind` (`bin` = has at least one binary target, and may also have a library target; see the `architecture.toml` header). |
 | XTASK-R032 | MUST | For every workspace crate, every dependency on another workspace crate (normal, build or dev) targets a strictly lower layer, or a crate listed in the dependent's `same_layer_deps`. |
 | XTASK-R033 | MUST | Every external normal or build dependency is listed in the crate's `external`, and its scope is allowed: layers 0–4 may use `runtime` and `build` (`build` only as a build-dependency or from a `proc-macro` crate); layer 5 may use `runtime`, `build` and `tool`. |
@@ -218,6 +221,54 @@ as `output_tail` in both output modes.
 | XTASK-R036 | MUST | No crate in layers 0–4 depends, with any dependency kind, on a layer 5 crate. |
 | XTASK-R037 | MUST | Each violation is reported with the crate, the dependency (if any), the rule ID, and a `help` text saying how to fix it. |
 | XTASK-R038 | SHOULD | From M2: `liminal_engine` and crates under `games/` depend only on crates whose spec maturity is `usable` or higher (ADR-0011). |
+
+`check-arch` details (added in `spec_version` 8):
+
+- Model. The loader runs `cargo metadata --format-version 1 --no-deps --offline` in the
+  repository root (`$CARGO`, else `cargo` from `PATH`). The workspace crates are the packages
+  listed in `workspace_members`. Every path is made relative to `workspace_root` after replacing
+  `\` with `/`; a member manifest or target outside it is LIM-XTASK-0002. A dependency's name
+  is its package name (the crates.io name, not a `rename`). Kind `null` is a normal dependency;
+  target-specific dependencies count like unconditional ones. A dependency is a **workspace
+  dependency** if it is a path dependency whose directory is a workspace crate's manifest
+  directory; every other dependency is **external**. The crate root files (R035) are the root
+  files of targets of kind `lib`, `rlib`, `dylib`, `cdylib`, `staticlib`, `proc-macro` and
+  `bin`. Tests, examples, benches and build scripts are not crate roots.
+- R030 values. `[layers]` has exactly the keys `"0"` … `"5"`. A crate registered twice is
+  reported at its second entry. `same_layer_deps` entries in another layer, lower or higher,
+  are findings. `[external.*]` `adr` matches `^ADR-\d{4}$` and `reason` is not empty or
+  whitespace only. Findings about an entry are located at its line
+  (`architecture.toml:<line of [[crate]] or [external.name]>`), others at `architecture.toml`.
+- R031. The kind a crate must be registered with follows from its targets: `proc-macro` if it
+  has a proc-macro target, otherwise `bin` if it has a binary target, otherwise `lib`. A
+  registered kind that is not valid is reported by R030 only.
+- Rules R032–R036 skip a workspace crate that is not registered (R031 reports it), a
+  dependency on an unregistered workspace crate, and a layer outside 0–5 (R030 reports it).
+- R032 and R036. A dependency of any kind from a layer 0–4 crate on a layer 5 crate is
+  reported as R036 only, not also as R032. Any other workspace dependency is allowed if the
+  target's layer is lower, or the target is listed in the dependent's `same_layer_deps`.
+- R033 and R034. An external normal or build dependency missing from the crate's `external`
+  list is an R033 finding; an external dev-dependency missing from `dev_external` is an R034
+  finding. A listed crate without an `[external.*]` entry, or with an invalid scope, is reported
+  by R030 only. Otherwise the scope decides:
+
+  | Crate | Dependency kind | `runtime` | `build` | `dev` | `tool` |
+  |---|---|---|---|---|---|
+  | layer 0–4, kind `lib` or `bin` | normal | yes | no | no | no |
+  | layer 0–4, kind `proc-macro` | normal | yes | yes | no | no |
+  | layer 0–4, any kind | build | yes | yes | no | no |
+  | layer 5 | normal or build | yes | yes | no | yes |
+  | layer 0–4 | dev | no | no | yes | no |
+  | layer 5 | dev | no | no | yes | yes |
+- R035. A crate root contains `#![forbid(unsafe_code)]` if one of its leading inner attributes
+  (the `#![…]` attributes before the first item; whitespace, comments, doc comments, a byte
+  order mark and a shebang line are skipped) is `forbid(…)` with `unsafe_code` as one of its
+  comma-separated items. `#![cfg_attr(…, forbid(unsafe_code))]`, an inner attribute inside an
+  inline module, and text in comments or string literals do not count.
+- R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034 and R036, the
+  crate root file for R035. Messages name the crate and, for R032–R034 and R036, the
+  dependency and its kind. Identical findings (a dependency declared under two `cfg` targets)
+  are reported once.
 
 ### `trace` and `hygiene` (R040–R059)
 
@@ -275,8 +326,9 @@ unparseable) use:
 |---|---|---|
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
-| LIM-XTASK-0003 | `architecture.toml` is not valid TOML | Fix the syntax at the reported line |
+| LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
 | LIM-XTASK-0004 | Another TOML file (`Cargo.toml`) is invalid, misses a field xtask needs, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 
 ## 9. Performance budgets
 
@@ -326,3 +378,4 @@ Promotion to `usable` (M0 exit):
 | 5 | 2026-11-08 | Frontmatter: reject values starting with `,` or `]`, and list items containing `{` or `}`. R023: a duplicate but well-formed `id` is a valid `id` for the file-name fallback | M0-T003 (review 2 changes) |
 | 6 | 2026-11-08 | Frontmatter: whitespace is space and tab only (U+00A0 etc. are text); reject control characters, a `\r` that is not a line ending, U+0085, U+2028, U+2029, U+FFFE, U+FFFF | M0-T003 (review 3 changes) |
 | 7 | 2026-11-08 | Frontmatter: reject U+FEFF (not in YAML 1.2 `nb-char`) | M0-T003 (review 4 changes) |
+| 8 | 2026-11-08 | `check-arch` details (model from `cargo metadata --no-deps`, R030 values and locations, R031 kind rule, R032/R036 overlap, R033/R034 scope table, R035 attribute rule, locations); R030: shape errors are LIM-XTASK-0003; LIM-XTASK-0005; `cargo_metadata` approved but unused | M0-T004 |

@@ -5,6 +5,7 @@
 //! Every check extends this module instead of reading files itself.
 
 pub(crate) mod architecture;
+pub(crate) mod metadata;
 pub(crate) mod workspace;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,6 +13,7 @@ use std::fmt;
 use std::path::{Path, PathBuf};
 
 pub(crate) use architecture::Architecture;
+pub(crate) use metadata::Package;
 pub(crate) use workspace::Member;
 
 /// The repository root: the parent of the `xtask/` manifest directory.
@@ -149,6 +151,70 @@ pub(crate) fn load(root: &Path) -> Result<RepoModel, LoadError> {
         paths,
         architecture,
         members,
+    })
+}
+
+/// What `check-arch` needs (spec "`check-arch` details"): `architecture.toml`, the workspace
+/// packages from `cargo metadata`, and the crate root files of those packages.
+#[derive(Debug, Clone)]
+pub(crate) struct ArchModel {
+    /// `architecture.toml`, deserialized.
+    pub architecture: Architecture,
+    /// Workspace member packages, sorted by name.
+    pub packages: Vec<Package>,
+    /// Contents of every crate root file ([`crate_roots`]): repository-relative path → text.
+    pub sources: BTreeMap<String, String>,
+}
+
+/// Target kinds whose root file is a crate root checked by XTASK-R035: libraries of every crate
+/// type, proc-macros and binaries. Tests, examples, benches and build scripts are not.
+const CRATE_ROOT_KINDS: &[&str] = &[
+    "lib",
+    "rlib",
+    "dylib",
+    "cdylib",
+    "staticlib",
+    "proc-macro",
+    "bin",
+];
+
+/// The crate root files of `package` ([`CRATE_ROOT_KINDS`]), in target order.
+pub(crate) fn crate_roots(package: &Package) -> impl Iterator<Item = &str> {
+    package
+        .targets
+        .iter()
+        .filter(|target| {
+            target
+                .kinds
+                .iter()
+                .any(|kind| CRATE_ROOT_KINDS.contains(&kind.as_str()))
+        })
+        .map(|target| target.src_path.as_str())
+}
+
+/// Builds the `check-arch` model of the repository at `root` from `cargo metadata` JSON (from
+/// [`metadata::run_cargo`], or a saved fixture).
+///
+/// # Errors
+///
+/// [`LoadError`]: LIM-XTASK-0001 if `architecture.toml` or a crate root file cannot be read,
+/// LIM-XTASK-0002 if the JSON is not `cargo metadata` output, LIM-XTASK-0003 if
+/// `architecture.toml` is invalid.
+pub(crate) fn load_arch(root: &Path, metadata_json: &str) -> Result<ArchModel, LoadError> {
+    let architecture = architecture::parse(&read(root, "architecture.toml")?)?;
+    let packages = metadata::parse(metadata_json)?;
+    let mut sources = BTreeMap::new();
+    for package in &packages {
+        for path in crate_roots(package) {
+            if !sources.contains_key(path) {
+                sources.insert(path.to_string(), read(root, path)?);
+            }
+        }
+    }
+    Ok(ArchModel {
+        architecture,
+        packages,
+        sources,
     })
 }
 
