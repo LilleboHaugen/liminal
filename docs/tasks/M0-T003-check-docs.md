@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -237,3 +237,47 @@ Required changes:
    "a task file without a valid `id`" but does not say whether a well-formed `id` that duplicates
    another task's ID is "valid". Specify it (the code says yes: such a file is not added under its
    file-name ID) and add a test that fails under the mutant.
+
+## Review 3
+
+2026-11-08, fourth session (owner-started, fresh context; did not write M0-T003, review 1 or
+review 2). Outcome: **changes required**, status → `in-progress`.
+
+Checked (REVIEW.md §1), macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. Acceptance criteria: re-run, not trusted. `check-docs` on the real repository: ok (8 ms in
+   `ci`). Fixture tests and the three property tests read. `check-docs` is a `ci` step.
+2. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-docs).
+3. Review-2 changes: all three present and tested (diff of `ca36af0` read in full).
+4. **Differential test with non-ASCII whitespace and control characters** against Ruby 2.6 Psych
+   (libyaml): 12 `title:` values injected into `docs/tasks/M0-T009-deny-and-doctor.md` (reverted).
+   Earlier differentials and every property generator used ASCII text only. Findings in item 1.
+5. No placeholders, no weakened tests, no oracle changes. Unsafe: none. Determinism: n/a.
+6. Docs: spec v5 and DOCUMENTATION.md agree with the code, except that "whitespace" and "trimmed"
+   do not say which characters count (item 1).
+7. Architecture: no new dependencies. Session boundaries: journals show owner-started sessions, no
+   sub-agents.
+
+Required changes:
+1. **Non-ASCII whitespace is trimmed and control characters are accepted. YAML reads both
+   differently.** `normalize` (`trim_end`), `parse_line` (`trim`) and `parse_list` (`trim`) strip
+   every Unicode `White_Space` character. YAML's whitespace is only space and tab (`s-white`).
+   Observed, each accepted by `check-docs` with no finding:
+   - `title: x<U+00A0>` → parsed `x`, YAML `"x "`. Same for a leading U+00A0, a trailing
+     U+3000, and `[a<U+00A0>, b]` (items parsed `a`, YAML `"a "`).
+   - `title: a<U+0001>b`, `a<U+007F>b`, `x<U+000B>`, `a<U+000C>b`: YAML error (outside
+     `c-printable`).
+   - `title: a<CR>b` (bare `\r` inside a line): YAML reads `\r` as a line break. Error in YAML 1.1 and 1.2.
+
+   Fix:
+   (a) Trim only space and tab: trailing whitespace on a line, around values, around list items.
+   `\r` before the line end of a CRLF file stays allowed.
+   (b) Reject any other character outside YAML 1.2 `c-printable` with its line: C0 controls except
+   tab, DEL, C1 controls, U+FFFE/U+FFFF, and a `\r` that is not part of a line ending. Also reject
+   U+0085, U+2028 and U+2029: YAML 1.1 reads them as line breaks and 1.2 does not (libyaml errors
+   on them), so the subset must not depend on the version.
+   (c) Spec §6 details and DOCUMENTATION.md: state which whitespace is trimmed and which
+   characters are rejected. Bump `spec_version`.
+   (d) Tests: unit cases for each class above, and an `invalid_line()` generator case. The
+   arbitrary-input property's `text.trim() == text` uses Unicode trim, the same mistake the code
+   makes. Assert edge characters are neither space nor tab, and no rejected character appears.
+   Include non-ASCII and control characters in its input; `.{0,40}` rarely produces them.
