@@ -18,6 +18,16 @@ Priority order:
 Set `status: in-progress` in the task frontmatter. If two agents work in parallel, each works on its own
 branch `task/<ID>-<slug>`, and they must not take tasks that touch the same crate.
 
+**Session boundary (ADR-0020).** Only the project owner starts sessions; parallel agents are parallel
+sessions the owner started. One session does at most:
+1. one review (priority 1 above). If it sets the task to `done`, merge the branch to `main` and push
+   (§8). Then:
+2. one implementation task (priority 2 or 3).
+
+Never start sub-agents, background agents, forks or new sessions to review, implement or change the
+status of a task. Read-only lookups that change no files and decide nothing may use helpers. Never
+review a task you worked on in this session.
+
 If no task is available, do not invent work. Write a journal entry saying so. If the milestone's
 remaining work is not covered by tasks, the correct next task is to write those tasks (kickoff rule,
 `docs/ROADMAP.md`).
@@ -72,6 +82,12 @@ Also check by hand:
 2. Journal: new entry `docs/journal/YYYY-MM-DD-<task-id-or-topic>.md` (format in `docs/journal/README.md`).
 3. Regenerate status (`cargo xtask status`, once it exists).
 4. Commit everything. A session must never end with uncommitted changes and no note explaining them.
+5. Stop task work once your implementation task is in `review`. End your final message to the owner
+   with the next step as an instruction for the owner. The same answer applies whenever the owner asks
+   what is next or for the status while a task written in this session is in `review`:
+   > Start a new session. It will review `<task>`, then continue with `<next task>`.
+
+   Do not start that work yourself, in this session or through another agent (ADR-0020).
 
 ## 8. Branching and commits
 

@@ -31,6 +31,12 @@ it works. Code without evidence is not progress.
    the plain cargo commands listed under "Commands").
 5. **Hand off.** Before the session ends — finished or not — update the task file (status + handoff notes),
    write a journal entry (`docs/journal/README.md`), and update any doc your change made stale.
+6. **Stop at the session boundary (ADR-0020).** A session does at most one review, then one
+   implementation task. When you set your task to `review`, stop task work. Never review your own
+   work, and never start other agents (sub-agents, background agents, forks) to review or implement
+   tasks. Only the project owner starts sessions. When the owner asks what is next or for the
+   status, and a task written in this session is in `review`, answer: "Start a new session. It will
+   review `<task>`, then continue with `<next task>`." Do not start that work yourself.
 
 Full detail: `docs/process/WORKFLOW.md`.
 
@@ -81,8 +87,8 @@ Full detail: `docs/process/WORKFLOW.md`.
 - New public items are documented; primary entry points have a runnable `# Examples` doc test.
 - Requirement IDs covered by the task have `Verifies:` tests.
 - Spec, ADRs, task file, journal and any affected docs are updated in the same change.
-- The task is set to `review`, not `done`. Another session (fresh context) reviews it with
-  `docs/process/REVIEW.md` and sets it to `done`.
+- The task is set to `review`, not `done`. A new session, started by the project owner (ADR-0020),
+  reviews it with `docs/process/REVIEW.md` and sets it to `done`.
 
 ## Where things live
 

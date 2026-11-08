@@ -7,7 +7,9 @@ Last updated: 2026-11-08 (M0-T002 implementation session)
 
 ## Current milestone
 
-**M0 — Guardrails.** In progress. M0-T001 is `done`. M0-T002 is in `review`; the next session should review it.
+**M0 — Guardrails.** In progress. M0-T001 is `done`. M0-T002 is in `review`.
+**Next step for the project owner:** start a new session. It will review M0-T002, then continue with
+M0-T003 (ADR-0020: sessions do not start other agents for task work).
 
 Prerequisites the project owner handles (not agent tasks):
 - ~~Install the Rust toolchain (`rustup`).~~ Done 2026-11-08: rustup via Homebrew

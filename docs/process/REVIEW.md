@@ -1,7 +1,8 @@
 # Review
 
 Reviews are done by a session that did **not** write the work being reviewed, starting from a fresh
-context. The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
+context. That session is started by the project owner, never by the author's session or any other
+agent (ADR-0020). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
 finds nothing should say what it checked.
 
 ## 1. Task review (status `review` → `done`)
@@ -22,6 +23,8 @@ Check, in order:
    is included in the state hash.
 8. **Docs:** public items documented; examples run; no stale docs elsewhere.
 9. **Architecture:** no new dependency without ADR; layer rules hold.
+10. **Session boundaries (ADR-0020):** the journal entries for this task show that the work was done in
+    owner-started sessions, with no sub-agent implementing or reviewing it.
 
 Outcome: either set `status: done` and add a "Review" note to the task (reviewer, date, what was
 checked), or set `status: in-progress` with a numbered list of required changes.
