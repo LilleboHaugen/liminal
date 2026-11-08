@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -306,3 +306,46 @@ Required changes:
    arbitrary-input property's `text.trim() == text` uses Unicode trim, the same mistake the code
    makes. Assert edge characters are neither space nor tab, and no rejected character appears.
    Include non-ASCII and control characters in its input; `.{0,40}` rarely produces them.
+
+## Review 4
+
+2026-11-08, fifth session (owner-started, fresh context; did not write M0-T003 or reviews 1–3).
+Outcome: **changes required**, status → `in-progress`.
+
+Checked (REVIEW.md §1), macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. Acceptance criteria: re-run, not trusted. `check-docs` on the real repository: ok (8 ms in
+   `ci`). `check-docs` is a `ci` step.
+2. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-docs).
+3. Review-3 changes: present (diff of `886954c` read in full; `frontmatter.rs` read in full).
+4. **Differential against the YAML grammars.** Fetched the YAML 1.2.2 and 1.1 specs (yaml.org)
+   and compared the productions with `is_allowed_character`. Also ran 19 values through Ruby 2.6
+   Psych (libyaml): U+FEFF, U+00A0, U+3000, U+E000, U+FFFD, U+2027, U+202A, U+10FFFF, `a#b`,
+   `a , b`, `x:y`, `[a b, c]`, `--- x`, `... x`, `-x-`, tab inside a value. Parser and libyaml
+   agree on all of them. Finding in item 1.
+5. Own mutants (8) of the review-3 code: 6 killed, 1 equivalent, **1 survived** (item 2).
+6. No placeholders, no weakened tests, no oracle changes. Unsafe: none. Determinism: n/a.
+7. Docs: spec v6 and DOCUMENTATION.md agree with the code, except for item 1.
+8. Architecture: no new dependencies. Session boundaries: journals show owner-started sessions,
+   no sub-agents.
+
+Required changes:
+1. **U+FEFF inside a value or comment is accepted. YAML 1.2 rejects it.** YAML 1.2.2 production
+   [27] is `nb-char ::= c-printable - b-char - c-byte-order-mark`. Scalar content and comment text
+   are made of `nb-char`, so U+FEFF there is an error in 1.2. YAML 1.1 has
+   `nb-char ::= c-printable - b-char`, and libyaml reads it as text. Spec §6 requires that "the
+   subset must mean the same in both versions", which is why U+0085, U+2028 and U+2029 are
+   rejected. U+FEFF is the same kind of version difference. `is_allowed_character` follows
+   `c-printable`, not `nb-char`, and
+   `only_space_and_tab_are_trimmed_and_other_printable_characters_are_text` asserts
+   `bom: a\u{feff}b` is accepted. Observed: `title: car<U+FEFF>go deny …` injected into
+   `docs/tasks/M0-T009-deny-and-doctor.md` (reverted) gives `check-docs: ok`.
+   Fix: reject U+FEFF anywhere on a frontmatter line (a BOM before line 1's `---` is already
+   rejected by "line 1 must be `---`"; keep that). Move the `bom` case from the acceptance test to
+   the rejection cases. Add U+FEFF to `REJECTED_CHARACTERS` (the generators). Correct the
+   `is_allowed_character` doc comment: the reference set is `nb-char`, not `c-printable`. Spec §6
+   (bump `spec_version`) and DOCUMENTATION.md: list U+FEFF and say the reason.
+2. **Tab indentation is not tested.** Mutant `line.starts_with(WHITESPACE)` →
+   `line.starts_with(' ')` survives. A tab-indented line is then still rejected, but the message
+   says "key `\tkey` is not snake_case" instead of "indented line". Review-3 change 1 says the
+   indented-line check uses `WHITESPACE`, so add a rejection case `"---\n\tkey: v\n---\n"` that
+   expects line 2 and "indented line".
