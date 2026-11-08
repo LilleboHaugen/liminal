@@ -7,10 +7,16 @@
 //! [`std::io::Write`] values it is given, so tests can capture the output.
 #![forbid(unsafe_code)]
 
+mod check;
+mod check_docs;
 mod ci;
 mod cli;
 mod finding;
+mod frontmatter;
+mod markdown;
 mod process;
 mod repo;
+#[cfg(test)]
+mod test_support;
 
 pub use cli::{COMMANDS, Command, CommandError, CommandFn, Exit, run};

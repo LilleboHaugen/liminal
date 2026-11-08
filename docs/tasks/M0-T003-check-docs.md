@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: todo
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -35,12 +35,12 @@ If M0-T004 has already landed, reuse its loader code instead of adding a second 
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask check-docs` passes on the real repository. If it finds real problems in the
+- [x] `cargo xtask check-docs` passes on the real repository. If it finds real problems in the
       planning docs, fix the docs (not the checker), and list the fixes in the journal.
-- [ ] One fixture per rule fails with exactly that rule ID. One complete valid fixture passes.
-- [ ] Property test: frontmatter generated from random valid key/value data parses back to the same
+- [x] One fixture per rule fails with exactly that rule ID. One complete valid fixture passes.
+- [x] Property test: frontmatter generated from random valid key/value data parses back to the same
       data. Random lines outside the subset are rejected, never misparsed.
-- [ ] `check-docs` is a step in `ci`.
+- [x] `check-docs` is a step in `ci`.
 
 ## Test requirements
 
@@ -55,7 +55,65 @@ If M0-T004 has already landed, reuse its loader code instead of adding a second 
 
 ## Handoff
 
-_Empty._
+2026-11-08, implementation session (after reviewing M0-T002 in the same session). Status → `review`.
+
+**Done (all acceptance criteria met):**
+- `xtask/src/frontmatter.rs`: strict parser for the restricted YAML subset. Errors carry the line
+  number. The exact grammar is now in spec §6 "`check-docs` details" (`spec_version` 3).
+- Shared repo-model loader `xtask/src/repo.rs`: `RepoModel` (root and `docs/` Markdown, every
+  repository path except `.git/` and `target/`, `architecture.toml`, workspace members),
+  `adr_files`/`spec_files`/`task_files` selectors, and `LoadError` (spec §8 codes).
+  `repo/architecture.rs` deserializes `architecture.toml` in full with `deny_unknown_fields` (shape
+  only; the fields that only M0-T004 reads carry `expect(dead_code)`, so M0-T004 must remove those
+  attributes when it reads them). `repo/workspace.rs` reads `[workspace].members` without cargo
+  (paths and `<dir>/*`).
+- `xtask/src/markdown.rs`: link targets (inline links, images, reference definitions; fenced code
+  and inline code ignored) and tables.
+- `xtask/src/check_docs.rs` (+ `fields.rs`, `rules.rs`, `indexes.rs`): R020–R027 as a pure function
+  of the model. `xtask/src/check.rs`: shared check-command runner (`--json`, report, exit code,
+  finding order) for M0-T004/T005/T006/T009 to reuse.
+- `ci`: `Step.action` is now `Action::Cargo` or `Action::Check` (native step, runs in-process).
+  `check-docs` is in `STEPS` after `doc`. `ProcessRunner` renamed `RealRunner`.
+- `CommandError::Internal` for LIM-XTASK-nnnn errors. New code LIM-XTASK-0004 (invalid `Cargo.toml`).
+- `proptest` added as a dev-dependency (approved: `architecture.toml` `dev_external`, ADR-0010).
+  `toml` used (approved, `tool` scope).
+- Fixtures `xtask/tests/fixtures/check_docs/`: `valid/` plus one overlay per rule (see its
+  README). The fixture tests are unit tests (`src/check_docs/fixture_tests.rs`), because the binary
+  always checks the compiled-in repository root.
+- `docs/process/DOCUMENTATION.md` links to the exact grammar.
+
+**Spec decisions (spec v3), beyond the literal R020–R027 text:** unknown frontmatter fields are
+errors; spec `crate` must equal the file name; task `milestone` must equal the ID's milestone;
+values starting with a YAML indicator or containing `: ` are rejected; an ADR's index status
+for a superseded ADR is `superseded by <IDs>`; findings are sorted by path, line, rule, message.
+R027 (SHOULD) findings are errors like the others: `Severity::Warning` does not exist yet.
+
+**Tests:** 98 lib tests in total, plus integration tests (was 47 + 7). Every rule has a fixture
+that fails with exactly that rule, and unit tests cover each sub-condition. Three property tests
+cover the parser: round trip, invalid line rejected at its line, and arbitrary input.
+
+**Verified (macOS 27.2, Apple M5 Pro, Rust 1.99.1):** `cargo xtask ci` passes (fmt, clippy, test,
+doc, check-docs). `cargo xtask check-docs` on the real repository: no findings, so the planning
+docs needed no fixes, in 0.14 s. Four faults injected into real docs, one each for R021, R023,
+R024 and R025, were each reported, then reverted. `ci --json --only check-docs` with a broken
+link: step `fail`, finding in the summary, exit 1. 16 single-line mutations of the new code: all
+killed. Not verified: Windows and Linux (M0-T007). On Windows, `paths` uses `/` separators
+(built from path components), but no test has run there.
+
+**Traps:**
+- A blank line ends a Markdown table. Removing an index row with a blank line left in place makes
+  every later row "not listed". This is correct (GitHub renders it the same way), but the
+  findings list is long.
+- Mutation testing creates `xtask/proptest-regressions/` when a property fails. Delete it unless
+  it records a real bug.
+- After mutation testing with `cp`/`mv`, `touch` the restored file. Otherwise cargo's mtime
+  fingerprint keeps the last mutant's binary (see the journal).
+- `xtask/tests/fixtures/check_docs/valid/` contains `Cargo.toml` files. They are fixtures, not
+  workspace members. Do not add them to the workspace.
+
+**Next:** review (fresh session). Then the first `todo` with all dependencies done is M0-T004
+(check-arch). It extends `repo::Architecture` (drop the `expect(dead_code)`) and adds `cargo
+metadata` loading to `repo`.
 
 ## Review
 

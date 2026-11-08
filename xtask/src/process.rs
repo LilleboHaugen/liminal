@@ -1,12 +1,14 @@
-//! The real step runner: spawns `cargo` for each step (`docs/specs/xtask.md` §10: "real runner
-//! spawns processes"). Orchestration logic lives in `ci` and is tested with a fake runner.
+//! The real step runner: spawns `cargo` for cargo steps (`docs/specs/xtask.md` §10: "real runner
+//! spawns processes") and calls the check function for native check steps. Orchestration logic
+//! lives in `ci` and is tested with a fake runner.
 
 use std::ffi::OsString;
 use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::{Command, ExitStatus, Stdio};
 
-use crate::ci::{CargoInvocation, Outcome, OutputMode, Step, StepRunner};
+use crate::check::CheckFn;
+use crate::ci::{Action, CargoInvocation, Outcome, OutputMode, Step, StepRunner};
 
 /// Number of output lines kept in `output_tail` for a failed step.
 pub(crate) const TAIL_LINES: usize = 50;
@@ -15,15 +17,15 @@ pub(crate) const TAIL_LINES: usize = 50;
 const CARGO_HELP: &str = "Install Rust through rustup (https://rustup.rs) and run from a shell \
                           where `cargo` works; `cargo xtask doctor` lists required tools.";
 
-/// Runs steps as `cargo` child processes in the repository root.
-pub(crate) struct ProcessRunner {
+/// Runs cargo steps as child processes in the repository root, and native check steps in-process.
+pub(crate) struct RealRunner {
     /// Working directory of every child process.
     root: PathBuf,
     /// The `cargo` program: `$CARGO` (set by cargo for `cargo run`), else `cargo` from `PATH`.
     cargo: OsString,
 }
 
-impl ProcessRunner {
+impl RealRunner {
     /// A runner whose children run in `root`, using the `cargo` that started xtask.
     pub(crate) fn new(root: PathBuf) -> Self {
         let cargo = std::env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo"));
@@ -59,13 +61,38 @@ impl ProcessRunner {
     }
 }
 
-impl StepRunner for ProcessRunner {
+impl StepRunner for RealRunner {
     fn run(&mut self, step: &Step, mode: OutputMode) -> Outcome {
+        match &step.action {
+            Action::Cargo(invocation) => self.run_cargo(invocation, mode),
+            Action::Check(check) => self.run_check(*check),
+        }
+    }
+}
+
+impl RealRunner {
+    /// A native check: findings fail the step; an internal error fails it with the message as
+    /// `output_tail` (spec "native check step").
+    fn run_check(&self, check: CheckFn) -> Outcome {
+        match check(&self.root) {
+            Ok(findings) if findings.is_empty() => Outcome::Pass,
+            Ok(findings) => Outcome::Fail {
+                findings,
+                output_tail: None,
+            },
+            Err(error) => Outcome::Fail {
+                findings: Vec::new(),
+                output_tail: Some(error.to_string()),
+            },
+        }
+    }
+
+    fn run_cargo(&self, invocation: &CargoInvocation, mode: OutputMode) -> Outcome {
         let CargoInvocation {
             args,
             env,
             requires,
-        } = &step.invocation;
+        } = invocation;
         if let Some(tool) = requires {
             let probe = self
                 .command(tool.probe, &[])
@@ -132,20 +159,26 @@ fn tail(output: &[u8], lines: usize) -> String {
 mod tests {
     use super::*;
     use crate::ci::Tool;
+    use crate::finding::Finding;
+    use crate::repo::LoadError;
 
     fn step(args: &'static [&'static str], requires: Option<Tool>) -> Step {
+        cargo_step(CargoInvocation {
+            args,
+            env: &[],
+            requires,
+        })
+    }
+
+    fn cargo_step(invocation: CargoInvocation) -> Step {
         Step {
             name: "probe-test",
-            invocation: CargoInvocation {
-                args,
-                env: &[],
-                requires,
-            },
+            action: Action::Cargo(invocation),
         }
     }
 
-    fn runner() -> ProcessRunner {
-        ProcessRunner::new(crate::repo::root())
+    fn runner() -> RealRunner {
+        RealRunner::new(crate::repo::root())
     }
 
     const MISSING_TOOL: Tool = Tool {
@@ -195,8 +228,11 @@ mod tests {
     #[test]
     fn child_environment_is_set_for_the_child_only() {
         // `cargo --version` ignores the variable; this checks it never leaks into xtask itself.
-        let mut step = step(&["--version"], None);
-        step.invocation.env = &[("XTASK_TEST_CHILD_ONLY", "1")];
+        let step = cargo_step(CargoInvocation {
+            args: &["--version"],
+            env: &[("XTASK_TEST_CHILD_ONLY", "1")],
+            requires: None,
+        });
         assert_eq!(runner().run(&step, OutputMode::Capture), Outcome::Pass);
         assert_eq!(std::env::var_os("XTASK_TEST_CHILD_ONLY"), None);
     }
@@ -220,7 +256,7 @@ mod tests {
     /// Verifies: XTASK-R006
     #[test]
     fn missing_cargo_skips_the_step_with_reason_and_help() {
-        let mut runner = ProcessRunner::with_cargo(
+        let mut runner = RealRunner::with_cargo(
             crate::repo::root(),
             OsString::from("xtask-test-no-such-program"),
         );
@@ -234,6 +270,70 @@ mod tests {
                 "reason: {reason}"
             );
             assert_eq!(help, CARGO_HELP);
+        }
+    }
+
+    fn check_step(check: CheckFn) -> Step {
+        Step {
+            name: "check-test",
+            action: Action::Check(check),
+        }
+    }
+
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "must have the signature of check::CheckFn"
+    )]
+    fn finds_one(root: &std::path::Path) -> Result<Vec<Finding>, LoadError> {
+        Ok(vec![Finding::error(
+            "XTASK-R024",
+            root.join("a.md").to_string_lossy(),
+            "m",
+            "h",
+        )])
+    }
+
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "must have the signature of check::CheckFn"
+    )]
+    fn finds_none(_: &std::path::Path) -> Result<Vec<Finding>, LoadError> {
+        Ok(Vec::new())
+    }
+
+    fn cannot_load(_: &std::path::Path) -> Result<Vec<Finding>, LoadError> {
+        Err(LoadError::read("docs", &io::Error::other("denied")))
+    }
+
+    #[test]
+    fn native_checks_run_on_the_root_and_map_findings_and_errors() {
+        let mut runner = RealRunner::new(PathBuf::from("/repo"));
+        for mode in [OutputMode::Capture, OutputMode::Inherit] {
+            assert_eq!(runner.run(&check_step(finds_none), mode), Outcome::Pass);
+            assert_eq!(
+                runner.run(&check_step(finds_one), mode),
+                Outcome::Fail {
+                    findings: vec![Finding::error(
+                        "XTASK-R024",
+                        PathBuf::from("/repo/a.md").to_string_lossy(),
+                        "m",
+                        "h"
+                    )],
+                    output_tail: None,
+                }
+            );
+            let Outcome::Fail {
+                findings,
+                output_tail: Some(tail),
+            } = runner.run(&check_step(cannot_load), mode)
+            else {
+                panic!("expected a failure with output_tail");
+            };
+            assert_eq!(findings, []);
+            assert!(
+                tail.starts_with("LIM-XTASK-0001: docs: could not be read"),
+                "{tail}"
+            );
         }
     }
 }

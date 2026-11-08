@@ -7,7 +7,9 @@ Last updated: 2026-11-08 (M0-T002 review, M0-T003 implementation session)
 
 ## Current milestone
 
-**M0 — Guardrails.** In progress. M0-T001 and M0-T002 are `done`. M0-T003 is `in-progress`.
+**M0 — Guardrails.** In progress. M0-T001 and M0-T002 are `done`. M0-T003 is in `review`.
+**Next step for the project owner:** start a new session. It will review M0-T003, then continue with
+M0-T004 (ADR-0020: sessions do not start other agents for task work).
 
 Prerequisites the project owner handles (not agent tasks):
 - ~~Install the Rust toolchain (`rustup`).~~ Done 2026-11-08: rustup via Homebrew
@@ -26,7 +28,7 @@ skipped steps and the task cannot go to `review`): `cargo-llvm-cov` (from M0-T00
 |---|---|---|---|
 | M0-T001 | Bootstrap the Cargo workspace | done | — |
 | M0-T002 | xtask ci command | done | M0-T001 |
-| M0-T003 | Frontmatter parser and check-docs | in-progress | M0-T002 |
+| M0-T003 | Frontmatter parser and check-docs | review | M0-T002 |
 | M0-T004 | check-arch | todo | M0-T002 |
 | M0-T005 | trace and hygiene | todo | M0-T003 |
 | M0-T006 | Coverage with per-crate floors | todo | M0-T002 |
@@ -39,9 +41,9 @@ Next milestone: M1-T001 (M1 kickoff) depends on M0-T010.
 
 ## Module maturity
 
-All crates in `architecture.toml` are at maturity `planned`. Only `xtask` exists (bootstrap,
-M0-T001, `ci` command M0-T002), and only `xtask` has a spec (`docs/specs/xtask.md`,
-`spec_version` 2). `xtask` stays `planned` until `ci/coverage.toml` (M0-T006) and a spec review exist.
+All crates in `architecture.toml` are at maturity `planned`. Only `xtask` exists (bootstrap
+M0-T001, `ci` command M0-T002, `check-docs` M0-T003), and only `xtask` has a spec
+(`docs/specs/xtask.md`, `spec_version` 3). `xtask` stays `planned` until `ci/coverage.toml` (M0-T006) and a spec review exist.
 
 ## Blockers
 

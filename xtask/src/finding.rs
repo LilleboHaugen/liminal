@@ -10,12 +10,6 @@ use serde::Serialize;
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Severity {
     /// Makes the check fail. (`warning` is added by the first check that reports one.)
-    // Constructed only in tests until the first check lands; `expect` turns into a warning (and a
-    // CI failure) the moment non-test code constructs it, which forces removing this attribute.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "first constructed by check-docs (M0-T003)")
-    )]
     Error,
 }
 
@@ -41,4 +35,22 @@ pub(crate) struct Finding {
     pub message: String,
     /// How to fix it.
     pub help: String,
+}
+
+impl Finding {
+    /// An error finding for `rule` at `location` (`path` or `path:line`).
+    pub(crate) fn error(
+        rule: &str,
+        location: impl Into<String>,
+        message: impl Into<String>,
+        help: impl Into<String>,
+    ) -> Self {
+        Self {
+            rule: rule.to_string(),
+            severity: Severity::Error,
+            location: location.into(),
+            message: message.into(),
+            help: help.into(),
+        }
+    }
 }

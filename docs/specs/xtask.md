@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 2
+spec_version: 3
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -135,6 +135,55 @@ Summary details (added in `spec_version` 2):
 | XTASK-R027 | SHOULD | `docs/specs/README.md` lists every spec file, with the same maturity as its frontmatter. |
 | XTASK-R028 | MUST | Task `requirements` entries refer to requirement IDs that exist in some spec (see R040). |
 
+`check-docs` details (added in `spec_version` 3):
+
+- Frontmatter subset, exact form (R020). Line 1 of the file is `---`, and the next line that is
+  exactly `---` closes the frontmatter. Trailing whitespace and a trailing `\r` are ignored on every
+  line. Between the delimiters, every line is `key: value` with no indentation. A key matches
+  `^[a-z][a-z0-9_]*$` and is followed by `:` and at least one space or tab. Each key appears at most
+  once. A comment starts at a `#` preceded by a space or tab and runs to the end of the line. Rejected:
+  blank lines, comment-only lines, an empty value (an empty list is `[]`), and a value or list item
+  that contains `: ` or starts with one of `"`, `'`, `|`, `>`, `&`, `*`, `!`, `{`, `}`, `%`, `@` or
+  `` ` ``. YAML would read these differently, and the subset has no quoting. A value that starts
+  with `[` is a list. It ends with `]`, and its items, split on `,` and trimmed, are non-empty and
+  contain no `[` or `]`. Every other value is a string. Integers (`^\d+$`) and dates
+  (`^\d{4}-\d{2}-\d{2}$`, calendar not checked) are strings that the field rules check.
+- Field rules (R021–R023). A field not in the rule's required list is an error, which catches typos
+  such as `superseeded_by`. Values have these forms: ADR IDs `^ADR-\d{4}$`; `title` non-empty; dates
+  as above; `layer` and `spec_version` integers (`spec_version` ≥ 1); `req_prefix` `^[A-Z]+$`; task
+  `milestone` `^M\d+$`, equal to the milestone part of `id`. A spec's `crate` equals its file name
+  without `.md`. A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
+  and maturity comparisons of R025 and R027.
+- Links (R024): inline links and images (`[text](target)`, `![alt](target)`, also
+  `<target>` and an optional title) and reference definitions (`[label]: target`). Ignored: fenced
+  code blocks (```` ``` ```` or `~~~`), inline code spans (on one line), targets with a URI scheme
+  (`^[A-Za-z][A-Za-z0-9+.-]*:`, e.g. `https:`, `mailto:`), and pure anchors (`#…`). From the
+  target, `#…` and `?…` are removed. The rest is resolved against the linking file's directory, or
+  against the repository root if it starts with `/`. It is not percent-decoded. A target that
+  leaves the repository is broken.
+- Indexes (R025, R027): the index is every Markdown table in `docs/adr/README.md` whose header has
+  first cell `ADR` and a `Status` column (in `docs/specs/README.md`: first cell `Spec` and a
+  `Maturity` column). The row's first cell links to the file. The ADR status cell is the frontmatter
+  `status`. For a superseded ADR it is `superseded by <IDs of superseded_by, joined by ", ">`. The
+  spec maturity cell is the frontmatter `maturity`, optionally in backticks. A row that links to a
+  file which is not an ADR (spec) file is an error.
+- Workspace members (R026) come from `[workspace].members` in the root `Cargo.toml`. A member is a
+  directory path, or `<dir>/*` (every direct subdirectory of `<dir>` containing a `Cargo.toml`).
+  Other glob patterns are internal error LIM-XTASK-0004. The crate name is `[package].name` of the
+  member's `Cargo.toml`.
+
+Check command output (R009, all check commands): human mode prints, per finding,
+`<severity> <rule> <location>: <message>` and an indented `help:` line, then
+`<command>: ok` or `<command>: <n> finding(s)`. `--json` prints
+`{ "version": 1, "ok": <bool>, "findings": [ … ] }` (pretty-printed, findings in the §5 format).
+Exit code 0 without error findings, 1 otherwise. An internal error (§8) prints `error: <code> …` to
+stderr and exits 1. Findings are sorted by location (path, then line number; a location without a line comes
+first), then rule, then message.
+
+In `ci`, a native check step (one that runs inside xtask, without spawning a process) reports its
+findings in the step's `findings`. An internal error makes the step `fail`, with the error message
+as `output_tail` in both output modes.
+
 ### `check-arch` (R030–R039)
 
 | ID | Level | Requirement |
@@ -206,6 +255,7 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML | Fix the syntax at the reported line |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`) is invalid, misses a field xtask needs, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 
 ## 9. Performance budgets
 
@@ -250,3 +300,4 @@ Promotion to `usable` (M0 exit):
 |---|---|---|---|
 | 1 | 2026-11-08 | Initial spec | Planning session |
 | 2 | 2026-11-08 | §5 summary details: optional `output_tail`, `--fail-fast` stopping rule, list option forms, empty selection is a usage error | M0-T002 |
+| 3 | 2026-11-08 | `check-docs` details (exact frontmatter subset, field forms, unknown fields, link and index rules, member patterns), check command output, native `ci` steps, LIM-XTASK-0004 | M0-T003 |

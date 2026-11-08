@@ -47,6 +47,14 @@ pub enum CommandError {
         /// The underlying error.
         error: io::Error,
     },
+    /// The repository could not be read into a model (`docs/specs/xtask.md` §8). [`run`] reports
+    /// it on stderr and exits with [`Exit::Failure`].
+    Internal {
+        /// The error code, `LIM-XTASK-nnnn`.
+        code: &'static str,
+        /// The file concerned, what went wrong and how to fix it.
+        message: String,
+    },
 }
 
 impl fmt::Display for CommandError {
@@ -57,6 +65,7 @@ impl fmt::Display for CommandError {
             CommandError::File { path, error } => {
                 write!(f, "could not write {}: {error}", path.display())
             }
+            CommandError::Internal { code, message } => write!(f, "{code}: {message}"),
         }
     }
 }
@@ -92,8 +101,13 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         name: "ci",
-        summary: "Run the CI steps (fmt, clippy, test, doc) in order; write target/xtask/ci-summary.json.",
+        summary: "Run every CI step in order; write target/xtask/ci-summary.json.",
         run: crate::ci::command,
+    },
+    Command {
+        name: "check-docs",
+        summary: "Check doc frontmatter, links and indexes (XTASK-R020 … R027).",
+        run: crate::check_docs::command,
     },
 ];
 
@@ -130,7 +144,11 @@ pub fn run(args: &[String], stdout: &mut dyn Write, stderr: &mut dyn Write) -> E
             let _ = write!(stderr, "error: {message}\n\n{}", usage());
             Exit::Usage
         }
-        Err(error @ (CommandError::Io(_) | CommandError::File { .. })) => {
+        Err(
+            error @ (CommandError::Io(_)
+            | CommandError::File { .. }
+            | CommandError::Internal { .. }),
+        ) => {
             let _ = writeln!(stderr, "error: {error}");
             Exit::Failure
         }
@@ -176,7 +194,7 @@ fn help(args: &[String], out: &mut dyn Write) -> Result<Exit, CommandError> {
 }
 
 /// The usage error for an argument a command does not accept.
-fn unexpected_argument(command: &str, argument: &str) -> CommandError {
+pub(crate) fn unexpected_argument(command: &str, argument: &str) -> CommandError {
     if argument.starts_with('-') {
         CommandError::Usage(format!("unknown option `{argument}` for `{command}`"))
     } else {

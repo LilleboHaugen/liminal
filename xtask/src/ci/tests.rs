@@ -6,6 +6,7 @@ use std::path::PathBuf;
 
 use super::*;
 use crate::finding::Severity;
+use crate::test_support::TempRoot;
 
 /// Steps with the names used in the fixture runs. Their invocations are never executed.
 const FIXTURE_STEPS: &[Step] = &[
@@ -18,11 +19,11 @@ const FIXTURE_STEPS: &[Step] = &[
 const fn fixture_step(name: &'static str) -> Step {
     Step {
         name,
-        invocation: CargoInvocation {
+        action: Action::Cargo(CargoInvocation {
             args: &["fixture"],
             env: &[],
             requires: None,
-        },
+        }),
     }
 }
 
@@ -70,24 +71,6 @@ fn skipped() -> Outcome {
     }
 }
 
-/// A fresh, empty directory under the system temp directory, removed on drop.
-struct TempRoot(PathBuf);
-
-impl TempRoot {
-    fn new(name: &str) -> Self {
-        let path = std::env::temp_dir().join(format!("xtask-ci-{}-{name}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&path);
-        std::fs::create_dir_all(&path).unwrap();
-        Self(path)
-    }
-}
-
-impl Drop for TempRoot {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
 struct Run {
     result: Result<Exit, CommandError>,
     out: String,
@@ -97,15 +80,15 @@ struct Run {
 
 /// Runs `ci` over `FIXTURE_STEPS` with `outcomes` in a temporary root.
 fn run_ci(name: &str, args: &[&str], outcomes: &[(&'static str, Outcome)]) -> Run {
-    let root = TempRoot::new(name);
+    let root = TempRoot::new(&format!("ci-{name}"));
     let args: Vec<String> = args.iter().map(ToString::to_string).collect();
     let mut runner = FakeRunner::with(outcomes);
     let mut out = Vec::new();
-    let result = execute(&args, &mut out, &root.0, FIXTURE_STEPS, &mut runner);
+    let result = execute(&args, &mut out, root.path(), FIXTURE_STEPS, &mut runner);
     Run {
         result,
         out: String::from_utf8(out).unwrap(),
-        summary_file: std::fs::read_to_string(root.0.join(SUMMARY_PATH)).ok(),
+        summary_file: std::fs::read_to_string(root.path().join(SUMMARY_PATH)).ok(),
         runner,
     }
 }
@@ -342,21 +325,21 @@ fn json_summary_matches_the_approved_snapshot() {
 
 #[test]
 fn unwritable_summary_file_is_a_file_error() {
-    let root = TempRoot::new("unwritable");
+    let root = TempRoot::new("ci-unwritable");
     // `target` is a file, so `target/xtask/` cannot be created.
-    std::fs::write(root.0.join("target"), "").unwrap();
+    std::fs::write(root.path().join("target"), "").unwrap();
     let mut out = Vec::new();
     let result = execute(
         &[],
         &mut out,
-        &root.0,
+        root.path(),
         FIXTURE_STEPS,
         &mut FakeRunner::default(),
     );
     let Err(CommandError::File { path, .. }) = result else {
         panic!("expected a file error, got {result:?}");
     };
-    assert_eq!(path, root.0.join(SUMMARY_PATH));
+    assert_eq!(path, root.path().join(SUMMARY_PATH));
 }
 
 // ---------------------------------------------------------------- R006 skips
@@ -560,17 +543,17 @@ fn human_report_lists_failures_skips_and_findings() {
 /// Verifies: XTASK-R010
 #[test]
 fn ci_writes_only_under_target() {
-    let root = TempRoot::new("writes");
+    let root = TempRoot::new("ci-writes");
     let mut out = Vec::new();
     let result = execute(
         &["--json".to_string()],
         &mut out,
-        &root.0,
+        root.path(),
         FIXTURE_STEPS,
         &mut FakeRunner::default(),
     );
     assert!(matches!(result, Ok(Exit::Success)));
-    let mut stack = vec![root.0.clone()];
+    let mut stack = vec![root.path().to_path_buf()];
     let mut files = Vec::new();
     while let Some(dir) = stack.pop() {
         for entry in std::fs::read_dir(&dir).unwrap() {
@@ -578,7 +561,7 @@ fn ci_writes_only_under_target() {
             if path.is_dir() {
                 stack.push(path);
             } else {
-                files.push(path.strip_prefix(&root.0).unwrap().to_path_buf());
+                files.push(path.strip_prefix(root.path()).unwrap().to_path_buf());
             }
         }
     }
@@ -589,12 +572,15 @@ fn ci_writes_only_under_target() {
 #[test]
 fn real_steps_do_not_modify_the_repository() {
     // The cargo steps write only to `target/`: fmt checks instead of rewriting, and `--locked`
-    // forbids Cargo.lock updates.
+    // forbids Cargo.lock updates. Native checks only read: they are `CheckFn`s, which load the
+    // repository model and return findings (INV-1, INV-3).
     for step in STEPS {
-        let args = step.invocation.args;
-        match step.name {
-            "fmt" => assert!(args.contains(&"--check")),
-            _ => assert!(args.contains(&"--locked"), "step {}", step.name),
+        match (step.name, &step.action) {
+            ("fmt", Action::Cargo(invocation)) => assert!(invocation.args.contains(&"--check")),
+            (_, Action::Cargo(invocation)) => {
+                assert!(invocation.args.contains(&"--locked"), "step {}", step.name);
+            }
+            (_, Action::Check(_)) => {}
         }
     }
 }
@@ -605,12 +591,11 @@ fn real_steps_run_the_exact_commands_of_the_spec() {
     type Command<'a> = (&'a str, Vec<&'a str>, Vec<(&'a str, &'a str)>);
     let commands: Vec<Command> = STEPS
         .iter()
-        .map(|step| {
-            (
-                step.name,
-                step.invocation.args.to_vec(),
-                step.invocation.env.to_vec(),
-            )
+        .filter_map(|step| match &step.action {
+            Action::Cargo(invocation) => {
+                Some((step.name, invocation.args.to_vec(), invocation.env.to_vec()))
+            }
+            Action::Check(_) => None,
         })
         .collect();
     assert_eq!(
@@ -648,5 +633,52 @@ fn real_steps_run_the_exact_commands_of_the_spec() {
                 vec![("RUSTDOCFLAGS", "-D warnings")]
             ),
         ]
+    );
+}
+
+/// Verifies: XTASK-R003
+#[test]
+fn native_check_steps_are_registered_by_name() {
+    let native: Vec<&str> = STEPS
+        .iter()
+        .filter(|step| matches!(step.action, Action::Check(_)))
+        .map(|step| step.name)
+        .collect();
+    assert_eq!(native, ["check-docs"]);
+}
+
+#[test]
+fn human_mode_names_native_steps_and_prints_an_internal_error() {
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "must have the signature of check::CheckFn"
+    )]
+    fn no_findings(_: &std::path::Path) -> Result<Vec<Finding>, crate::repo::LoadError> {
+        Ok(Vec::new())
+    }
+    const STEPS: &[Step] = &[Step {
+        name: "check-x",
+        action: Action::Check(no_findings),
+    }];
+    let root = TempRoot::new("ci-native-human");
+    let mut runner = FakeRunner::with(&[(
+        "check-x",
+        Outcome::Fail {
+            findings: Vec::new(),
+            output_tail: Some("LIM-XTASK-0001: docs: could not be read".to_string()),
+        },
+    )]);
+    let mut out = Vec::new();
+    let result = execute(&[], &mut out, root.path(), STEPS, &mut runner);
+    assert!(matches!(result, Ok(Exit::Failure)));
+    let out = String::from_utf8(out).unwrap();
+    assert!(
+        out.starts_with("==> check-x: cargo xtask check-x\n"),
+        "{out}"
+    );
+    assert!(
+        out.contains("  check-x  FAIL (")
+            && out.contains("\n      LIM-XTASK-0001: docs: could not be read\n"),
+        "{out}"
     );
 }

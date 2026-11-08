@@ -2,7 +2,7 @@
 //! (`docs/specs/xtask.md` §5, XTASK-R003 … R008, R010, R012).
 //!
 //! Orchestration ([`run_steps`]) is separated from process spawning through [`StepRunner`], so it is
-//! tested with a fake runner; [`crate::process::ProcessRunner`] is the real one.
+//! tested with a fake runner; [`crate::process::RealRunner`] is the real one.
 
 use std::collections::BTreeSet;
 use std::fmt::{self, Write as _};
@@ -12,9 +12,10 @@ use std::time::Instant;
 
 use serde::Serialize;
 
+use crate::check::{self, CheckFn};
 use crate::cli::{CommandError, Exit};
 use crate::finding::Finding;
-use crate::process::ProcessRunner;
+use crate::process::RealRunner;
 use crate::repo;
 
 /// The summary file, relative to the repository root (XTASK-R005).
@@ -35,7 +36,7 @@ const SYNOPSIS: &str = "usage: cargo xtask ci [--json] [--fail-fast] [--only <st
 pub(crate) const STEPS: &[Step] = &[
     Step {
         name: "fmt",
-        invocation: CargoInvocation {
+        action: Action::Cargo(CargoInvocation {
             args: &["fmt", "--all", "--check"],
             env: &[],
             requires: Some(Tool {
@@ -43,11 +44,11 @@ pub(crate) const STEPS: &[Step] = &[
                 reason: "rustfmt is not installed for the pinned toolchain",
                 help: "rustup component add rustfmt",
             }),
-        },
+        }),
     },
     Step {
         name: "clippy",
-        invocation: CargoInvocation {
+        action: Action::Cargo(CargoInvocation {
             args: &[
                 "clippy",
                 "--workspace",
@@ -64,19 +65,19 @@ pub(crate) const STEPS: &[Step] = &[
                 reason: "clippy is not installed for the pinned toolchain",
                 help: "rustup component add clippy",
             }),
-        },
+        }),
     },
     Step {
         name: "test",
-        invocation: CargoInvocation {
+        action: Action::Cargo(CargoInvocation {
             args: &["test", "--workspace", "--all-features", "--locked"],
             env: &[],
             requires: None,
-        },
+        }),
     },
     Step {
         name: "doc",
-        invocation: CargoInvocation {
+        action: Action::Cargo(CargoInvocation {
             args: &[
                 "doc",
                 "--workspace",
@@ -86,7 +87,11 @@ pub(crate) const STEPS: &[Step] = &[
             ],
             env: &[("RUSTDOCFLAGS", "-D warnings")],
             requires: None,
-        },
+        }),
+    },
+    Step {
+        name: crate::check_docs::NAME,
+        action: Action::Check(crate::check_docs::run_check),
     },
 ];
 
@@ -95,8 +100,17 @@ pub(crate) const STEPS: &[Step] = &[
 pub(crate) struct Step {
     /// Name used in output and by `--only`, `--skip` and `--allow-skip`.
     pub name: &'static str,
-    /// The `cargo` invocation that performs the step.
-    pub invocation: CargoInvocation,
+    /// What the step does.
+    pub action: Action,
+}
+
+/// How a step runs.
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Action {
+    /// A `cargo` child process.
+    Cargo(CargoInvocation),
+    /// A native check, run inside xtask on the repository root (spec "native check step").
+    Check(CheckFn),
 }
 
 /// A `cargo` command line (the program itself is chosen by the runner).
@@ -329,12 +343,11 @@ pub(crate) fn run_steps(
     let mut reports = Vec::new();
     for step in selected(steps, options) {
         if !options.json {
-            writeln!(
-                out,
-                "==> {}: cargo {}",
-                step.name,
-                step.invocation.args.join(" ")
-            )?;
+            let command = match &step.action {
+                Action::Cargo(invocation) => invocation.args.join(" "),
+                Action::Check(_) => format!("xtask {}", step.name),
+            };
+            writeln!(out, "==> {}: cargo {command}", step.name)?;
             // The child writes to the same stdout; our line must come first.
             out.flush()?;
         }
@@ -422,16 +435,13 @@ fn human_report(summary: &Summary) -> String {
         if let (Some(reason), Some(help)) = (&step.reason, &step.help) {
             let _ = writeln!(text, "      reason: {reason}\n      help: {help}");
         }
-        for finding in &step.findings {
-            let _ = writeln!(
-                text,
-                "      {} {} {}: {}\n        help: {}",
-                finding.severity.as_str(),
-                finding.rule,
-                finding.location,
-                finding.message,
-                finding.help
-            );
+        for line in check::finding_lines(&step.findings).lines() {
+            let _ = writeln!(text, "      {line}");
+        }
+        if let Some(tail) = &step.output_tail {
+            for line in tail.lines() {
+                let _ = writeln!(text, "      {line}");
+            }
         }
     }
     let failed = summary
@@ -491,7 +501,7 @@ pub(crate) fn execute(
 /// The `ci` command as registered in the command table.
 pub(crate) fn command(args: &[String], out: &mut dyn Write) -> Result<Exit, CommandError> {
     let root = repo::root();
-    let mut runner = ProcessRunner::new(root.clone());
+    let mut runner = RealRunner::new(root.clone());
     execute(args, out, &root, STEPS, &mut runner)
 }
 
