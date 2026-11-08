@@ -2,7 +2,7 @@
 id: M0-T004
 title: check-arch
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R030, XTASK-R031, XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036, XTASK-R037]
@@ -115,6 +115,26 @@ unit-tested with a `C:\w\…` metadata sample, not on Windows.
 
 **Next:** review (fresh session). Then the first `todo` in M0 with all dependencies done:
 M0-T005 (`trace` and `hygiene`).
+
+**Review 1 changes (2026-11-08, same session that wrote Review 1 below).** Status → `review`.
+The next review must be done by a new session: this session wrote both Review 1 and these
+changes.
+1. B5: `rules::judged` returns a crate's entry only if it is registered and its layer is 0–5.
+   `dependencies` (R032–R034, R036), `internal` (dependency target) and `forbid_unsafe` (R035)
+   use it, so a crate with an invalid layer gets the R030 finding only. Spec `spec_version` 9
+   states it without the ambiguity ("no finding of R032–R036 is reported for such a crate, and
+   none for a dependency on it"). Behaviour as specified in v8; only the wording changed.
+2. B4: tests `a_crate_with_an_invalid_layer_gets_only_the_r030_finding` (layer-7 crate with a
+   `tool`-scope, an unlisted normal and an unlisted dev dependency, dependencies on a layer 0 and
+   a layer 5 crate, no attribute; dependencies on it from layer 0 and layer 5) and
+   `a_dependency_on_an_unregistered_workspace_crate_is_reported_by_r031_only` (normal, dev and
+   build dependencies on `ghost` from layers 0 and 5). Each asserts the exact finding list.
+- Verified (macOS 27.2, Rust 1.99.1): `cargo xtask ci` passes; 141 lib tests. Mutants, each
+  killed: `judged` without the layer filter; `internal` target via `entry` instead of `judged`;
+  the target guard replaced by `panic!`; `dependencies` and `forbid_unsafe` via `entry` instead
+  of `judged`. Fault injection (reverted): xtask `layer = 7` in `architecture.toml` gives exactly
+  one finding, R030 at line 379. Before the fix it would also have given R033 findings for the
+  `tool`-scope `serde`, `serde_json`, `toml`. Not verified: Windows, Linux (M0-T007).
 
 ## Review
 

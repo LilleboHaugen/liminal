@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 8
+spec_version: 9
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -242,8 +242,9 @@ as `output_tail` in both output modes.
 - R031. The kind a crate must be registered with follows from its targets: `proc-macro` if it
   has a proc-macro target, otherwise `bin` if it has a binary target, otherwise `lib`. A
   registered kind that is not valid is reported by R030 only.
-- Rules R032–R036 skip a workspace crate that is not registered (R031 reports it), a
-  dependency on an unregistered workspace crate, and a layer outside 0–5 (R030 reports it).
+- Rules R032–R036 skip a workspace crate that is not registered (R031 reports it) or is
+  registered with a layer outside 0–5 (R030 reports it): no finding of R032–R036 is reported for
+  such a crate, and none for a dependency on it (wording clarified in `spec_version` 9).
 - R032 and R036. A dependency of any kind from a layer 0–4 crate on a layer 5 crate is
   reported as R036 only, not also as R032. Any other workspace dependency is allowed if the
   target's layer is lower, or the target is listed in the dependent's `same_layer_deps`.
@@ -379,3 +380,4 @@ Promotion to `usable` (M0 exit):
 | 6 | 2026-11-08 | Frontmatter: whitespace is space and tab only (U+00A0 etc. are text); reject control characters, a `\r` that is not a line ending, U+0085, U+2028, U+2029, U+FFFE, U+FFFF | M0-T003 (review 3 changes) |
 | 7 | 2026-11-08 | Frontmatter: reject U+FEFF (not in YAML 1.2 `nb-char`) | M0-T003 (review 4 changes) |
 | 8 | 2026-11-08 | `check-arch` details (model from `cargo metadata --no-deps`, R030 values and locations, R031 kind rule, R032/R036 overlap, R033/R034 scope table, R035 attribute rule, locations); R030: shape errors are LIM-XTASK-0003; LIM-XTASK-0005; `cargo_metadata` approved but unused | M0-T004 |
+| 9 | 2026-11-08 | `check-arch` details: R032–R036 skip a crate with an unregistered or invalid-layer entry entirely, and dependencies on it (clarified wording; review 1 of M0-T004) | M0-T004 |

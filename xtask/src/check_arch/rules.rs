@@ -247,6 +247,13 @@ fn entry<'a>(architecture: &'a Architecture, name: &str) -> Option<&'a CrateEntr
     architecture.crates.iter().find(|entry| entry.name == name)
 }
 
+/// The registry entry of a crate that R032–R036 judge: registered (else R031 reports it) and
+/// with a layer in 0–5 (else R030 reports it). Spec "`check-arch` details": these rules skip
+/// every other crate, so one registry mistake gives one finding.
+fn judged<'a>(architecture: &'a Architecture, name: &str) -> Option<&'a CrateEntry> {
+    entry(architecture, name).filter(|entry| valid_layer(entry.layer))
+}
+
 /// XTASK-R031: every workspace member is registered with its path and kind.
 pub(super) fn members(model: &ArchModel, findings: &mut Vec<Finding>) {
     for package in &model.packages {
@@ -299,11 +306,12 @@ fn workspace_target<'a>(model: &'a ArchModel, dependency: &Dependency) -> Option
         .find(|package| package.manifest_dir == path)
 }
 
-/// XTASK-R032 … R034 and R036: every dependency of every registered workspace crate.
+/// XTASK-R032 … R034 and R036: every dependency of every workspace crate that is [`judged`].
 pub(super) fn dependencies(model: &ArchModel, findings: &mut Vec<Finding>) {
     for package in &model.packages {
-        // An unregistered crate is an R031 finding; its dependencies cannot be judged.
-        let Some(entry) = entry(&model.architecture, &package.name) else {
+        // An unregistered crate (R031) or an invalid layer (R030): its dependencies cannot be
+        // judged.
+        let Some(entry) = judged(&model.architecture, &package.name) else {
             continue;
         };
         for dependency in &package.dependencies {
@@ -324,13 +332,10 @@ fn internal(
     target: &Package,
     findings: &mut Vec<Finding>,
 ) {
-    let Some(target_entry) = self::entry(&model.architecture, &target.name) else {
-        return; // R031 reports the unregistered target.
+    let Some(target_entry) = judged(&model.architecture, &target.name) else {
+        return; // R031 reports an unregistered target, R030 an invalid layer.
     };
     let (from, to) = (entry.layer, target_entry.layer);
-    if !valid_layer(from) || !valid_layer(to) {
-        return; // R030 reports the invalid layer.
-    }
     let kind = dependency.kind.as_str();
     let (name, target_name) = (&package.name, &target.name);
     if from < TOOLS_LAYER && to == TOOLS_LAYER {
@@ -443,11 +448,11 @@ fn external(
     }
 }
 
-/// XTASK-R035: crates with `unsafe = "forbid"` contain `#![forbid(unsafe_code)]` in every crate
-/// root file.
+/// XTASK-R035: [`judged`] crates with `unsafe = "forbid"` contain `#![forbid(unsafe_code)]` in
+/// every crate root file.
 pub(super) fn forbid_unsafe(model: &ArchModel, findings: &mut Vec<Finding>) {
     for package in &model.packages {
-        let Some(entry) = entry(&model.architecture, &package.name) else {
+        let Some(entry) = judged(&model.architecture, &package.name) else {
             continue;
         };
         if entry.unsafe_policy != "forbid" {

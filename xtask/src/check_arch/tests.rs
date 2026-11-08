@@ -758,3 +758,69 @@ fn duplicate_declarations_give_one_finding() {
     )];
     one(&check(&model(&text, packages)), "XTASK-R033", "`x`");
 }
+
+/// Verifies: XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036
+#[test]
+fn a_crate_with_an_invalid_layer_gets_only_the_r030_finding() {
+    // Spec "`check-arch` details": R032–R036 skip a layer outside 0–5; R030 reports it.
+    // `bad` (layer 7) would otherwise break R033 twice (a `tool`-scope normal dependency, which
+    // the scope table judges by the layer, and an unlisted one), R034 (unlisted
+    // dev-dependency), R035 (no attribute) and, as a dependent or a target, R032/R036.
+    let text = format!(
+        "{HEADER}{}{}{}",
+        entry("bad", 7, "lib", [&[], &["tl"], &[]]),
+        entry("low", 0, "lib", NONE),
+        entry("tool", 5, "lib", NONE)
+    );
+    let packages = vec![
+        package(
+            "bad",
+            &["lib"],
+            vec![
+                on_external("tl", Normal),
+                on_external("unlisted", Normal),
+                on_external("unlisted_dev", Dev),
+                on_crate("low", Normal),
+                on_crate("tool", Normal),
+            ],
+        ),
+        package("low", &["lib"], vec![on_crate("bad", Normal)]),
+        package("tool", &["lib"], vec![on_crate("bad", Dev)]),
+    ];
+    let mut model = model(&text, packages);
+    model.sources.insert(
+        "crates/bad/src/lib.rs".to_string(),
+        "pub fn f() {}\n".to_string(),
+    );
+    let findings = check(&model);
+    one(
+        &findings,
+        "XTASK-R030",
+        "crate `bad` has layer 7; layers are 0–5",
+    );
+    assert_eq!(findings[0].location, "architecture.toml:30");
+}
+
+/// Verifies: XTASK-R031, XTASK-R032, XTASK-R036
+#[test]
+fn a_dependency_on_an_unregistered_workspace_crate_is_reported_by_r031_only() {
+    // `ghost` is a workspace crate without a [[crate]] entry. Dependencies on it from a low layer
+    // and from a tool-layer crate are not judged by R032/R036, and not as external (R033/R034).
+    let text = format!(
+        "{HEADER}{}{}",
+        entry("low", 0, "lib", NONE),
+        entry("tool", 5, "lib", NONE)
+    );
+    let packages = vec![
+        package("ghost", &["lib"], Vec::new()),
+        package(
+            "low",
+            &["lib"],
+            vec![on_crate("ghost", Normal), on_crate("ghost", Dev)],
+        ),
+        package("tool", &["lib"], vec![on_crate("ghost", Build)]),
+    ];
+    let findings = check(&model(&text, packages));
+    one(&findings, "XTASK-R031", "`ghost` is not registered");
+    assert_eq!(findings[0].location, "crates/ghost/Cargo.toml");
+}
