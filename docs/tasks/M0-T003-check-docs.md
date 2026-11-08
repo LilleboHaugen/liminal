@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -117,4 +117,43 @@ metadata` loading to `repo`.
 
 ## Review
 
-_Empty._
+2026-11-08, review session (owner-started, fresh context). Outcome: **changes required**, status →
+`in-progress`.
+
+Checked (REVIEW.md §1), macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. Acceptance criteria: `cargo xtask check-docs` on the real repository: ok (6 ms in `ci`). Every
+   fixture fails with exactly its rule (`fixture_tests.rs`, read and run). Property tests read and
+   run. `check-docs` is a `ci` step.
+2. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-docs).
+3. Tests: read all of `check_docs/tests.rs`, `fixture_tests.rs`, `frontmatter/tests.rs`,
+   `markdown.rs` tests. Own mutations (4): two killed (supersession iff in `rules.rs`, duplicate
+   task ID), **two survived** (items 2 and 3 below).
+4. No placeholders, no weakened tests; new fixtures are new oracles.
+5. Spec agreement: checked `frontmatter.rs`, `check_docs/*.rs`, `markdown.rs`, `repo/*.rs`
+   against spec v3 §6 details; gaps in items 1, 3 and 4.
+6. Unsafe: none. 7. Determinism: n/a (BTree collections, sorted findings).
+8. Docs: public items documented; STATUS.md and DOCUMENTATION.md current.
+9. Architecture: `toml` (tool) and `proptest` (dev) are approved in `architecture.toml`.
+10. Session boundaries: journal shows an owner-started session, no sub-agents.
+
+Required changes:
+1. **Parser accepts values YAML reads differently** (violates the intent of the acceptance criterion
+   "rejected, never misparsed", and the spec's own rationale). Verified by injecting into a real
+   task file; each was accepted with no finding:
+   `title: Ends with colon:` (YAML: error), `title: - dash item` (YAML: block sequence, error),
+   `title: ? question` (YAML: complex mapping key). In flow lists the same holds for items starting
+   with `- `/`? ` and items ending with `:` (`[a:, b]` is a mapping in YAML). Reject a value or list
+   item that starts with `-`, `?` or `:` followed by whitespace or the end of the value, or that
+   ends with `:`. Add these forms to the spec's rejected list (bump `spec_version`), to the
+   rejection unit test and to the `invalid_line()` property generator.
+2. **ADR index status cell: backticks are accepted untested.** Mutant `backticks_allowed: true` for
+   the ADR index survives. Spec says the ADR status cell *is* the status (only the spec index allows
+   backticks). Add a test that `` `accepted` `` in the ADR index is an R025 finding.
+3. **Footnote definitions: unspecified, untested behaviour.** `markdown::reference_definition`
+   skips `[^label]: …`; removing that clause survives all tests. Either specify it (spec: footnote
+   definitions are not reference definitions) and test it, or remove it.
+4. **Misleading R023 cascade.** A task whose frontmatter fails R020 is dropped from the task set, so
+   every task depending on it also gets "depends on M0-T009, which is not an existing task"
+   (observed: a tab after `:` in M0-T009's title produced an R020 plus a false R023 on M0-T010).
+   A task file whose frontmatter fails R020 still exists for `depends_on` purposes, by the task ID
+   prefix of its file name. Specify this in the spec details and test it.
