@@ -2,7 +2,7 @@
 id: M0-T005
 title: trace and hygiene
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T003]
 requirements: [XTASK-R009, XTASK-R028, XTASK-R040, XTASK-R041, XTASK-R042, XTASK-R043, XTASK-R044, XTASK-R045, XTASK-R050, XTASK-R051, XTASK-R052]
@@ -136,4 +136,44 @@ M0-T006 (coverage).
 
 ## Review
 
-_Empty._
+2026-11-08, new owner-started session (fresh context; did not write M0-T005). Outcome:
+**changes required** (first "changes required" outcome of this task). Two blocking findings.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-arch, check-docs, trace 26 ms,
+   hygiene 25 ms).
+2. Acceptance criteria, each by reading or running: `trace` lists all `XTASK-R*` requirements;
+   `hygiene` passes on the repository with no xtask file excluded (decision 1 judged: lexing
+   string literals out is a stronger answer to criterion 2 than either offered option, and the
+   module comment of `hygiene.rs` justifies it); every fixture named in criterion 3 exists and is
+   asserted (`cases/*.rs`, `r0xx_*` overlays, `r044_untested_must` at `usable` vs. the `valid`
+   spec at `experimental`); `trace` and `hygiene` are `ci` steps; R028 is in `check-docs`.
+   Decisions 2 and 3 (exact token rule instead of "within 10 lines", lexer instead of lines)
+   accepted: both are stated in spec v10 and are stricter than the task text.
+3. Code read in full: `rust_lexer.rs`, `requirements.rs`, `repo/sources.rs`, `trace.rs`,
+   `trace/annotations.rs`, `hygiene.rs`, the `check_docs.rs`, `check.rs` and `ci.rs` diffs, the
+   hygiene and trace case fixtures and tests. Checked against spec v10 "`trace` and `hygiene`
+   details" paragraph by paragraph: agrees.
+4. Own mutants (16, each reverted, full `cargo test -p xtask`): 13 killed, 3 survived (findings 1
+   and 2, follow-up 1).
+5. No placeholders, no weakened tests. Oracle changes (`check_docs/valid` §6 table, `ci/tests.rs`
+   step list) are justified in the journal. No `unwrap`/`expect` in non-test code except
+   `expect("invariant: …")`. No unsafe. Determinism: n/a.
+6. Architecture: no new dependency. Session boundaries: the M0-T005 journal shows an
+   owner-started session (after review 2 of M0-T004), no sub-agents.
+
+Required changes:
+1. **B4: nested-member file ownership is untested.** The handoff claims "`.rs` files of workspace
+   members (nested members: the inner one owns a file)". Mutant in `repo/sources.rs::load`:
+   `*owner < prefix.len()` → `*owner > prefix.len()` (the outer member owns the file): all tests
+   pass. The owner is `SourceFile::crate_name`, which decides which `--crate` report an
+   annotation finding belongs to. Add a test with a member nested inside another member's
+   directory that asserts the crate of a file below the inner member (and of one below only the
+   outer member).
+2. **B4: the `## 6 ` heading form of section 6 is untested.** Spec "`trace` and `hygiene`
+   details": section 6 starts at "the level-2 heading that starts with `6.` or `6 `". Mutant in
+   `requirements.rs::section_6`: dropping `|| heading.starts_with("6 ")`: all tests pass, and a
+   spec headed `## 6 Requirements` then has no requirements (every annotation of it becomes an
+   R043 finding). Add a test for a `## 6 …` heading.
+
+Follow-ups (non-blocking) → [M1-T004](M1-T004-trace-hygiene-follow-ups.md).
