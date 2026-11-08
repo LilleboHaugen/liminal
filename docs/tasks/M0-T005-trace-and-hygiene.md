@@ -2,7 +2,7 @@
 id: M0-T005
 title: trace and hygiene
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T003]
 requirements: [XTASK-R009, XTASK-R028, XTASK-R040, XTASK-R041, XTASK-R042, XTASK-R043, XTASK-R044, XTASK-R045, XTASK-R050, XTASK-R051, XTASK-R052]
@@ -202,3 +202,31 @@ Required changes:
    R043 finding). Add a test for a `## 6 …` heading.
 
 Follow-ups (non-blocking) → [M1-T004](M1-T004-trace-hygiene-follow-ups.md).
+
+## Review 2 (re-review)
+
+2026-11-08, new owner-started session (fresh context; did not write M0-T005 or its fixes).
+Outcome: **done**. No blocking findings. Scope per ADR-0021: the two findings of review 1, the
+diff since review 1 (`0719d34..534f9ab`), `cargo xtask ci`.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. `cargo xtask ci`: pass (8 steps: fmt, clippy, test, doc, check-arch, check-docs, trace 26 ms,
+   hygiene 26 ms). 196 lib tests.
+2. Finding 1 fixed: re-applied the review-1 mutant in `repo/sources.rs::load`
+   (`*owner < prefix.len()` → `*owner > prefix.len()`): test
+   `a_file_below_nested_members_belongs_to_the_inner_one` fails. The fixture lists the inner
+   member first, so "last member wins" is caught too.
+3. Finding 2 fixed: re-applied the review-1 mutant in `requirements.rs::section_6` (dropping
+   `|| heading.starts_with("6 ")`): test
+   `section_6_heading_may_be_written_with_a_space_instead_of_a_dot` fails. Own extra mutant
+   (level-2 guard `content.starts_with("## ")` → `true`): same test fails.
+4. Diff since review 1: tests and fixtures only, no production code. Test code uses `unwrap`
+   (allowed in tests). New fixture `xtask/tests/fixtures/sources/` has a README; it lies under
+   the excluded `xtask/tests/fixtures` path of `ci/hygiene.toml`. Doc changes (task handoff 2,
+   journal `2026-11-08-M0-T005-2.md`, STATUS) are consistent.
+5. Session boundaries: the fixes were made by the session that wrote review 1, as its
+   implementation task after the review (priority 2, ADR-0020); it did not write the original
+   implementation. No sub-agents.
+
+Follow-ups: none new. The non-blocking findings of review 1 remain in
+[M1-T004](M1-T004-trace-hygiene-follow-ups.md).
