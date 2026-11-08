@@ -1,0 +1,5 @@
+# Pinned toolchain (ADR-0005). Upgrades are dedicated tasks (docs/process/CODE_STYLE.md).
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy", "llvm-tools"]
+profile = "minimal"

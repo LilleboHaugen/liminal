@@ -1,0 +1,3 @@
+# XTASK-R001: `cargo xtask <command>` from any directory in the repository.
+[alias]
+xtask = "run --package xtask --"

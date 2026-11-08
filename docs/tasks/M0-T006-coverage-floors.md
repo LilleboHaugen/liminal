@@ -17,7 +17,7 @@ Per-crate line coverage is measured and can only go up (ratchet), as defined in 
 ## Context
 
 - `docs/process/TESTING.md` §Coverage. `docs/specs/xtask.md` R060–R064.
-- External tool: `cargo-llvm-cov` (needs the `llvm-tools-preview` component, pinned in M0-T001).
+- External tool: `cargo-llvm-cov` (needs the `llvm-tools` component, formerly `llvm-tools-preview`, pinned in M0-T001).
 
 ## Scope
 

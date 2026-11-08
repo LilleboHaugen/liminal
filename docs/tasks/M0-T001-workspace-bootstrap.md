@@ -2,7 +2,7 @@
 id: M0-T001
 title: Bootstrap the Cargo workspace
 milestone: M0
-status: todo
+status: review
 crates: [xtask]
 depends_on: []
 requirements: [XTASK-R001, XTASK-R002, XTASK-R011]
@@ -51,14 +51,14 @@ No `liminal_*` crate exists before its spec does. Release profile tuning (M1, wi
 
 ## Acceptance criteria
 
-- [ ] `cargo build --workspace`, `cargo test --workspace`,
+- [x] `cargo build --workspace`, `cargo test --workspace`,
       `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt --all --check` and
       `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` all pass on macOS.
-- [ ] `cargo xtask` and `cargo xtask help` print the command list (currently: `help`) with exit code 0.
-- [ ] `cargo xtask nonsense` prints usage to stderr and exits with code 2.
-- [ ] `xtask/Cargo.toml` has no dependency on any `liminal_*` crate (R011).
-- [ ] The pinned Rust version is recorded in the journal entry.
-- [ ] Every lint configured in `[workspace.lints]` that deviates from CODE_STYLE.md is justified in a
+- [x] `cargo xtask` and `cargo xtask help` print the command list (currently: `help`) with exit code 0.
+- [x] `cargo xtask nonsense` prints usage to stderr and exits with code 2.
+- [x] `xtask/Cargo.toml` has no dependency on any `liminal_*` crate (R011).
+- [x] The pinned Rust version is recorded in the journal entry.
+- [x] Every lint configured in `[workspace.lints]` that deviates from CODE_STYLE.md is justified in a
       comment. Pedantic lints allowed at workspace level are listed with reasons.
 
 ## Test requirements
@@ -79,7 +79,41 @@ No `liminal_*` crate exists before its spec does. Release profile tuning (M1, wi
 
 ## Handoff
 
-_Empty._
+2026-11-08, implementation session. Status → `review`.
+
+**Done (all acceptance criteria met):**
+- Pinned toolchain `1.99.1` (current stable per `rustup check` on 2026-11-08) in
+  `rust-toolchain.toml`, components `rustfmt`, `clippy`, `llvm-tools`, profile `minimal`.
+  `rust-version = "1.99.1"` in `[workspace.package]`.
+- Root `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `clippy.toml`, `.cargo/config.toml` as scoped.
+- `[workspace.lints]` follows CODE_STYLE.md §Lints with no deviations. Pedantic lints allowed at
+  workspace level: none.
+- `[workspace.dependencies]`: `serde = "1.0"`, `serde_json = "1.0"`, `toml = "1.2"`,
+  `cargo_metadata = "0.23"` (latest on crates.io 2026-11-08: 1.0.229, 1.0.154, 1.2.1, 0.23.1).
+  `xtask` does not inherit any of them yet, so they are not in `Cargo.lock` and have not been compiled.
+  `serde` has no `derive` feature yet; the task that first deserializes decides that.
+- `xtask` crate: `src/lib.rs` (crate root only) + `src/cli.rs` (parser, `COMMANDS` table, `help`,
+  `Exit` codes 0/1/2, `CommandError`) + thin `src/main.rs` (converts OS args; non-UTF-8 argument →
+  exit 2). New commands plug in by adding a `Command { name, summary, run }` entry to `COMMANDS`;
+  each command parses its own arguments and returns `CommandError::Usage` for unknown ones.
+- Tests: 9 unit tests in `cli.rs`, `tests/cli.rs` (runs the binary, checks exit codes and streams),
+  `tests/config.rs` (R001 alias, R011 scan of `xtask/Cargo.toml` + scanner tested on synthetic
+  manifests), 1 doc test on `xtask::run`.
+
+**Verified (macOS 27.2, Apple M5 Pro):** `cargo build --workspace --locked`, `cargo test --workspace
+--all-features --locked` (16 tests incl. doc test), `cargo clippy --workspace --all-targets
+--all-features --locked -- -D warnings`, `cargo fmt --all --check`, `RUSTDOCFLAGS="-D warnings" cargo
+doc --workspace --no-deps --all-features --locked`: all pass. `cargo xtask` / `cargo xtask help` exit 0
+(also from `docs/specs/`); `cargo xtask nonsense` → usage on stderr, empty stdout, exit 2.
+Mutation checks: changing the usage exit code to 3 fails 2 unit tests; removing the alias fails the
+R001 test. Not verified on Windows or Linux (CI arrives with M0-T007).
+
+**Traps:**
+- In non-interactive shells `cargo` may not be on `PATH`; prepend `/opt/homebrew/opt/rustup/bin`.
+- Integration-test helper functions are not `#[test]` functions, so `clippy::unwrap_used` applies to
+  them despite `allow-unwrap-in-tests`. Use `expect("test setup: …")` or `unwrap_or_else(panic!)`.
+
+**Next:** review this task (fresh session, `docs/process/REVIEW.md`). Then M0-T002.
 
 ## Review
 

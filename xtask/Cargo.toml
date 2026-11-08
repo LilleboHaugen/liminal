@@ -1,0 +1,15 @@
+[package]
+name = "xtask"
+version = "0.0.0"
+description = "Repository automation and quality gates for Liminal, run as `cargo xtask <command>`."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# XTASK-R011: no dependency on any `liminal_*` crate, ever.
+[dependencies]
+
+[lints]
+workspace = true

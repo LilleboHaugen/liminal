@@ -1,0 +1,4 @@
+# Stable rustfmt options only (docs/process/CODE_STYLE.md).
+edition = "2024"
+max_width = 100
+newline_style = "Unix"

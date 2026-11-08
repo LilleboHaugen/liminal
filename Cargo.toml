@@ -1,0 +1,38 @@
+[workspace]
+members = ["xtask"]
+# Edition 2024 implies resolver 3; stated explicitly for readers (ADR-0005).
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.99.1"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/LilleboHaugen/rust-game-engine"
+
+# Approved external crates (architecture.toml [external.*]). Caret requirement on major.minor
+# (docs/process/DEPENDENCIES.md). Members inherit with `{ workspace = true }`.
+[workspace.dependencies]
+# scope = "tool" (xtask only, ADR-0003)
+serde = "1.0"
+serde_json = "1.0"
+toml = "1.2"
+cargo_metadata = "0.23"
+
+# docs/process/CODE_STYLE.md §Lints. Members opt in with `[lints] workspace = true`.
+# `-D warnings` in CI turns every `warn` below into an error.
+[workspace.lints.rust]
+missing_docs = "deny"
+unsafe_op_in_unsafe_fn = "deny"
+
+[workspace.lints.clippy]
+# All pedantic lints at priority -1 so the specific levels below override them.
+# Pedantic lints allowed at workspace level: none.
+pedantic = { level = "warn", priority = -1 }
+undocumented_unsafe_blocks = "deny"
+# Allowed in tests through clippy.toml. `expect_used` is deliberately not enabled: non-test
+# `expect` messages must start with "invariant: " instead (checked in review).
+unwrap_used = "deny"
+dbg_macro = "deny"
+# Binaries whose job is printing (xtask, liminal_cli) allow these two at their binary crate root.
+print_stdout = "deny"
+print_stderr = "deny"
