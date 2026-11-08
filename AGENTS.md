@@ -79,12 +79,18 @@ Full detail: `docs/process/WORKFLOW.md`.
     existing game, its characters, art, music or levels.
 15. **Never claim something you did not verify.** Write "not verified on Windows" rather than implying it.
     If a check could not run (missing tool, no GPU), say so in the handoff.
+16. **Ask before installing anything on the owner's machine** (ADR-0022). Before any `cargo install`,
+    `rustup` toolchain/component/target change, `brew`, `pip`, global `npm`, downloaded installer or
+    `sudo`, ask the project owner and wait for an explicit yes. State what (tool, version, exact
+    command), why (which task or check needs it), where it installs, alternatives, and how to undo it.
+    A yes covers only that request. Without a yes, do not install; the step stays not run.
 
 ## Definition of done (for a task)
 
 - All acceptance criteria in the task file are met and checked off.
-- `cargo xtask ci` passes locally with no failed or skipped steps. Install missing tools
-  (`cargo xtask doctor` lists them). If a step truly cannot run on your machine (e.g. no GPU), the task
+- `cargo xtask ci` passes locally with no failed or skipped steps. Missing tools (`cargo xtask doctor`
+  lists them) are installed only after the owner approves (rule 16). If a step truly cannot run on
+  your machine (e.g. no GPU, or the owner declined an install), the task
   stays `in-progress` and the handoff says which step and why. It is not moved to `review`.
 - New public items are documented; primary entry points have a runnable `# Examples` doc test.
 - Requirement IDs covered by the task have `Verifies:` tests.

@@ -55,7 +55,8 @@ AGPL) are not allowed in any scope that is distributed. Enforced through `deny.t
 
 ## External tools (not crates)
 
-Tools agents install to run checks: `cargo-llvm-cov`, `cargo-deny`, `cargo-nextest` (optional), Miri
+Tools the checks need (installed only with the owner's approval, ADR-0022): `cargo-llvm-cov`, `cargo-deny`, `cargo-nextest` (optional), Miri
 (nightly component), `cargo-fuzz`, Vulkan SDK (for validation layers), and later the shader toolchain
 (OQ-001). `liminal doctor` (M2) and `cargo xtask doctor` (M0) report which tools are missing and how
-to install them.
+to install them. An agent asks the owner before installing any of them, giving the tool, the exact
+command, the reason, where it installs and how to undo it.

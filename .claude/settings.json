@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "ask": [
+      "Bash(cargo install:*)",
+      "Bash(cargo binstall:*)",
+      "Bash(cargo uninstall:*)",
+      "Bash(rustup toolchain:*)",
+      "Bash(rustup component:*)",
+      "Bash(rustup target:*)",
+      "Bash(rustup update:*)",
+      "Bash(rustup self:*)",
+      "Bash(rustup install:*)",
+      "Bash(brew:*)",
+      "Bash(port:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pipx install:*)",
+      "Bash(python3 -m pip install:*)",
+      "Bash(npm install -g:*)",
+      "Bash(npm i -g:*)",
+      "Bash(pnpm add -g:*)",
+      "Bash(yarn global:*)",
+      "Bash(gem install:*)",
+      "Bash(installer:*)",
+      "Bash(xcode-select:*)",
+      "Bash(softwareupdate:*)",
+      "Bash(sudo:*)"
+    ]
+  }
+}
