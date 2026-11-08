@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "ok": false,
+  "steps": [
+    {
+      "name": "fmt",
+      "status": "pass",
+      "duration_ms": "<duration>"
+    },
+    {
+      "name": "clippy",
+      "status": "fail",
+      "duration_ms": "<duration>",
+      "output_tail": "error: unused variable: `x`\nerror: could not compile"
+    },
+    {
+      "name": "trace",
+      "status": "fail",
+      "duration_ms": "<duration>",
+      "findings": [
+        {
+          "rule": "XTASK-R044",
+          "severity": "error",
+          "location": "docs/specs/liminal_ecs.md",
+          "message": "MUST requirement ECS-R001 has no verifying test",
+          "help": "add a test with `/// Verifies: ECS-R001`"
+        }
+      ]
+    },
+    {
+      "name": "coverage",
+      "status": "skipped",
+      "duration_ms": "<duration>",
+      "reason": "cargo-llvm-cov not installed",
+      "help": "cargo install cargo-llvm-cov"
+    }
+  ]
+}

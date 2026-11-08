@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 1
+spec_version: 2
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -85,6 +85,21 @@ JSON summary emitted by `ci --json` (and always written to `target/xtask/ci-summ
   ]
 }
 ```
+
+Summary details (added in `spec_version` 2):
+
+- Step objects contain `name`, `status`, `duration_ms` (wall-clock milliseconds), and only the
+  optional fields that apply: `reason` and `help` for `skipped`; `findings` (omitted when empty)
+  and `output_tail` for `fail`.
+- `output_tail`: the last 50 lines of a failed process step's combined stdout and stderr, in the
+  order the child wrote them. Present only when output is captured, which is in `--json` mode. In
+  human mode the child writes directly to the terminal and `output_tail` is absent.
+- `--fail-fast` stops after the first step that makes `ok` false (a `fail`, or a `skipped` step not
+  named in `--allow-skip`). Steps after it do not run and are absent from `steps`.
+- List options accept `--only fmt,clippy` and `--only=fmt,clippy`, and may be repeated (names
+  accumulate). Unknown names in `--only`, `--skip` or `--allow-skip` are usage errors (exit 2), and
+  so is a selection that leaves no step to run. Selected steps always run in §5 order, whatever the
+  order of names on the command line.
 
 ## 6. Requirements
 
@@ -234,3 +249,4 @@ Promotion to `usable` (M0 exit):
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-08 | Initial spec | Planning session |
+| 2 | 2026-11-08 | §5 summary details: optional `output_tail`, `--fail-fast` stopping rule, list option forms, empty selection is a usage error | M0-T002 |

@@ -13,7 +13,8 @@ repository = "https://github.com/LilleboHaugen/rust-game-engine"
 # (docs/process/DEPENDENCIES.md). Members inherit with `{ workspace = true }`.
 [workspace.dependencies]
 # scope = "tool" (xtask only, ADR-0003)
-serde = "1.0"
+# `derive`: summary and finding records (M0-T002); `cargo_metadata` (M0-T004) needs it too.
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "1.2"
 cargo_metadata = "0.23"

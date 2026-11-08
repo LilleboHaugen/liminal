@@ -6,6 +6,7 @@
 
 use std::fmt;
 use std::io::{self, Write};
+use std::path::PathBuf;
 
 /// Process exit status of an xtask invocation (XTASK-R007).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,6 +39,14 @@ pub enum CommandError {
     Usage(String),
     /// Writing output failed. [`run`] reports it on stderr and exits with [`Exit::Failure`].
     Io(io::Error),
+    /// A file the command must write (e.g. the `ci` summary) could not be written. [`run`] reports
+    /// it on stderr and exits with [`Exit::Failure`].
+    File {
+        /// The file that could not be written.
+        path: PathBuf,
+        /// The underlying error.
+        error: io::Error,
+    },
 }
 
 impl fmt::Display for CommandError {
@@ -45,6 +54,9 @@ impl fmt::Display for CommandError {
         match self {
             CommandError::Usage(message) => write!(f, "{message}"),
             CommandError::Io(error) => write!(f, "could not write output: {error}"),
+            CommandError::File { path, error } => {
+                write!(f, "could not write {}: {error}", path.display())
+            }
         }
     }
 }
@@ -72,11 +84,18 @@ pub struct Command {
 
 /// Every implemented command, in the order `help` lists them. Later commands are added here by the
 /// task that implements them (`docs/specs/xtask.md` §5); a command is never listed before it works.
-pub const COMMANDS: &[Command] = &[Command {
-    name: "help",
-    summary: "Print this list of commands.",
-    run: help,
-}];
+pub const COMMANDS: &[Command] = &[
+    Command {
+        name: "help",
+        summary: "Print this list of commands.",
+        run: help,
+    },
+    Command {
+        name: "ci",
+        summary: "Run the CI steps (fmt, clippy, test, doc) in order; write target/xtask/ci-summary.json.",
+        run: crate::ci::command,
+    },
+];
 
 /// Runs xtask with the given arguments (the process arguments without the program name).
 ///
@@ -111,7 +130,7 @@ pub fn run(args: &[String], stdout: &mut dyn Write, stderr: &mut dyn Write) -> E
             let _ = write!(stderr, "error: {message}\n\n{}", usage());
             Exit::Usage
         }
-        Err(error @ CommandError::Io(_)) => {
+        Err(error @ (CommandError::Io(_) | CommandError::File { .. })) => {
             let _ = writeln!(stderr, "error: {error}");
             Exit::Failure
         }
@@ -203,7 +222,7 @@ mod tests {
         for command in COMMANDS {
             let line = stdout
                 .lines()
-                .find(|line| line.trim_start().starts_with(command.name))
+                .find(|line| line.split_whitespace().next() == Some(command.name))
                 .unwrap();
             assert!(line.ends_with(command.summary), "line: {line}");
         }

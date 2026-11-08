@@ -7,6 +7,10 @@
 //! [`std::io::Write`] values it is given, so tests can capture the output.
 #![forbid(unsafe_code)]
 
+mod ci;
 mod cli;
+mod finding;
+mod process;
+mod repo;
 
 pub use cli::{COMMANDS, Command, CommandError, CommandFn, Exit, run};
