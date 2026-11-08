@@ -2,7 +2,7 @@
 id: M0-T002
 title: xtask ci command
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T001]
 requirements: [XTASK-R003, XTASK-R004, XTASK-R005, XTASK-R006, XTASK-R007, XTASK-R008, XTASK-R010, XTASK-R012]
@@ -109,4 +109,33 @@ unblocked; the first `todo` in order is M0-T003. Each adds its step to `STEPS` a
 
 ## Review
 
-_Empty._
+2026-11-08, review session (owner-started, fresh context). Outcome: **done**.
+
+Checked (REVIEW.md §1):
+1. Acceptance criteria, each verified by running on macOS 27.2 (Apple M5 Pro, Rust 1.99.1):
+   `cargo xtask ci` exits 0 and writes a valid summary, also from `docs/specs/`. With a formatting
+   error added to `xtask/src/repo.rs`: `cargo xtask ci --json --only fmt,doc` → `fmt` fail with
+   `output_tail`, `doc` still ran and passed, exit 1, stdout byte-identical to
+   `target/xtask/ci-summary.json`; `--fail-fast` stopped after `fmt` (summary lists only `fmt`).
+   Unknown step names → exit 2 (`tests/ci.rs`). Missing tool → `skipped` with `reason`/`help`
+   (fake-runner tests and the real-probe test in `process.rs`). Snapshot test compares exact text.
+2. `cargo xtask ci`: pass (fmt, clippy, test, doc).
+3. Tests: 7 own single-line mutations (different from the author's 12): 5 killed (`ok` any/all,
+   fail-fast ignoring skips, skip counted as ok, stderr not captured, progress line in `--json`
+   mode). 2 survived, both non-blocking: the human report's "N skipped without --allow-skip" count
+   ignoring `--allow-skip` (display text only, no requirement), and removing `current_dir` from
+   child commands (no observable effect: cargo finds the workspace from any subdirectory, and the
+   alias only runs inside the repository). `Verifies:` tags match the requirements tested.
+4. No placeholders, no weakened tests. The one new oracle (the snapshot) is justified in the journal.
+5. Code matches spec v2 (§5 summary details, R003–R008, R010, R012). The history row is present.
+6. Unsafe: none (`#![forbid(unsafe_code)]`).
+7. Determinism: not applicable (tool crate). Summary field order is fixed.
+8. Docs: items documented, `cargo doc` with `-D warnings` passes, STATUS updated.
+9. Architecture: only `serde` (with `derive`) and `serde_json`, both approved for `xtask` with scope
+   `tool` (ADR-0003). `serde_derive`/`syn` are transitive dependencies; for `tool` scope,
+   DEPENDENCIES.md does not require a transitive dependency audit.
+10. Session boundaries: implemented in an owner-started session. Per
+    `2026-11-08-adr-0020-session-boundaries.md`, a review sub-agent was started and then stopped
+    before it changed any file. This review is the first and only review.
+
+Not verified: Windows and Linux (M0-T007). The Windows relink risk in the handoff still applies.
