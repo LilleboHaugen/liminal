@@ -1,0 +1,71 @@
+# Quality gates on every push and pull request (M0-T007; ADR-0005: native builds per Tier 1 OS).
+# Every job runs `cargo xtask ci` (docs/specs/xtask.md §5); steps that need an extra tool run in
+# their own job on Linux and are deselected (`--skip`) in `checks`.
+#
+# Third-party actions are pinned by full commit SHA; the version is in the comment. To upgrade,
+# resolve the new tag with `git ls-remote https://github.com/<owner>/<repo>.git 'refs/tags/<tag>*'`
+# (for an annotated tag use the `^{}` line, which is the commit).
+
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  checks:
+    name: checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macos-latest is arm64 (aarch64-apple-darwin), the others x86_64 (ADR-0005 Tier 1).
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Installs the toolchain and components pinned in rust-toolchain.toml (rustup >= 1.28).
+      - run: rustup toolchain install
+      - run: rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo xtask ci --skip coverage
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-summary-${{ github.job }}-${{ matrix.os }}
+          path: target/xtask/ci-summary.json
+          if-no-files-found: warn
+
+  coverage:
+    name: coverage (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: rustup toolchain install
+      - run: rustup show
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # The version measured in M0-T006. `cargo install` is a no-op if the cached binary matches.
+      - run: cargo install cargo-llvm-cov --version 0.9.1 --locked
+      - run: cargo xtask ci --only coverage
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-summary-${{ github.job }}-ubuntu-latest
+          path: target/xtask/ci-summary.json
+          if-no-files-found: warn

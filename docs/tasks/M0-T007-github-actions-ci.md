@@ -2,7 +2,7 @@
 id: M0-T007
 title: GitHub Actions CI
 milestone: M0
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: []
