@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -177,3 +177,43 @@ Required changes:
    (observed: a tab after `:` in M0-T009's title produced an R020 plus a false R023 on M0-T010).
    A task file whose frontmatter fails R020 still exists for `depends_on` purposes, by the task ID
    prefix of its file name. Specify this in the spec details and test it.
+
+## Review 2
+
+2026-11-08, third session (owner-started, fresh context; did not write M0-T003 or review 1).
+Outcome: **changes required**, status → `in-progress`.
+
+Checked (REVIEW.md §1), macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. Acceptance criteria: re-run, not trusted. `check-docs` on the real repository: ok. Fixture and
+   property tests read and run. `check-docs` is a `ci` step.
+2. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-docs). 102 lib tests.
+3. Review-1 changes: all four present and tested (diff of `edb37c5` read in full).
+4. **Differential test against a real YAML parser** (Ruby 3.1 Psych/libyaml, YAML 1.1): 70 values
+   and list items injected into `docs/tasks/M0-T009-deny-and-doctor.md` (reverted), `check-docs`
+   result compared with what YAML reads. Script:
+   scratchpad `diff.rb` (not committed). Findings in items 1 and 2 below. Differences that are not
+   defects: scalar typing (`null`, `~`, `yes`, `.inf`, `0x1F`): the spec says "every other value is a
+   string", so YAML type resolution is out of scope by design; `[a:b]`, `[:x]`, `[a ?b]`: libyaml
+   (YAML 1.1) rejects them, YAML 1.2 reads them as plain strings, and the spec chooses the 1.2 reading.
+5. Mutants (2): `chars.next().is_none_or(char::is_whitespace)` → `is_none()`: killed.
+   `if id.is_none() && !fields_have_valid_id(..)` → `if id.is_none()`: **survived** (item 3).
+6. No placeholders, no weakened tests, no oracle changes. Unsafe: none. Determinism: n/a.
+7. Docs: spec v4 and DOCUMENTATION.md agree with the code, except for the gaps below.
+8. Architecture: no new dependencies since review 1.
+9. Session boundaries: journals show owner-started sessions, no sub-agents.
+
+Required changes:
+1. **Scalar values starting with `,` or `]` are accepted; YAML rejects them.** `title: ]x` and
+   `title: ,x` give no finding (Psych: parse error). Both are YAML indicators (c-indicator); the
+   forbidden-start list has every other one (`[` starts a list, `#` a comment). Add `,` and `]`
+   to the rejected first characters (spec §6 details, DOCUMENTATION.md, unit test, `invalid_line()`
+   generator, arbitrary-input property).
+2. **List items containing `{` or `}` are accepted; YAML rejects them.** `[a{b}]` and `[a}]` give no
+   finding (Psych: parse error). In a flow sequence a plain scalar must not contain a flow indicator
+   (`,[]{}`) anywhere; the parser rejects only `[`, `]` (and `,` splits). Reject `{` and `}` anywhere
+   in a list item, and state it where the spec and DOCUMENTATION.md list the forbidden item characters.
+3. **Duplicate-ID branch of the file-name fallback is untested.** Removing
+   `!fields_have_valid_id(&frontmatter)` in `check_docs/rules.rs` survives all tests. The spec says
+   "a task file without a valid `id`" but does not say whether a well-formed `id` that duplicates
+   another task's ID is "valid". Specify it (the code says yes: such a file is not added under its
+   file-name ID) and add a test that fails under the mutant.
