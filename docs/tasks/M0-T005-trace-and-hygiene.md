@@ -2,7 +2,7 @@
 id: M0-T005
 title: trace and hygiene
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T003]
 requirements: [XTASK-R009, XTASK-R028, XTASK-R040, XTASK-R041, XTASK-R042, XTASK-R043, XTASK-R044, XTASK-R045, XTASK-R050, XTASK-R051, XTASK-R052]
@@ -133,6 +133,31 @@ Windows, Linux (M0-T007).
 
 **Next:** review (fresh session). Then the first `todo` in M0 with all dependencies done:
 M0-T006 (coverage).
+
+### Handoff 2 (fixes for review 1)
+
+2026-11-08, the session that wrote review 1 (priority 2: `in-progress` with a review note; it
+did not write the M0-T005 implementation). Status → `review`.
+
+**Done:**
+1. Finding 1 (B4): `repo/sources.rs` test `a_file_below_nested_members_belongs_to_the_inner_one`
+   on the new fixture `xtask/tests/fixtures/sources/nested/` (members `outer/inner` and `outer`,
+   inner listed first, README in `xtask/tests/fixtures/sources/`). It asserts the owner crate of
+   a file below both members (`inner`) and of a file below only `outer`.
+2. Finding 2 (B4): `requirements/tests.rs` test
+   `section_6_heading_may_be_written_with_a_space_instead_of_a_dot`: `## 6 Requirements` starts
+   section 6; `# 6 …` (level 1) and `### 6 …` (level 3) do not.
+
+No production code changed.
+
+**Verified (macOS 27.2, Apple M5 Pro, Rust 1.99.1):** `cargo xtask ci` passes (8 steps), 196 lib
+tests. Mutants against `cargo test -p xtask`, each reverted, all killed: the two from review 1
+(`*owner > prefix.len()`; `section_6` without `|| heading.starts_with("6 ")`), `if inner` →
+`if true` (last member wins), and `section_6` accepting a level-1 heading as the start (it
+survived the first version of test 2; the level-1 case was added for it). Not verified: Windows,
+Linux (M0-T007).
+
+**Next:** re-review (fresh session; ADR-0021: the two findings, the diff since review 1, `ci`).
 
 ## Review
 

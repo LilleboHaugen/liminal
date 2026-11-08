@@ -82,6 +82,27 @@ fn rows_in_section_6_tables_are_requirements_with_level_and_withdrawn_flag() {
 
 /// Verifies: XTASK-R040
 #[test]
+fn section_6_heading_may_be_written_with_a_space_instead_of_a_dot() {
+    // Level-1 `# 6 …` and level-3 `### 6 …` headings do not start section 6; the level-2
+    // `## 6 …` heading does.
+    let text = "---\ncrate: x\nreq_prefix: GAMMA\n---\n\n# 6 Not section 6\n\n\
+                | ID | Level | Requirement |\n|---|---|---|\n| GAMMA-R001 | MUST | Level 1. |\n\n\
+                ## 5. API\n\n### 6 Not section 6\n\n\
+                | ID | Level | Requirement |\n|---|---|---|\n| GAMMA-R003 | MUST | Level 3. |\n\n\
+                ## 6 Requirements\n\n| ID | Level | Requirement |\n|---|---|---|\n\
+                | GAMMA-R002 | MUST | In section 6. |\n\n## 7 Invariants\n";
+    let extracted = extract(&model_with(&[("docs/specs/gamma.md", text)]));
+    let ids: Vec<&str> = extracted
+        .requirements
+        .iter()
+        .map(|r| r.id.as_str())
+        .collect();
+    assert_eq!(ids, ["DEMO-R001", "GAMMA-R002"]);
+    assert_eq!(summary(&extracted.findings), []);
+}
+
+/// Verifies: XTASK-R040
+#[test]
 fn tables_outside_section_6_and_in_fenced_code_are_not_requirements() {
     let text = "---\ncrate: x\nreq_prefix: BETA\n---\n\n## 5. API\n\n| ID | Level | Requirement |\n\
                 |---|---|---|\n| BETA-R001 | MUST | Before section 6. |\n\n## 6. Requirements\n\n\

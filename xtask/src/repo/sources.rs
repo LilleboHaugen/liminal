@@ -231,6 +231,26 @@ mod tests {
     }
 
     #[test]
+    fn a_file_below_nested_members_belongs_to_the_inner_one() {
+        // `outer/inner` is a member inside member `outer`, and is listed first in `members`, so
+        // neither "first member wins" nor "last member wins" gives the right owner.
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sources/nested");
+        let model = load(&root).unwrap();
+        let owners: Vec<(&str, &str)> = model
+            .sources
+            .iter()
+            .map(|s| (s.path.as_str(), s.crate_name.as_str()))
+            .collect();
+        assert_eq!(
+            owners,
+            [
+                ("outer/inner/src/lib.rs", "inner"),
+                ("outer/src/lib.rs", "outer"),
+            ]
+        );
+    }
+
+    #[test]
     fn loads_the_rust_files_of_the_real_workspace() {
         let model = load(&super::super::root()).unwrap();
         let paths: Vec<&str> = model.sources.iter().map(|s| s.path.as_str()).collect();
