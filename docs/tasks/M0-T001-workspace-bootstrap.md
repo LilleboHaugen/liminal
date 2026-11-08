@@ -2,7 +2,7 @@
 id: M0-T001
 title: Bootstrap the Cargo workspace
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: []
 requirements: [XTASK-R001, XTASK-R002, XTASK-R011]
@@ -117,4 +117,44 @@ R001 test. Not verified on Windows or Linux (CI arrives with M0-T007).
 
 ## Review
 
-_Empty._
+2026-11-08, review session (fresh context, did not write this work). macOS 27.2, Apple M5 Pro,
+Rust 1.99.1. **Outcome: `done`.**
+
+Checked:
+1. **Acceptance criteria**, each re-run rather than trusted: `cargo build --workspace --locked`,
+   `cargo test --workspace --all-features --locked` (16 tests: 9 unit, 3 CLI, 3 config, 1 doc test),
+   `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`,
+   `cargo fmt --all --check`, `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+   --all-features --locked`: all pass. `cargo xtask` and `cargo xtask help` exit 0 (also from
+   `docs/specs/`). `cargo xtask nonsense` exits 2 with empty stdout and usage on stderr.
+   `xtask/Cargo.toml` has no dependencies. The journal records 1.99.1, which `rustup check` confirms
+   is the current stable. `[workspace.lints]` matches CODE_STYLE.md §Lints with no deviations, so no
+   justification comments are needed.
+2. **`cargo xtask ci`** does not exist yet (M0-T002). The plain cargo commands listed in AGENTS.md
+   were run instead (item 1).
+3. **Tests prove behaviour.** These mutations were each applied to one line, and each one made the
+   suite fail: no arguments → usage error; option-in-command-position check removed; usage text
+   without summaries; usage error without the usage text; `help` ignoring extra arguments; non-UTF-8
+   argument → exit 0; a `liminal_core` dependency added to `xtask/Cargo.toml`. The last one also
+   breaks the build because the path does not exist, so the R011 scanner is backed by its own test
+   on synthetic manifests (`liminal_dependency_scan_finds_every_dependency_form`). No test lacks
+   assertions. The `Verifies:` tags (R001, R002, R011) match what each test checks.
+4. **No fake progress:** no `todo!`, `unimplemented!`, `dbg!`, TODO, or `#[ignore]` in `xtask/`. No
+   non-test `expect`. The scope matches the task. No oracles exist yet.
+5. **Spec agreement:** the code matches `docs/specs/xtask.md` §3 (lib + thin bin, hand-written
+   parsing), §5 (`help`, only implemented commands listed), R001, R002, R007 (exit codes) and R011.
+6. **Unsafe:** none. Both crate roots have `#![forbid(unsafe_code)]`. Miri is not applicable.
+7. **Determinism:** not applicable (xtask is `deterministic = false`).
+8. **Docs:** every public item is documented. `xtask::run` has a runnable `# Examples` doc test.
+   STATUS.md and M0-T006 (`llvm-tools`) were updated. No stale references to `llvm-tools-preview`
+   remain outside historical notes.
+9. **Architecture:** the four `[workspace.dependencies]` entries match `architecture.toml`
+   `[[crate]] xtask` `external` and their `[external.*]` entries (scope `tool`, ADR-0003). They are
+   caret `major.minor` requirements per DEPENDENCIES.md. The `llvm-tools` component is installed.
+
+Non-blocking observations (no change required):
+- `help_lists_every_command_with_its_summary` finds a command's line with `starts_with(name)`. Once a
+  command name is a prefix of another (e.g. `check` and `check-arch`), it could match the wrong line.
+  The task that adds such a pair should match the exact name column.
+- `tests/config.rs` checks R001 and R011 by scanning text lines. The file says so, and M0-T004
+  (`check-arch`) is the authoritative R011 check.
