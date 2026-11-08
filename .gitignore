@@ -1,0 +1,19 @@
+# Rust build output
+/target/
+**/*.rs.bk
+
+# Coverage and profiling output (reports are regenerated, floors live in ci/)
+/coverage/
+*.profraw
+*.profdata
+/traces/
+
+# Golden-image test failures (actual/diff images written next to goldens on failure)
+**/*.actual.png
+**/*.diff.png
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+*.swp

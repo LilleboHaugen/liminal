@@ -1,0 +1,472 @@
+# architecture.toml — normative registry of Liminal's crate graph.
+#
+# Enforced by `cargo xtask check-arch` (task M0-T004, spec docs/specs/xtask.md).
+# Rules (ADR-0004):
+#   1. Every crate in the Cargo workspace MUST have a [[crate]] entry here. Entries for crates that do not
+#      exist yet are allowed (planned crates).
+#   2. A crate MAY depend on engine crates in strictly lower layers, plus those in `same_layer_deps`.
+#   3. A crate MAY depend on external crates only if they are listed in its `external` (normal/build deps)
+#      or `dev_external` (dev-dependencies) list AND approved in the [external.*] table with a matching scope.
+#   4. `unsafe = "forbid"` crates MUST contain `#![forbid(unsafe_code)]` at the crate root.
+#   5. Layer 5 (tools) crates MUST NOT be dependencies of any layer 0–4 crate.
+# kind: "lib" = library only; "proc-macro"; "bin" = the package has at least one binary target and MAY
+#   also have a library target (e.g. xtask: logic in src/lib.rs, thin src/main.rs).
+# Changing this file is an architectural change: reference an ADR or task in the commit message.
+
+schema_version = 1
+
+[layers]
+"0" = "foundation"
+"1" = "runtime"
+"2" = "platform-gpu"
+"3" = "subsystems"
+"4" = "agent-interface-integration"
+"5" = "tools"
+
+# ---------------------------------------------------------------- Layer 0: foundation
+
+[[crate]]
+name = "liminal_core"
+path = "crates/liminal_core"
+layer = 0
+kind = "lib"
+unsafe = "forbid"
+deterministic = true          # simulation-critical: determinism lints apply (ADR-0009)
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_math"
+path = "crates/liminal_math"
+layer = 0
+kind = "lib"
+unsafe = "allow"              # SIMD intrinsics
+deterministic = true
+same_layer_deps = ["liminal_core"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_memory"
+path = "crates/liminal_memory"
+layer = 0
+kind = "lib"
+unsafe = "allow"
+deterministic = true
+same_layer_deps = ["liminal_core"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_telemetry"
+path = "crates/liminal_telemetry"
+layer = 0
+kind = "lib"
+unsafe = "allow"              # lock-free per-thread buffers (ADR-0016)
+deterministic = false
+same_layer_deps = ["liminal_core"]
+external = []
+dev_external = ["proptest", "loom"]
+
+[[crate]]
+name = "liminal_reflect"
+path = "crates/liminal_reflect"
+layer = 0
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = ["liminal_core", "liminal_reflect_derive"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_reflect_derive"
+path = "crates/liminal_reflect_derive"
+layer = 0
+kind = "proc-macro"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = ["syn", "quote", "proc-macro2"]
+dev_external = []
+
+# ---------------------------------------------------------------- Layer 1: runtime
+
+[[crate]]
+name = "liminal_jobs"
+path = "crates/liminal_jobs"
+layer = 1
+kind = "lib"
+unsafe = "allow"
+deterministic = false         # scheduling is nondeterministic; results exposed to simulation must not be
+same_layer_deps = []
+external = []
+dev_external = ["proptest", "loom"]
+
+[[crate]]
+name = "liminal_ecs"
+path = "crates/liminal_ecs"
+layer = 1
+kind = "lib"
+unsafe = "allow"
+deterministic = true
+same_layer_deps = ["liminal_jobs"]
+external = []
+dev_external = ["proptest", "loom"]
+
+[[crate]]
+name = "liminal_app"
+path = "crates/liminal_app"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = ["liminal_jobs", "liminal_ecs"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_serial"
+path = "crates/liminal_serial"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = []
+external = []                 # serde vs own: OQ-002, resolved in M2
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_input"
+path = "crates/liminal_input"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = ["liminal_ecs", "liminal_app", "liminal_serial"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_assets"
+path = "crates/liminal_assets"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_jobs", "liminal_ecs", "liminal_app", "liminal_serial"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_scene"
+path = "crates/liminal_scene"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = ["liminal_ecs", "liminal_app", "liminal_serial", "liminal_assets"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_procgen"
+path = "crates/liminal_procgen"
+layer = 1
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+# ---------------------------------------------------------------- Layer 2: platform & GPU boundary
+
+[[crate]]
+name = "liminal_platform"
+path = "crates/liminal_platform"
+layer = 2
+kind = "lib"
+unsafe = "allow"
+deterministic = false
+same_layer_deps = []
+external = ["winit", "raw-window-handle"]
+dev_external = []
+
+[[crate]]
+name = "liminal_gpu"
+path = "crates/liminal_gpu"
+layer = 2
+kind = "lib"
+unsafe = "allow"
+deterministic = false
+same_layer_deps = []
+external = ["ash", "objc2", "objc2-foundation", "objc2-metal", "objc2-quartz-core", "raw-window-handle"]
+dev_external = []
+
+# ---------------------------------------------------------------- Layer 3: subsystems
+
+[[crate]]
+name = "liminal_shader"
+path = "crates/liminal_shader"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []                 # shader toolchain: OQ-001, resolved in M3
+dev_external = []
+
+[[crate]]
+name = "liminal_render"
+path = "crates/liminal_render"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_shader", "liminal_text"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_voxel"
+path = "crates/liminal_voxel"
+layer = 3
+kind = "lib"
+unsafe = "allow"              # SIMD meshing; may be narrowed to "forbid" if unneeded
+deterministic = true
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_voxel_render"
+path = "crates/liminal_voxel_render"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_voxel", "liminal_render", "liminal_shader"]
+external = []
+dev_external = []
+
+[[crate]]
+name = "liminal_physics"
+path = "crates/liminal_physics"
+layer = 3
+kind = "lib"
+unsafe = "allow"              # SIMD narrow phase; may be narrowed
+deterministic = true
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_audio"
+path = "crates/liminal_audio"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []                 # device output (cpal) needs an ADR at M6 before it is added
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_text"
+path = "crates/liminal_text"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_ui"
+path = "crates/liminal_ui"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = ["liminal_render", "liminal_text"]
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_anim"
+path = "crates/liminal_anim"
+layer = 3
+kind = "lib"
+unsafe = "forbid"
+deterministic = true
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+# ---------------------------------------------------------------- Layer 4: agent interface & integration
+
+[[crate]]
+name = "liminal_probe"
+path = "crates/liminal_probe"
+layer = 4
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_testkit"
+path = "crates/liminal_testkit"
+layer = 4
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = ["proptest"]
+
+[[crate]]
+name = "liminal_engine"       # facade; [lib] name = "liminal" (ADR-0015)
+path = "crates/liminal_engine"
+layer = 4
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_probe"]
+external = []
+dev_external = []
+
+# ---------------------------------------------------------------- Layer 5: tools (never shipped in games)
+
+[[crate]]
+name = "liminal_cli"
+path = "crates/liminal_cli"
+layer = 5
+kind = "bin"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_mcp", "liminal_cook"]
+external = []
+dev_external = []
+
+[[crate]]
+name = "liminal_mcp"
+path = "crates/liminal_mcp"
+layer = 5
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = []
+
+[[crate]]
+name = "liminal_cook"
+path = "crates/liminal_cook"
+layer = 5
+kind = "lib"
+unsafe = "forbid"
+deterministic = true          # cooking must be reproducible: same input → byte-identical output
+same_layer_deps = []
+external = []                 # importer crates need ADRs (M4)
+dev_external = ["proptest"]
+
+[[crate]]
+name = "xtask"
+path = "xtask"
+layer = 5
+kind = "bin"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = ["serde", "serde_json", "toml", "cargo_metadata"]
+dev_external = ["proptest"]
+
+# ---------------------------------------------------------------- Approved external crates
+# scope: runtime (may ship in games) | build (proc-macro / build-script only) | dev (tests/benches only) | tool (layer 5 only)
+# A crate listed here is approved for the crates that list it above, nowhere else.
+
+[external.winit]
+scope = "runtime"
+adr = "ADR-0007"
+reason = "Cross-platform windowing and OS event loop; not performance-critical; replaceable behind liminal_platform."
+
+[external.raw-window-handle]
+scope = "runtime"
+adr = "ADR-0007"
+reason = "Interop type for passing native window handles from liminal_platform to liminal_gpu."
+
+[external.ash]
+scope = "runtime"
+adr = "ADR-0006"
+reason = "Raw Vulkan bindings (no abstraction); liminal_gpu implements its own RHI on top."
+
+[external.objc2]
+scope = "runtime"
+adr = "ADR-0006"
+reason = "Objective-C runtime interop needed to call Metal and Core Animation."
+
+[external.objc2-foundation]
+scope = "runtime"
+adr = "ADR-0006"
+reason = "Foundation bindings used by the Metal backend."
+
+[external.objc2-metal]
+scope = "runtime"
+adr = "ADR-0006"
+reason = "Raw Metal bindings (no abstraction)."
+
+[external.objc2-quartz-core]
+scope = "runtime"
+adr = "ADR-0006"
+reason = "CAMetalLayer for presenting to a window on macOS."
+
+[external.syn]
+scope = "build"
+adr = "ADR-0003"
+reason = "Rust syntax parsing for derive macros; compile-time only."
+
+[external.quote]
+scope = "build"
+adr = "ADR-0003"
+reason = "Token generation for derive macros; compile-time only."
+
+[external.proc-macro2]
+scope = "build"
+adr = "ADR-0003"
+reason = "Token stream types for derive macros; compile-time only."
+
+[external.proptest]
+scope = "dev"
+adr = "ADR-0010"
+reason = "Property-based testing with shrinking."
+
+[external.loom]
+scope = "dev"
+adr = "ADR-0010"
+reason = "Exhaustive concurrency permutation testing for lock-free code in liminal_jobs."
+
+[external.serde]
+scope = "tool"
+adr = "ADR-0003"
+reason = "xtask: deserializing architecture.toml, cargo metadata and coverage reports."
+
+[external.serde_json]
+scope = "tool"
+adr = "ADR-0003"
+reason = "xtask: JSON reports and parsing tool output."
+
+[external.toml]
+scope = "tool"
+adr = "ADR-0003"
+reason = "xtask: parsing architecture.toml and ci/*.toml."
+
+[external.cargo_metadata]
+scope = "tool"
+adr = "ADR-0003"
+reason = "xtask: typed access to `cargo metadata` for check-arch."
