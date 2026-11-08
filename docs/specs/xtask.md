@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 5
+spec_version: 6
 last_reviewed: 2026-11-08
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -138,8 +138,14 @@ Summary details (added in `spec_version` 2):
 `check-docs` details (added in `spec_version` 3):
 
 - Frontmatter subset, exact form (R020). Line 1 of the file is `---`, and the next line that is
-  exactly `---` closes the frontmatter. Trailing whitespace and a trailing `\r` are ignored on every
-  line. Between the delimiters, every line is `key: value` with no indentation. A key matches
+  exactly `---` closes the frontmatter. "Whitespace" in this grammar means space and tab only, as in
+  YAML (`s-white`); U+00A0 and other Unicode whitespace are ordinary text, also at the edges of a
+  value and before `#` (`spec_version` 6). Trailing whitespace and the `\r` of a CRLF line ending
+  are ignored on every line. A frontmatter line (key, value and comment) must not contain any
+  other `\r`, a C0 control other than tab, DEL, a C1 control (U+0080–U+009F, including U+0085),
+  U+2028, U+2029, U+FFFE or U+FFFF (`spec_version` 6): YAML 1.2 rejects them (outside
+  `c-printable`) or reads them as a line break (`\r`; U+0085, U+2028, U+2029 in YAML 1.1), and
+  the subset must mean the same in both versions. Between the delimiters, every line is `key: value` with no indentation. A key matches
   `^[a-z][a-z0-9_]*$` and is followed by `:` and at least one space or tab. Each key appears at most
   once. A comment starts at a `#` preceded by a space or tab and runs to the end of the line. Rejected:
   blank lines, comment-only lines, an empty value (an empty list is `[]`), and a value or list item
@@ -148,7 +154,8 @@ Summary details (added in `spec_version` 2):
   followed by whitespace or the end of the text, or ends with `:` (added in `spec_version` 4).
   YAML would read these differently (quoting, block scalars, sequence entries, complex keys,
   mappings), and the subset has no quoting. `-1`, `--all`, `?x` and `a:b` are plain strings. A
-  value that starts with `[` is a list. It ends with `]`, and its items, split on `,` and trimmed,
+  value that starts with `[` is a list. It ends with `]`, and its items, split on `,` and trimmed
+  of whitespace,
   are non-empty and contain none of the flow indicators `[`, `]`, `{`, `}` (`{` and `}` added in
   `spec_version` 5; YAML rejects them inside a flow sequence item). Every other value is a string:
   YAML type resolution (`null`, `true`, `.inf`, …) is not modelled. Integers (`^\d+$`) and dates
@@ -314,3 +321,4 @@ Promotion to `usable` (M0 exit):
 | 3 | 2026-11-08 | `check-docs` details (exact frontmatter subset, field forms, unknown fields, link and index rules, member patterns), check command output, native `ci` steps, LIM-XTASK-0004 | M0-T003 |
 | 4 | 2026-11-08 | Frontmatter: reject values starting with `- `, `? `, `: ` or ending with `:`. Links: footnote definitions. R023: a task file without a valid `id` exists by its file-name ID for `depends_on` | M0-T003 (review changes) |
 | 5 | 2026-11-08 | Frontmatter: reject values starting with `,` or `]`, and list items containing `{` or `}`. R023: a duplicate but well-formed `id` is a valid `id` for the file-name fallback | M0-T003 (review 2 changes) |
+| 6 | 2026-11-08 | Frontmatter: whitespace is space and tab only (U+00A0 etc. are text); reject control characters, a `\r` that is not a line ending, U+0085, U+2028, U+2029, U+FFFE, U+FFFF | M0-T003 (review 3 changes) |

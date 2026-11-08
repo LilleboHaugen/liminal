@@ -72,6 +72,10 @@ const FLOW_INDICATORS: &[char] = &['[', ']', '{', '}'];
 /// (`: `). Followed by other text (`-1`, `?x`), YAML reads them as plain text.
 const INDICATORS_BEFORE_SPACE: &[char] = &['-', '?', ':'];
 
+/// YAML's whitespace (`s-white`). Only these are trimmed or separate tokens; U+00A0 and other
+/// Unicode whitespace are ordinary text in YAML.
+const WHITESPACE: &[char] = &[' ', '\t'];
+
 /// Parses the frontmatter at the start of `text`.
 ///
 /// # Errors
@@ -113,9 +117,38 @@ pub(crate) fn parse(text: &str) -> Result<Frontmatter, ParseError> {
     ))
 }
 
-/// Drops trailing whitespace, including the `\r` of CRLF line endings.
+/// Drops trailing spaces and tabs. `str::lines` has already removed the `\r` of a CRLF line
+/// ending; any other `\r` stays and is rejected by [`check_characters`].
 fn normalize(line: &str) -> &str {
-    line.trim_end()
+    line.trim_end_matches(WHITESPACE)
+}
+
+/// Whether YAML accepts `c` in a document without reading it as a line break: YAML 1.2
+/// `c-printable` minus the characters YAML 1.1 reads as line breaks (U+0085, U+2028, U+2029), so
+/// the subset means the same in both versions. LF never reaches this check (`str::lines`).
+fn is_allowed_character(c: char) -> bool {
+    matches!(c,
+        '\t'
+        | '\u{20}'..='\u{7e}'
+        | '\u{a0}'..='\u{2027}'
+        | '\u{202a}'..='\u{d7ff}'
+        | '\u{e000}'..='\u{fffd}'
+        | '\u{10000}'..)
+}
+
+/// Rejects a line that contains a character outside [`is_allowed_character`], anywhere (key,
+/// value or comment).
+fn check_characters(line: &str, number: usize) -> Result<(), ParseError> {
+    match line.chars().find(|c| !is_allowed_character(*c)) {
+        Some(c) => Err(error(
+            number,
+            format!(
+                "character U+{:04X} is not allowed in frontmatter: YAML rejects it or reads it as a line break",
+                u32::from(c)
+            ),
+        )),
+        None => Ok(()),
+    }
 }
 
 fn error(line: usize, message: impl Into<String>) -> ParseError {
@@ -126,10 +159,11 @@ fn error(line: usize, message: impl Into<String>) -> ParseError {
 }
 
 fn parse_line(line: &str, number: usize) -> Result<Field, ParseError> {
+    check_characters(line, number)?;
     if line.is_empty() {
         return Err(error(number, "blank lines are not allowed in frontmatter"));
     }
-    if line.starts_with(char::is_whitespace) {
+    if line.starts_with(WHITESPACE) {
         return Err(error(number, "indented line: nesting is not allowed"));
     }
     if line.starts_with('#') {
@@ -147,10 +181,10 @@ fn parse_line(line: &str, number: usize) -> Result<Field, ParseError> {
             format!("key `{key}` is not snake_case (`^[a-z][a-z0-9_]*$`)"),
         ));
     }
-    if !rest.is_empty() && !rest.starts_with([' ', '\t']) {
+    if !rest.is_empty() && !rest.starts_with(WHITESPACE) {
         return Err(error(number, format!("expected a space after `{key}:`")));
     }
-    let value = strip_comment(rest).trim();
+    let value = strip_comment(rest).trim_matches(WHITESPACE);
     if value.is_empty() {
         return Err(error(
             number,
@@ -197,13 +231,13 @@ fn parse_list(inner: &str, number: usize) -> Result<Vec<String>, ParseError> {
             "list items must not contain `[`, `]`, `{` or `}`; nested lists and mappings are not allowed",
         ));
     }
-    if inner.trim().is_empty() {
+    if inner.trim_matches(WHITESPACE).is_empty() {
         return Ok(Vec::new());
     }
     inner
         .split(',')
         .map(|item| {
-            let item = item.trim();
+            let item = item.trim_matches(WHITESPACE);
             if item.is_empty() {
                 return Err(error(number, "empty list item"));
             }
@@ -225,7 +259,7 @@ fn check_text(text: &str, what: &str, number: usize) -> Result<(), ParseError> {
     }
     let mut chars = text.chars();
     if let Some(first) = chars.next().filter(|c| INDICATORS_BEFORE_SPACE.contains(c))
-        && chars.next().is_none_or(char::is_whitespace)
+        && chars.next().is_none_or(|c| WHITESPACE.contains(&c))
     {
         return Err(error(
             number,

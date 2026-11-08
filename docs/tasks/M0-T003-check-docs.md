@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -154,6 +154,31 @@ Review 2 and these changes.
   the remaining differences are scalar typing, Psych's `:x` symbol extension, and libyaml's YAML 1.1
   reading of `[a:b]`, `[:x]`, `[a ?b]`, all out of scope by the spec. Not verified: Windows,
   Linux (M0-T007).
+
+**Review 3 changes (2026-11-08, fourth session; same session that wrote Review 3 below).**
+Status → `review`. The next review must be done by a new session: this session wrote both
+Review 3 and these changes.
+1. `frontmatter.rs`: `WHITESPACE` (space, tab) replaces Unicode trimming in `normalize`,
+   `parse_line`, `parse_list` and the indicator-before-space check. The indented-line check uses it too.
+2. `frontmatter.rs`: `is_allowed_character` / `check_characters` reject, anywhere on a frontmatter
+   line, C0 controls except tab, a `\r` that is not part of a CRLF ending, DEL, C1 controls (U+0085
+   included), U+2028, U+2029, U+FFFE, U+FFFF. The error names the code point (`U+000D`).
+3. Tests: `only_space_and_tab_are_trimmed_and_other_printable_characters_are_text` (U+00A0,
+   U+3000, U+FEFF, tab inside a value, `-`/`?` before U+00A0, U+00A0 before `#`); 19 new rejection
+   cases; `plain_text()` generates U+00A0, U+3000, `é` and an emoji, edges included;
+   `invalid_line()` generates every `REJECTED_CHARACTERS` sample in values and list items; the
+   arbitrary-input property draws from a dense alphabet of indicators, whitespace and rejected
+   characters and no longer asserts with Unicode `trim`.
+- Spec `spec_version` 6 (§6 details: definition of whitespace, rejected characters; History).
+  `docs/process/DOCUMENTATION.md` updated.
+- Verified (macOS 27.2, Rust 1.99.1): `cargo xtask ci` passes; 104 lib tests. Review 3's 12-value
+  differential re-run on the real repository: the 8 values YAML rejects each give one R020 finding
+  naming the code point. The 4 non-ASCII whitespace values are accepted and keep their characters
+  (unit-tested), as YAML reads them. 15 single-line mutants of the new code: all killed. Not verified:
+  Windows, Linux (M0-T007).
+- Observation, not in scope: `markdown.rs` table cells use Unicode `trim`, but GFM trims only ASCII
+  whitespace. An ADR title with a trailing U+00A0 would give a false R025 title mismatch. Not
+  fixed: no rule requires it and the case is unlikely. A later task that touches `markdown.rs` should fix it.
 
 ## Review
 

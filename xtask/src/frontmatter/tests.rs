@@ -81,6 +81,32 @@ fn accepts_indicator_characters_that_yaml_reads_as_plain_text() {
 
 /// Verifies: XTASK-R020
 #[test]
+fn only_space_and_tab_are_trimmed_and_other_printable_characters_are_text() {
+    // YAML's whitespace is space and tab only: U+00A0 and U+3000 are text, also at the edges and
+    // before `#`, and `-`/`?` followed by U+00A0 are plain text. A tab inside a value is text.
+    let frontmatter = parse(
+        "---\ntrail: x\u{a0}\nlead: \u{a0}x\nideo: x\u{3000}  # c\nhash: x\u{a0}#y\n\
+         dash: -\u{a0}x\nq: ?\u{a0}x\ntab: a\tb\nbom: a\u{feff}b\nitems: [a\u{a0}, \u{3000}b, \u{e9}]\n---\n",
+    )
+    .unwrap();
+    let expected = [
+        ("trail", scalar("x\u{a0}")),
+        ("lead", scalar("\u{a0}x")),
+        ("ideo", scalar("x\u{3000}")),
+        ("hash", scalar("x\u{a0}#y")),
+        ("dash", scalar("-\u{a0}x")),
+        ("q", scalar("?\u{a0}x")),
+        ("tab", scalar("a\tb")),
+        ("bom", scalar("a\u{feff}b")),
+        ("items", list(&["a\u{a0}", "\u{3000}b", "\u{e9}"])),
+    ];
+    for (key, value) in expected {
+        assert_eq!(frontmatter.get(key).unwrap().value, value, "{key}");
+    }
+}
+
+/// Verifies: XTASK-R020
+#[test]
 fn rejects_every_construct_outside_the_subset_with_its_line() {
     let cases: &[(&str, usize, &str)] = &[
         ("", 1, "line 1 must be `---`"),
@@ -134,6 +160,28 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: [a{b}]\n---\n", 2, "must not contain"),
         ("---\nkey: [a, b}]\n---\n", 2, "must not contain"),
         ("---\nkey: [{a}]\n---\n", 2, "must not contain"),
+        ("---\nkey: a\u{1}b\n---\n", 2, "U+0001"),
+        ("---\nkey: a\u{0}b\n---\n", 2, "U+0000"),
+        ("---\nkey: x\u{b}\n---\n", 2, "U+000B"),
+        ("---\nkey: a\u{c}b\n---\n", 2, "U+000C"),
+        ("---\nkey: a\rb\n---\n", 2, "U+000D"),
+        ("---\nkey: a\r \n---\n", 2, "U+000D"),
+        ("---\nkey: a\u{7f}b\n---\n", 2, "U+007F"),
+        ("---\nkey: a\u{85}b\n---\n", 2, "U+0085"),
+        ("---\nkey: a\u{9f}b\n---\n", 2, "U+009F"),
+        ("---\nkey: a\u{2028}b\n---\n", 2, "U+2028"),
+        ("---\nkey: [a, b\u{2029}]\n---\n", 2, "U+2029"),
+        ("---\nkey: a\u{fffe}b\n---\n", 2, "U+FFFE"),
+        ("---\nkey: a\u{ffff}\n---\n", 2, "U+FFFF"),
+        ("---\nkey: a  # c\u{1}\n---\n", 2, "U+0001"),
+        ("---\nk\u{1}ey: a\n---\n", 2, "U+0001"),
+        ("---\n\u{a0}key: a\n---\n", 2, "not snake_case"),
+        ("---\nkey: x\n\u{a0}\n---\n", 3, "expected `key: value`"),
+        (
+            "---\nkey:\u{a0}x\n---\n",
+            2,
+            "expected a space after `key:`",
+        ),
     ];
     for (text, line, message) in cases {
         let error = parse_err(text);
@@ -154,14 +202,17 @@ fn integer_and_date_forms() {
 
 // ---------------------------------------------------------------- properties
 
-/// Text allowed as a scalar or list item by construction: no `#` after whitespace, no `: `, no
-/// forbidden first character, no commas or brackets, no edge whitespace.
+/// Text allowed as a scalar or list item by construction: no `#` after a space, no `: `, no
+/// forbidden first character, no commas or brackets, no space or tab at the edges. Non-ASCII
+/// whitespace (U+00A0, U+3000) and other non-ASCII text may appear anywhere, edges included.
 fn plain_text() -> impl Strategy<Value = String> {
-    "[A-Za-z0-9][A-Za-z0-9 ._()/#:=+-]{0,24}".prop_filter_map("not representable", |text| {
-        let text = text.trim_end().to_string();
-        let representable = !text.contains(" #") && !text.contains(": ") && !text.ends_with(':');
-        representable.then_some(text)
-    })
+    "[A-Za-z0-9\u{a0}\u{3000}\u{e9}][A-Za-z0-9 ._()/#:=+\u{a0}\u{3000}\u{e9}\u{1f600}-]{0,24}"
+        .prop_filter_map("not representable", |text| {
+            let text = text.trim_end_matches(' ').to_string();
+            let representable =
+                !text.contains(" #") && !text.contains(": ") && !text.ends_with(':');
+            representable.then_some(text)
+        })
 }
 
 fn value() -> impl Strategy<Value = Value> {
@@ -221,6 +272,28 @@ fn invalid_line() -> impl Strategy<Value = String> {
         key.prop_map(|key| format!("{key}: [a:, b]")),
         (key, proptest::sample::select(vec!['{', '}']))
             .prop_map(|(key, c)| format!("{key}: [a, b{c}c]")),
+        (key, proptest::sample::select(REJECTED_CHARACTERS.to_vec()))
+            .prop_map(|(key, c)| format!("{key}: a{c}b")),
+        (key, proptest::sample::select(REJECTED_CHARACTERS.to_vec()))
+            .prop_map(|(key, c)| format!("{key}: [a, b{c}]")),
+    ]
+}
+
+/// One sample per class of character YAML rejects or reads as a line break: C0 controls (not
+/// tab, not LF), DEL, C1 controls (U+0085 included), U+2028, U+2029, U+FFFE, U+FFFF.
+const REJECTED_CHARACTERS: &[char] = &[
+    '\u{0}', '\u{1}', '\u{b}', '\u{c}', '\r', '\u{1b}', '\u{7f}', '\u{80}', '\u{85}', '\u{9f}',
+    '\u{2028}', '\u{2029}', '\u{fffe}', '\u{ffff}',
+];
+
+/// Input for the arbitrary-input property: any text, or text dense in the characters that matter
+/// (indicators, ASCII and non-ASCII whitespace, rejected characters).
+fn arbitrary_line() -> impl Strategy<Value = String> {
+    let dense = "[a-z:#,\\[\\]{}?\\- \t\u{a0}\u{3000}\u{0}\u{1}\u{b}\u{c}\r\u{7f}\u{85}\u{9f}\u{2028}\u{2029}\u{fffe}\u{ffff}]{0,24}";
+    prop_oneof![
+        ".{0,40}",
+        "[a-z]{1,4}: "
+            .prop_flat_map(move |prefix| { dense.prop_map(move |rest| format!("{prefix}{rest}")) })
     ]
 }
 
@@ -259,7 +332,7 @@ proptest! {
 
     /// Arbitrary input never panics, and accepted fields satisfy the subset's key and text rules.
     #[test]
-    fn arbitrary_lines_never_panic_and_accepted_output_is_in_the_subset(line in ".{0,40}") {
+    fn arbitrary_lines_never_panic_and_accepted_output_is_in_the_subset(line in arbitrary_line()) {
         if let Ok(parsed) = parse(&format!("---\n{line}\n---\n")) {
             for field in parsed.fields {
                 prop_assert!(is_key(&field.key));
@@ -268,7 +341,17 @@ proptest! {
                     Value::List(items) => items.clone(),
                 };
                 for text in texts {
-                    prop_assert!(!text.is_empty() && text.trim() == text);
+                    prop_assert!(!text.is_empty(), "{:?}", text);
+                    prop_assert!(
+                        !text.starts_with([' ', '\t']) && !text.ends_with([' ', '\t']),
+                        "{:?}", text
+                    );
+                    // Rust's `char::is_control` is general category Cc: C0, DEL and C1.
+                    prop_assert!(
+                        !text.chars().any(|c| (c.is_control() && c != '\t')
+                            || matches!(c, '\u{2028}' | '\u{2029}' | '\u{fffe}' | '\u{ffff}')),
+                        "{:?}", text
+                    );
                     prop_assert!(!text.contains(": ") && !text.contains(" #"));
                     prop_assert!(!text.starts_with(FORBIDDEN_START));
                     if matches!(field.value, Value::List(_)) {
@@ -280,7 +363,7 @@ proptest! {
                     let second = chars.next();
                     prop_assert!(
                         !(matches!(first, Some('-' | '?' | ':'))
-                            && second.is_none_or(char::is_whitespace)),
+                            && second.is_none_or(|c| c == ' ' || c == '\t')),
                         "{:?}", text
                     );
                 }
