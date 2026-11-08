@@ -2,7 +2,7 @@
 id: M0-T003
 title: Frontmatter parser and check-docs
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R020, XTASK-R021, XTASK-R022, XTASK-R023, XTASK-R024, XTASK-R025, XTASK-R026, XTASK-R027]
@@ -364,3 +364,30 @@ Required changes:
    says "key `\tkey` is not snake_case" instead of "indented line". Review-3 change 1 says the
    indented-line check uses `WHITESPACE`, so add a rejection case `"---\n\tkey: v\n---\n"` that
    expects line 2 and "indented line".
+
+## Review 5
+
+2026-11-08, sixth session (owner-started, fresh context; did not write M0-T003 or reviews 1–4).
+Outcome: **done**. Scoped re-review (ADR-0021 item 3); the fifth review, so item 4 applies (no
+return to `in-progress`). No blocking findings.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-docs; check-docs 8 ms).
+2. Review 4 item 1 (U+FEFF): fixed. Diff of `11a78e6` read in full. Mutant "drop the
+   `c != '\u{feff}'` exclusion" fails the rejection test and both properties. `title: c<U+FEFF>argo …`
+   injected into `docs/tasks/M0-T009-deny-and-doctor.md` (reverted) gives exactly one R020 finding at
+   line 3 naming U+FEFF.
+3. Review 4 item 2 (tab indentation): fixed. Mutant `starts_with(WHITESPACE)` →
+   `starts_with(' ')` on the indented-line check only (`frontmatter.rs:168`) fails
+   `rejects_every_construct_outside_the_subset_with_its_line`.
+4. Diff since review 4: spec v7 §6, DOCUMENTATION.md, the `is_allowed_character` doc comment and
+   the code agree. The removed `bom` acceptance case is justified in the journal (oracle change:
+   the old expectation contradicted spec §6).
+5. Session boundaries: journals `2026-11-08-M0-T003*.md` show owner-started sessions, no
+   sub-agents. Round count: four "changes required" outcomes before ADR-0021 (counted by its item 5).
+
+Follow-ups (non-blocking) → [M1-T002](M1-T002-check-docs-follow-ups.md):
+- `markdown.rs` table cells use Unicode `trim`; GFM trims space and tab only (observation from
+  "Review 3 changes"; not realistic input in the repository today, so not B3).
+- A file starting with a BOM is rejected correctly but the message ("line 1 must be `---`") does
+  not name U+FEFF (message wording only).

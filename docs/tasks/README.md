@@ -26,3 +26,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M0-T009](M0-T009-deny-and-doctor.md) | `cargo deny` policy and `doctor` |
 | [M0-T010](M0-T010-m0-exit-review.md) | M0 exit review |
 | [M1-T001](M1-T001-m1-kickoff.md) | M1 kickoff |
+| [M1-T002](M1-T002-check-docs-follow-ups.md) | `check-docs` follow-ups from the M0-T003 review |
