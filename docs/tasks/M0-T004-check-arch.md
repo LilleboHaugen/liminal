@@ -2,7 +2,7 @@
 id: M0-T004
 title: check-arch
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R030, XTASK-R031, XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036, XTASK-R037]
@@ -118,4 +118,44 @@ M0-T005 (`trace` and `hygiene`).
 
 ## Review
 
-_Empty._
+2026-11-08, new owner-started session (fresh context; did not write M0-T004). Outcome:
+**changes required** (first "changes required" outcome of this task). Two blocking findings.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1:
+1. `cargo xtask ci`: pass (fmt, clippy, test, doc, check-arch 10 ms, check-docs).
+2. Acceptance criteria, each by reading or running: `check-arch --json` on the repository gives
+   `ok: true`, no findings; fixture tests build the model from saved `metadata.json`
+   (`fixture_tests.rs`, no cargo spawned); seven overlays, each asserting exactly its rule with
+   `help`; the four R033/R034 combinations named in the criteria are rows of `SCOPE_TABLE`;
+   `check-arch` is a `ci` step before `check-docs`.
+3. Code read in full: `check_arch.rs`, `rules.rs`, `attributes.rs`, `repo/metadata.rs`,
+   `repo.rs` (`load_arch`, `crate_roots`), the `architecture.rs` diff, `ci.rs`/`cli.rs` diffs.
+   `rules.rs` checked against the spec's scope table row by row: agrees.
+4. Own probes: a temporary test with a layer-7 crate (finding 1), and two mutants of the
+   skip guards in `rules::internal` (finding 2). All reverted.
+5. No placeholders, no weakened tests, no oracle changes. No `unwrap`/`expect` in non-test code
+   except the existing `expect("invariant: …")` in `repo::root`. No unsafe. Determinism: n/a.
+6. Architecture: no new dependency; the unused `cargo_metadata` workspace dependency was removed
+   and stays approved in `architecture.toml` (spec §3). Session boundaries: the M0-T004 journal
+   shows an owner-started session (after review 5 of M0-T003), no sub-agents.
+
+Required changes:
+1. **B5: R033 (and R034, R035) judge a crate whose layer is outside 0–5.** Spec "`check-arch`
+   details": "Rules R032–R036 skip … a layer outside 0–5 (R030 reports it)". `rules::dependencies`
+   and `rules::forbid_unsafe` check only that the crate is registered. Observed: a crate
+   registered with `layer = 7` that lists `tl` (scope `tool`) in `external` and uses it as a
+   normal dependency gets the R030 finding and also an R033 finding "`tool` scope is for layer 5
+   crates only", a judgment from the invalid layer. The same crate with an unlisted external
+   dependency gets R033/R034 findings as well. Fix: skip crates with an invalid layer in
+   `dependencies` and `forbid_unsafe`, as the spec says. Or, if only the layer-dependent
+   judgments should be skipped, say so in the spec (bump `spec_version`) and skip the scope
+   judgment. Either way, add a test.
+2. **B4: the "no cascades" skips in `rules::internal` are untested.** The handoff claims
+   "unregistered crates and invalid layers are skipped by R032–R036 (no cascades)".
+   (a) Mutant `if !valid_layer(from) || !valid_layer(to)` → `if false`: all 139 tests pass, and a
+   layer-0 crate depending on a layer-7 crate then gets an extra R032 finding.
+   (b) Replacing `return; // R031 reports the unregistered target.` with `panic!()`: all tests
+   pass, so no test has a registered crate depending on an unregistered workspace crate. Add
+   tests for both, each asserting the exact finding list.
+
+Follow-ups (non-blocking) → [M1-T003](M1-T003-check-arch-follow-ups.md).
