@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 19
+spec_version: 20
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -123,6 +123,7 @@ Summary details (added in `spec_version` 2):
 | XTASK-R011 | MUST | `xtask` has no dependency on any `liminal_*` crate. |
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
+| XTASK-R014 | MUST | Every command except `help` first checks that the repository root (the parent of the `xtask/` manifest directory, fixed when xtask is compiled) is a directory that contains `architecture.toml`. If not (for example, the checkout was moved or renamed after xtask was built, and cargo did not rebuild it), the command runs nothing else: it prints exactly one line, internal error LIM-XTASK-0007 naming that root and the fix, to stderr, nothing to stdout, and exits with code 1 (`spec_version` 20). |
 
 ### `check-docs` (R020–R029)
 
@@ -535,6 +536,9 @@ unparseable) use:
 | LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
+| LIM-XTASK-0007 | The repository root compiled into xtask does not exist or has no `architecture.toml` (R014) | The checkout was moved or renamed after xtask was built: run `cargo clean -p xtask`, then the command again |
+
+An internal error names the file concerned relative to the repository root; when that is the root itself, it names the root's absolute path (never an empty path). A child process (`cargo`, a probe) that cannot be spawned because its working directory does not exist is reported as `working directory <path> does not exist`, not as `could not start <program>` (`spec_version` 20).
 
 ## 9. Performance budgets
 
@@ -553,6 +557,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
 | `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency; `check advisories` on a fixture advisory database, with a passing control | cargo-deny's sources and advisories checks |
 | Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
+| Moved checkout (R014) | unit tests of the command dispatcher with a root that does not exist, and one without `architecture.toml` (the binary's compiled-in root cannot be changed without rebuilding it, so no real-binary test) | R014 |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -614,3 +619,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
+| 20 | 2026-11-09 | New R014 (moved checkout: the compiled-in root is checked first, one LIM-XTASK-0007 error); §8: LIM-XTASK-0007, the root is named by its absolute path, a missing working directory is not reported as "could not start" | M1-T010 |
