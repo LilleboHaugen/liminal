@@ -34,11 +34,11 @@ decision:
 
 | # | Risk in ADR-0020 | Answered by |
 |---|---|---|
-| R1 | The owner did not start the sub-agent, and the session did not ask first. | Decision 1 (owner opt-in per session, in the owner's own words; announcement before each spawn) |
+| R1 | The owner did not start the sub-agent, and the session did not ask first. | Decision 1 (the owner gives standing permission in this ADR; each spawn is announced to the owner) |
 | R2 | The owner could not see the sub-agent's work, only the summary it sends back. | Decisions 2, 8 (each sub-agent leaves its commits, task handoff and journal entry in the repository; the parent reports outcomes from the repository, not from summaries). Remaining cost: Consequences. |
 | R3 | The author session chose the reviewer and wrote its brief, so the review was not independent of the author. | Decision 5 (exclusion set covers author, parent and siblings; fixed review prompt with nothing from the author; prompt recorded verbatim) |
-| R4 | The pattern could repeat as a chain (review → merge → next task → another sub-agent) and move work forward without the owner choosing to start each session. | Decisions 1, 9 (per-session totals, not only a concurrency limit; no nested sub-agents; the parent stops after its wave) |
-| R5 | ADR-0020 rejected "ask the owner each time" because it adds a confirmation step to every task. | Decision 1 (one opt-in per parent session, not per sub-agent) |
+| R4 | The pattern could repeat as a chain (review → merge → next task → another sub-agent) and move work forward without the owner choosing to start each session. | Decision 9 (per-session totals, not only a concurrency limit; no nested sub-agents; the parent stops after its wave, so every wave still needs an owner-started session) |
+| R5 | ADR-0020 rejected "ask the owner each time" because it adds a confirmation step to every task. | Decision 1 (no confirmation step: standing permission, announcement only) |
 
 ADR-0021 (review round limit) and ADR-0022 (owner approval for installs) also constrain every
 session; Decisions 5 and 7 state how they apply to sub-agents.
@@ -49,12 +49,14 @@ Terms: the **parent** is a session the project owner started that spawns sub-age
 **sub-agent** is an agent the parent spawns (Claude Code `Agent` tool or any equivalent in another
 harness). A **wave** is all sub-agents one parent spawns.
 
-1. **Owner opt-in.** A session MAY spawn sub-agents for task work only if the owner's own message
-   in that session allows it explicitly (e.g. "use sub-agents", "up to 2 sub-agents"). Without
-   that, ADR-0020's rules apply to the session unchanged: no sub-agents for task work, one review,
-   then one implementation. A number the owner gives lowers the limits of Decision 9; it never
-   raises them. Before each spawn, the parent tells the owner the sub-agent's kind (review or
-   implementation), task ID and branch. This is an announcement, not a request for confirmation.
+1. **Standing permission.** A session the project owner started MAY spawn sub-agents for task work
+   without being asked to, under every rule of this ADR. The owner gives this permission once, in
+   this ADR (Context, Owner approval). The owner MAY forbid sub-agents or lower the limits of
+   Decision 9 for a session by saying so in that session; that instruction binds the session. It
+   never raises the limits. A session that spawns no sub-agents keeps ADR-0020's shape: one
+   review, then one implementation. Before each spawn, the parent tells the owner the sub-agent's
+   kind (review or implementation), task ID and branch. This is an announcement, not a request for
+   confirmation.
 2. **Equivalence.** A sub-agent counts as a separate session. Everything that binds a session the
    owner starts binds it: `AGENTS.md` in full, the session protocol (orient, pick, load context,
    test-first, hand off), the definition of done, `cargo xtask ci` passing with no failed or skipped
@@ -132,7 +134,8 @@ harness). A **wave** is all sub-agents one parent spawns.
    itself. The parent's journal records the request and the owner's answer.
 8. **Traceability.**
    1. The parent's journal entry (`docs/journal/YYYY-MM-DD-session-<topic>.md`, session type
-      `parent`) quotes the owner's opt-in (Decision 1) and lists every sub-agent it spawned: kind, task ID, branch, worktree, task status
+      `parent`) quotes any instruction of the owner in that session that limits or forbids
+      sub-agents (Decision 1), and lists every sub-agent it spawned: kind, task ID, branch, worktree, task status
       before and after, the sub-agent's journal entry file, the last commit on the branch, and the
       prompt (either "review template verbatim" / "implementation template verbatim", or the full
       text including any additions). Outcomes are read from the repository (task frontmatter, `git
@@ -161,8 +164,8 @@ harness). A **wave** is all sub-agents one parent spawns.
     that sub-agent, and it records the skip and the reason in its journal. A task that becomes
     `done` during the wave makes its dependents eligible for sub-agents spawned after that.
 11. **Unchanged from ADR-0020.** Sessions are started by the project owner. Parallel tracks
-    (`docs/ROADMAP.md`) are still parallel sessions the owner starts. A session without the
-    owner's opt-in keeps ADR-0020's shape. When a task written in the current session (by the
+    (`docs/ROADMAP.md`) are still parallel sessions the owner starts. A session that spawns no
+    sub-agents keeps ADR-0020's shape. When a task written in the current session (by the
     parent's sub-agents included) is in `review` and the owner asks what is next, the answer is
     still: "Start a new session. It will review `<task>`, then continue with `<next task>`."
 
@@ -179,8 +182,12 @@ harness). A **wave** is all sub-agents one parent spawns.
   a review sub-agent only ever reviews work of *another* session, with a fixed prompt. It is the
   fallback named under "Revisit".
 - **Allow sub-agents, but ask the owner before each spawn.** ADR-0020 rejected this for its
-  per-task confirmation cost. Decision 1 keeps the owner's control per session (opt-in and limits)
-  and announces each spawn instead.
+  per-task confirmation cost. Decision 1 announces each spawn instead.
+- **Allow sub-agents only when the owner's message in the session opts in.** This was proposed in
+  an earlier draft of this ADR, to answer R1 per session. The owner rejected it on 2026-11-09: "I
+  do not need to tell a session to spawn subagents. It can do so as long as every other rule is
+  followed." The owner can still forbid or limit sub-agents in a session (Decision 1). The chain
+  risk R4 stays bounded by Decision 9.
 - **Let the parent merge after reviews.** This is simpler, because one agent serialises all merges.
   Rejected: the owner's rule forbids the parent to merge a branch whose review it influenced, and
   spawning the reviewer is influence. The reviewer already merges under WORKFLOW.md today.
@@ -226,8 +233,9 @@ harness). A **wave** is all sub-agents one parent spawns.
   chooses *which* task a reviewer gets and *when*. The fixed prompt keeps the parent's opinion out,
   and Decision 5.1 keeps the author's session out completely. Bias that comes from the same
   model is not removed. Only the owner's review of samples would show it.
-- **Owner visibility and control.** The owner opts in per session and sees each announcement, but
-  cannot approve an install a sub-agent needs while it runs (Decision 7). Such tasks stall at
+- **Owner visibility and control.** Sessions spawn sub-agents by default. The owner sees each
+  announcement and can forbid or limit sub-agents in a session, but does not choose each spawn.
+  The owner also cannot approve an install a sub-agent needs while it runs (Decision 7). Such tasks stall at
   `in-progress` exactly as they would in an unattended owner-started session.
 - **Rule complexity.** Reviewers check more under item 10. A violation is visible in journals, but
   no machine check enforces it yet.
@@ -237,14 +245,18 @@ harness). A **wave** is all sub-agents one parent spawns.
   "sub-agents for implementation only".
 - **Owner approval.** Requested by the project owner on 2026-11-09 (quoted under Context). This
   ADR changes rules in `AGENTS.md` (session protocol step 6, definition of done, "Changing the
-  rules"). Approved by the project owner on 2026-11-09, conditional on the ADR review (REVIEW.md §4)
+  rules"). On the same day the owner removed a per-session opt-in from the draft: "I do not need
+  to tell a session to spawn subagents. It can do so as long as every other rule is followed, as
+  if only done by one agent. The goal here is to speed up things as I notice things are moving
+  incredibly slow with just one agent running at a time." Approved by the project owner on
+  2026-11-09, conditional on the ADR review (REVIEW.md §4)
   finding it consistent with the other accepted ADRs.
 
 ## Verification
 
 - REVIEW.md item 10 (new wording below) checks, from the journals and task file: the
-  implementing session (owner-started, or a sub-agent listed in a parent journal with the owner's
-  opt-in quoted); that no agent of the implementing session reviewed the task; that the review
+  implementing session (owner-started, or a sub-agent listed in a parent journal, within any limit
+  the owner set for that session); that no agent of the implementing session reviewed the task; that the review
   sub-agent's prompt was the template verbatim; and that merges were serial with CI green. A
   violation is a B2 finding (ADR-0021).
 - A missing parent journal, a sub-agent not listed in it, or a nested spawn is a B2 finding on every
@@ -270,8 +282,8 @@ asks for:
 
    > 6. **Stop at the session boundary (ADR-0026).** A session does at most one review, then one
    >    implementation task. When you set your task to `review`, stop task work. Never review
-   >    your own work. Only the project owner starts sessions. A session spawns sub-agents for
-   >    task work only if the owner's message in that session allows it. It then follows ADR-0026:
+   >    your own work. Only the project owner starts sessions. A session MAY spawn sub-agents for
+   >    task work unless the owner forbids it in that session. It then follows ADR-0026:
    >    every sub-agent counts as a separate session and meets every rule here. The parent only
    >    orchestrates (no review, implementation, status change, task merge or `done`). Each
    >    implementation sub-agent gets one task on its own branch and worktree, and concurrent ones
@@ -304,8 +316,8 @@ asks for:
    >    push (§8). Then:
    > 2. one implementation task (priority 2 or 3).
    >
-   > **Sub-agents (ADR-0026).** Only if the owner's message in this session allows it, a session
-   > may act as a *parent* and spawn sub-agents for task work instead. Each sub-agent counts as a
+   > **Sub-agents (ADR-0026).** Instead, a session may act as a *parent* and spawn sub-agents for
+   > task work, unless the owner forbids it in that session. A limit the owner states binds. Each sub-agent counts as a
    > separate session and follows this whole document. The parent:
    > - does no review, implementation or status change itself, merges no task branch, and sets
    >   nothing to `done`;
@@ -351,8 +363,8 @@ asks for:
    Item 10 replaced by:
 
    > 10. **Session boundaries (ADR-0026):** from the journals and the task file: each session that
-   >     worked on the task was owner-started, or a sub-agent listed in its parent's journal (with
-   >     the owner's opt-in quoted there); no agent of a session that implemented any part of the
+   >     worked on the task was owner-started, or a sub-agent listed in its parent's journal (within
+   >     any limit the owner set for that session); no agent of a session that implemented any part of the
    >     task reviewed it; a review sub-agent's prompt was the ADR-0026 template verbatim; no
    >     sub-agent spawned agents or ran an install; merges to `main` were serial with CI green.
 
