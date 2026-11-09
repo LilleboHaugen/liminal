@@ -2,7 +2,7 @@
 id: M1-T004
 title: trace and hygiene follow-ups from the M0-T005 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T005]
 requirements: [XTASK-R041, XTASK-R050]

@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 17
+spec_version: 18
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -299,6 +299,12 @@ as `output_tail` in both output modes.
   literals of every form, other literals, line and nested block comments). It is not a parser.
   Comments, string contents and code are told apart exactly, so patterns inside string literals
   are never findings, and `trace` and `hygiene` need no exclusion for xtask's own source.
+  A numeric literal (`spec_version` 18) is its digits, letters and `_`; a `+` or `-` directly
+  after a decimal exponent `e`/`E` (before any other letter) and followed by a digit; and one `.`
+  in a decimal literal before any letter, unless that `.` is followed by `.`, `_` or a letter, or
+  the literal directly follows a `.` that is not part of `..` (a tuple field index). So `1.5e3`,
+  `1_000u32`, `0x1F` and `1e-3` are one literal each; `0..n`, `1.max(2)`, `x.0.1` and `0x1E-3`
+  split.
 - Requirements (R040). Section 6 is the text from the level-2 heading that starts with `6.` or
   `6 ` up to the next level-1 or level-2 heading, outside fenced code. A row whose first cell is a
   requirement ID but whose second cell is not MUST, SHOULD or MAY, or whose third cell is empty,
@@ -312,7 +318,8 @@ as `output_tail` in both output modes.
   not match `\s*ID(\s*,\s*ID)*\s*`, the line is an R041 finding (malformed). It is attached to the
   item that follows, after comments and outer attributes (`#[…]`, any number of lines): that item
   must start with qualifiers (`pub`, `pub(…)`, `const`, `async`, `unsafe`, `safe`, `extern` with an
-  optional ABI string, `default`) and `fn <name>`, otherwise the annotation is an R041 finding (not
+  optional ABI string, `default`) and `fn <name>`; a string literal anywhere but directly after
+  `extern` (comments between are allowed) ends the header (`spec_version` 18), otherwise the annotation is an R041 finding (not
   attached). This replaces the M0-T005 note's "within 10 lines" heuristic: the token rule is exact.
   A test is reported at the line of its function name. A function that names an ID twice is listed
   once.
@@ -338,7 +345,9 @@ as `output_tail` in both output modes.
   `done` if that file's frontmatter says `status: done`. A task file with unreadable frontmatter
   exists and is not `done`.
 - Ignore attributes (R050, R051): `ignore` as a meta item inside an outer or inner attribute
-  (directly after `[`, `(` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). Without
+  (directly after `[` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). `(` was removed in
+  `spec_version` 18: no test-ignore attribute puts `ignore` directly after `(` (the first argument
+  of `cfg_attr` is its predicate), so it matched only non-test attributes such as `#[foo(ignore)]`. Without
   `= "reason"`, or with a reason that contains no task ID, it is R050. Every task ID in the reason
   must exist (R051); its status does not matter.
 - Locations: `path:line`. For R040, R044 and R045 the spec row; for R041 and R043 the annotation
@@ -600,3 +609,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
+| 18 | 2026-11-09 | Lexing: numeric literals end at `..`, `.` + identifier and after a tuple-field `.`; R041: a string literal counts only directly after `extern`; R050: `ignore` counts only directly after `[` or `,` (not `(`) | M1-T004 |

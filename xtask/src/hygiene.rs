@@ -322,7 +322,7 @@ fn ignores(
         for at in open + 1..end.min(code.len()) {
             let token = code[at];
             if token.kind != Kind::Ident("ignore".to_string())
-                || !matches!(code[at - 1].kind, Kind::Punct('[' | ',' | '('))
+                || !matches!(code[at - 1].kind, Kind::Punct('[' | ','))
             {
                 continue;
             }
