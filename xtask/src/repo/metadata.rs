@@ -117,9 +117,13 @@ fn slashes(path: &str) -> String {
     path.replace('\\', "/")
 }
 
-/// `path` relative to `root` (both already `/`-separated), or `None` if it is not below `root`.
+/// `path` relative to `root` (both already `/`-separated): `Some("")` for `root` itself,
+/// `Some(rest)` for a path below it, `None` otherwise.
 fn relative(root: &str, path: &str) -> Option<String> {
     let rest = path.strip_prefix(root.trim_end_matches('/'))?;
+    if rest.is_empty() {
+        return Some(String::new());
+    }
     let rest = rest.strip_prefix('/')?;
     Some(rest.to_string())
 }
@@ -338,6 +342,35 @@ mod tests {
     fn a_root_package_has_an_empty_manifest_dir() {
         let json = sample("/w", "/").replace("/w/crates/app/Cargo.toml", "/w/Cargo.toml");
         assert_eq!(parse(&json).unwrap()[0].manifest_dir, "");
+    }
+
+    /// Verifies: XTASK-R032
+    #[test]
+    fn a_path_dependency_on_the_workspace_root_is_inside_with_an_empty_path() {
+        for root in ["/w", "/w/"] {
+            assert_eq!(relative(root, "/w"), Some(String::new()), "{root}");
+            assert_eq!(
+                relative(root, "/w/src/lib.rs"),
+                Some("src/lib.rs".to_string())
+            );
+            assert_eq!(relative(root, "/w2"), None, "{root}");
+        }
+        let json = sample("/w", "/").replace("\"/w/crates/core\"", "\"/w\"");
+        assert_eq!(
+            parse(&json).unwrap()[0].dependencies[0].path,
+            Some(String::new())
+        );
+        // A root package's root-level target stays `src/lib.rs`.
+        let json = sample("/w", "/")
+            .replace("/w/crates/app/Cargo.toml", "/w/Cargo.toml")
+            .replace("/w/crates/app/src/lib.rs", "/w/src/lib.rs");
+        assert_eq!(parse(&json).unwrap()[0].targets[0].src_path, "src/lib.rs");
+        // Windows separators: `C:\w` itself is the root too.
+        let json = sample(r"C:\w", r"\").replace(r#""C:\\w\\crates\\core""#, r#""C:\\w""#);
+        assert_eq!(
+            parse(&json).unwrap()[0].dependencies[0].path,
+            Some(String::new())
+        );
     }
 
     #[test]
