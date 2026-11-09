@@ -197,6 +197,119 @@ fn the_documented_licence_list_is_read() {
     );
 }
 
+/// The MIT licence text (SPDX `MIT`), as a crate would ship it in a `license-file`.
+const MIT_TEXT: &str = "MIT License
+
+Copyright (c) 2026 Liminal deny fixture
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the \"Software\"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+";
+
+/// cargo-deny's default `confidence-threshold`, which applies if `deny.toml` drops the key.
+const DEFAULT_CONFIDENCE: f64 = 0.8;
+
+/// The `confidence-threshold` of the repository `deny.toml`.
+fn policy_confidence() -> f64 {
+    let policy =
+        std::fs::read_to_string(repo_root().join("deny.toml")).expect("test setup: read deny.toml");
+    let value: toml::Value = toml::from_str(&policy).expect("test setup: deny.toml is TOML");
+    value["licenses"]["confidence-threshold"]
+        .as_float()
+        .expect("deny.toml sets [licenses] confidence-threshold")
+}
+
+/// Runs the licence check on a fixture copy whose dependency has no `license` but a
+/// `license-file` with `text`. Returns whether it passed, and the output.
+fn check_licence_file(root: &Path, text: &str) -> (bool, String) {
+    let manifest = root.join("copyleft/Cargo.toml");
+    let toml = std::fs::read_to_string(&manifest).expect("test setup: read the fixture manifest");
+    let line = toml
+        .lines()
+        .find(|line| line.starts_with("license"))
+        .expect("the fixture manifest has a licence line")
+        .to_string();
+    std::fs::write(&manifest, toml.replace(&line, "license-file = \"LICENSE\""))
+        .expect("test setup: write the fixture manifest");
+    write(&root.join("copyleft/LICENSE"), text);
+    run_deny(
+        &repo_root().join("deny.toml"),
+        &root.join("app/Cargo.toml"),
+        true,
+        "licenses",
+    )
+}
+
+/// The `score = <n>` cargo-deny reports for a licence file it could not identify confidently.
+fn reported_score(output: &str) -> f64 {
+    let start = output
+        .find("score = ")
+        .unwrap_or_else(|| panic!("cargo-deny reports the licence-file score:\n{output}"))
+        + "score = ".len();
+    let number: String = output[start..]
+        .chars()
+        .take_while(|c| c.is_ascii_digit() || *c == '.')
+        .collect();
+    number
+        .parse()
+        .unwrap_or_else(|_| panic!("the score `{number}` is a number:\n{output}"))
+}
+
+/// `confidence-threshold` (0.93) applies to crates that declare their licence only through a
+/// `license-file`: the exact MIT text is accepted; the MIT text with its last two lines replaced
+/// scores between cargo-deny's default threshold (0.8) and the policy's, so it is rejected. A
+/// lower threshold, or the key removed, accepts it.
+///
+/// Verifies: XTASK-R082
+#[test]
+#[ignore = "M1-T008: needs cargo-deny; the `deny` job of the CI workflow runs it"]
+fn a_licence_file_below_the_confidence_threshold_is_rejected() {
+    let root = fixture("licence-file");
+    let (passed, output) = check_licence_file(root.path(), MIT_TEXT);
+    assert!(passed, "the exact MIT text was rejected:\n{output}");
+
+    let mut lines: Vec<&str> = MIT_TEXT.lines().collect();
+    let kept = lines.len() - 2;
+    lines.truncate(kept);
+    let mut altered = lines.join("\n");
+    altered.push_str(
+        "\nThis line replaces a line of the MIT text (xtask deny fixture).\n\
+         This line replaces a line of the MIT text (xtask deny fixture).\n",
+    );
+    let (passed, output) = check_licence_file(root.path(), &altered);
+    assert!(
+        !passed,
+        "a low-confidence licence file was accepted:\n{output}"
+    );
+    assert!(
+        output.contains("low confidence in the license text"),
+        "{output}"
+    );
+    assert!(output.contains("fixture_copyleft"), "{output}");
+    let score = reported_score(&output);
+    let threshold = policy_confidence();
+    assert!(
+        DEFAULT_CONFIDENCE < score && score < threshold,
+        "the fixture must score between the default threshold {DEFAULT_CONFIDENCE} and the \
+         policy's {threshold} to test it; it scored {score}"
+    );
+}
+
 /// Runs `cargo deny [--offline] --config <config> --manifest-path <manifest> check <which>`.
 /// Returns whether it passed, and stdout followed by stderr.
 fn run_deny(config: &Path, manifest: &Path, offline: bool, which: &str) -> (bool, String) {
