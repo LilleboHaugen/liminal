@@ -2,7 +2,7 @@
 id: M0-T009
 title: cargo deny policy and doctor
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R080, XTASK-R081, XTASK-R082, XTASK-R083, XTASK-R084]
@@ -208,3 +208,42 @@ Required changes:
    registry cache). With `informational = "unmaintained"` the check reports
    `advisories FAILED`; with the mutant it reports `advisories ok`. Document the URL-hash
    dependency in the test (it may change with the cargo-deny version).
+
+## Review 2
+
+2026-11-09, new owner-started session (fresh context; did not write any part of M0-T009 and did
+not do review 1). Re-review scope (REVIEW.md §1, ADR-0021): the previous blocking findings, the
+diff since review 1 (`70318f5..a449147`: `xtask/tests/deny_policy.rs`, its fixture README, spec
+v14, task, journal, status files), and `cargo xtask ci`. Outcome: **done**, no blocking
+findings. Follow-ups in `docs/tasks/M1-T009-deny-policy-test-gaps.md`.
+
+Checked, macOS 27.2, Rust 1.99.1, cargo-llvm-cov 0.9.1, cargo-deny 0.20.2:
+1. `cargo xtask ci`: pass, 11 steps (`deny` 0.9 s). Policy tests with `--include-ignored`: 5
+   passed.
+2. Finding 1 (B4, sources): fixed. `git_dependencies_are_rejected` (R083) builds a `file://` git
+   dependency and asserts `sources FAILED` naming the crate. Mutant `unknown-git = "allow"`:
+   killed; deleting the `unknown-git` line (default is `warn`): killed. A non-crates.io registry
+   is not tested and the spec says so with the reason, as review 1 allowed.
+3. Finding 2 (B4, advisories): fixed. `unmaintained_and_vulnerable_crates_are_rejected` (R084)
+   has a passing control and rejects an `unmaintained` and a vulnerability advisory from a
+   fixture database. Mutants: `unmaintained = "none"`: killed; `"workspace"`: killed;
+   `ignore = ["RUSTSEC-2026-9001"]`: killed; `ignore = ["RUSTSEC-2026-9002"]`: killed.
+4. Diff read in full; spec v14 R083/R084 and the test approach agree with the tests and
+   `deny.toml`. `Verifies:` tags are correct. Helpers use `expect("test setup: …")` only in
+   test code. No placeholders, no oracle changed (`deny.toml` unchanged). The `#[ignore]` reasons
+   name the task.
+5. CI: run 42666478189 (task branch) and 42668420857 (`main`, a449147) pass all 5 jobs; the
+   `deny` job log on `main` shows all 4 ignored policy tests `ok`, including both new ones.
+6. Session boundaries: review 1 and the fix were one owner-started session (review, then
+   priority 2 continuation, journal `2026-11-09-M0-T009-2.md`); this review is a new session.
+   No sub-agents.
+
+Non-blocking findings (follow-up M1-T009):
+- Mutant `unmaintained = "transitive"` survives: both advised crates are transitive, so a direct
+  dependency on an unmaintained crate is not covered. In unchanged code (`deny.toml`) and only
+  B4, so it does not block a re-review.
+- Mutant `unknown-registry = "allow"` still survives (recorded in the spec; re-check whether a
+  local `file://` index makes it testable offline).
+- Mutant `allow-git = ["file:///"]` survives because the fixture's git dependency is still
+  rejected (`file:///` is not its URL), so the mutant does not loosen the policy for that input.
+  Not a finding. (Assumption, unverified: `allow-git` entries match whole URLs, not prefixes.)
