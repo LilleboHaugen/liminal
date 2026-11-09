@@ -2,7 +2,7 @@
 id: M1-T004
 title: trace and hygiene follow-ups from the M0-T005 review
 milestone: M1
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T005]
 requirements: [XTASK-R041, XTASK-R050]
@@ -48,12 +48,12 @@ correctly.
 
 ## Acceptance criteria
 
-- [ ] Item 1 decided and written into the spec (if changed) and the code; a test covers what
+- [x] Item 1 decided and written into the spec (if changed) and the code; a test covers what
       remains.
-- [ ] Numeric literal cases of item 2 are lexer tests; a hygiene case asserts that a forbidden
+- [x] Numeric literal cases of item 2 are lexer tests; a hygiene case asserts that a forbidden
       macro after a range (`0..dbg!(x)`) is an R050 finding.
-- [ ] A string literal not directly after `extern` makes an annotation unattached (R041), tested.
-- [ ] `cargo xtask ci` passes.
+- [x] A string literal not directly after `extern` makes an annotation unattached (R041), tested.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -66,7 +66,37 @@ correctly.
 
 ## Handoff
 
-_Filled in by the implementing session(s)._
+2026-11-09, implementation sub-agent (parent: `docs/journal/` entry of session
+`session/2026-11-09-m1-subagents`). Status `in-progress` → `review`.
+
+Done:
+1. Item 1 decided: `(` dropped from the spec and the code. `ignore` counts only directly after
+   `[` or `,` (`docs/specs/xtask.md` `spec_version` 18, "Ignore attributes"). Reason: no
+   test-ignore attribute puts `ignore` directly after `(` (in `cfg_attr` the first argument is
+   the predicate), so `(` matched only non-test attributes. Test: line 21 `#[foo(ignore)]` of
+   `xtask/tests/fixtures/hygiene/cases/ignores.rs` is no finding
+   (`hygiene::tests::ignore_attributes_need_a_reason_naming_an_existing_task`); re-adding `'('`
+   to the match fails it.
+2. `xtask/src/rust_lexer.rs`: new `Lexer::number`. A `.` belongs to a decimal literal only once,
+   before any letter, and not if followed by `.`, `_` or a letter; a `+`/`-` after a decimal
+   exponent letter (the first letter) followed by a digit is part of it; a literal right after a
+   single `.` (tuple field) takes no `.` (state `after_dot`/`after_field_dot`, updated in
+   `Lexer::next`). Test `numeric_literals_end_at_ranges_method_calls_and_tuple_fields` covers
+   `1.5e3`, `1_000u32`, `0x1F`, `1e-3` (one literal) and `0..n`, `1.max(2)`, `x.0.1`, `1..2.5`,
+   `0x1E-3`, `1e-x` (split). Hygiene case: line 16 `0..dbg!(x)` of `cases/macros.rs` is an R050
+   finding.
+3. `xtask/src/trace/annotations.rs::next_function`: a string literal is skipped only after
+   `extern` (comments between allowed). Fixture `cases/annotations.rs` line 35 (`pub "x" fn g`)
+   is unattached (R041); line 37 (`extern /* ABI */ "C" fn h`) attaches.
+- Spec `docs/specs/xtask.md` 17 → 18 (Lexing, Annotations, Ignore attributes, History).
+
+Verified: `cargo xtask ci` on macOS 27.2, Rust 1.99.1: 11 steps pass, no skips. xtask coverage
+98.06 % (5127/5228), floor 97.6 unchanged. Not verified on Windows or Linux (branch CI not run
+by this sub-agent).
+
+Not done: nothing in scope. Traps: the lexer is shared by `check-arch`, `trace` and `hygiene`;
+a new lexer rule that reads the previous token must update state in `Lexer::next`, not
+`next_token` (the shebang probe also uses `next`).
 
 ## Review
 
