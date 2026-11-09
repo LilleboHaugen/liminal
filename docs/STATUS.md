@@ -24,7 +24,7 @@
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | todo | M0-T009 |
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | todo | M1-T001 |
-| [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | todo | M1-T001 |
+| [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | review | M1-T001 |
 | [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | todo | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
 | [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | todo | M1-T013 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | todo | M1-T014 |
@@ -77,13 +77,13 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 53 | 0 | 0 | 0 | 1 |
+| M1 (Headless core) | 54 | 52 | 0 | 0 | 1 | 1 |
 
 ## Crates
 
 | Crate | Layer | Maturity | Spec |
 |---|---|---|---|
-| liminal_core | 0 | planned | — |
+| liminal_core | 0 | planned | [liminal_core.md](specs/liminal_core.md) |
 | liminal_math | 0 | planned | — |
 | liminal_memory | 0 | planned | — |
 | liminal_reflect | 0 | planned | — |

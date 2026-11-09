@@ -17,6 +17,7 @@ Rules:
 
 | Spec | Crate | Prefix | Maturity |
 |---|---|---|---|
+| [liminal_core.md](liminal_core.md) | `liminal_core` | CORE | planned |
 | [xtask.md](xtask.md) | `xtask` | XTASK | usable |
 
 Specs for M1 crates are written by dedicated M1 tasks, which the M1 kickoff task (M1-T001) creates.
