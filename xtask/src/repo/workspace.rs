@@ -100,9 +100,26 @@ pub(crate) fn load(root: &Path) -> Result<Vec<Member>, LoadError> {
     Ok(members)
 }
 
-/// Expands one `members` entry into member directories.
+/// `path` without `.` segments, empty segments and a trailing `/`: `./a/./b/` → `a/b`. A path
+/// that is only `.` segments stays `.`. Member directories are compared with repository-relative
+/// paths ([`owner`]), so they must be spelled the same way; cargo accepts both spellings.
+fn normalize(path: &str) -> String {
+    let joined = path
+        .split('/')
+        .filter(|segment| !segment.is_empty() && *segment != ".")
+        .collect::<Vec<_>>()
+        .join("/");
+    match (path.starts_with('/'), joined.is_empty()) {
+        (true, _) => format!("/{joined}"),
+        (false, true) => ".".to_string(),
+        (false, false) => joined,
+    }
+}
+
+/// Expands one `members` entry into member directories, spelled as [`normalize`] returns them.
 fn expand(root: &Path, pattern: &str) -> Result<Vec<String>, LoadError> {
-    let pattern = pattern.trim_end_matches('/');
+    let pattern = normalize(pattern);
+    let pattern = pattern.as_str();
     let is_glob = |text: &str| text.contains(['*', '?', '[', ']', '{', '}']);
     let Some(dir) = pattern.strip_suffix("/*").filter(|dir| !is_glob(dir)) else {
         if is_glob(pattern) {
@@ -167,6 +184,35 @@ mod tests {
                 ("crates/a", "ay"),
                 ("crates/b", "bee")
             ]
+        );
+    }
+
+    /// Verifies: XTASK-R060
+    #[test]
+    fn member_paths_with_dot_segments_are_normalized() {
+        // Cargo accepts `./xtask` and `a/./b`; `owner` compares repository-relative paths, so a
+        // member path must be spelled like them.
+        let root = TempRoot::new("dot-members");
+        write(
+            &root,
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"./xtask\", \"tools/./one/\", \"./crates/*\"]\n",
+        );
+        write(&root, "xtask/Cargo.toml", "[package]\nname = \"xtask\"\n");
+        write(&root, "tools/one/Cargo.toml", "[package]\nname = \"one\"\n");
+        write(&root, "crates/a/Cargo.toml", "[package]\nname = \"ay\"\n");
+        let members = load(root.path()).unwrap();
+        let pairs: Vec<(&str, &str)> = members
+            .iter()
+            .map(|m| (m.path.as_str(), m.name.as_str()))
+            .collect();
+        assert_eq!(
+            pairs,
+            [("xtask", "xtask"), ("tools/one", "one"), ("crates/a", "ay")]
+        );
+        assert_eq!(
+            owner(&members, "xtask/src/lib.rs").map(|m| m.name.as_str()),
+            Some("xtask")
         );
     }
 
