@@ -2,7 +2,7 @@
 id: M0-T009
 title: cargo deny policy and doctor
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R080, XTASK-R081, XTASK-R082]
@@ -57,7 +57,7 @@ and skip behaviour).
 ## Handoff
 
 2026-11-09, implementation session (after the review of M0-T008 in the same session). Status →
-`review` once the CI run on `main` is recorded below.
+`review`.
 
 **Done (all acceptance criteria met):**
 - `deny.toml` for cargo-deny 0.20.2 (schema checked against `cargo deny init` of that version):
@@ -98,6 +98,14 @@ machine, so this task does not lower it.
 
 **Installed (owner approval, ADR-0022):** cargo-deny 0.20.2, installed by the owner with
 Homebrew (`/opt/homebrew/bin/cargo-deny`).
+
+**CI:** run 42662952356 on `main` (564be70): all 5 jobs pass (checks on macOS, Windows,
+Linux; coverage; deny). The `deny` job log shows `deny  pass` and both policy tests
+(`copyleft_dependencies_are_rejected`, `the_documented_allow_list_is_exactly_what_deny_toml_accepts`)
+`ok`. `deny` job time 3 min 52 s (first run: `cargo install cargo-deny` compiles; later runs use
+the cache).
+
+**Next:** review (fresh session). Then M0-T010 (M0 exit review).
 
 **Not verified:** Windows and Linux `doctor` output (CI runs no `doctor` step; the `deny` job is
 Linux only).
