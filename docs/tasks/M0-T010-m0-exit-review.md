@@ -2,7 +2,7 @@
 id: M0-T010
 title: M0 exit review
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T001, M0-T002, M0-T003, M0-T004, M0-T005, M0-T006, M0-T007, M0-T008, M0-T009, M0-T011]
 requirements: []
@@ -133,3 +133,44 @@ to `done` first. macOS 27.2, reference machine, Rust 1.99.1, cargo-llvm-cov 0.9.
 ROADMAP M0 exit criterion 5 (`xtask` reaches `usable`): holds; checked. Outcome: `xtask` promoted
 `planned` → `usable` (`docs/specs/xtask.md` `spec_version` 17, `docs/specs/README.md`). All five M0
 exit criteria are checked. Task set to `review`.
+
+### Task review (2026-11-09, third session)
+
+Reviewer: new session, started by the owner (implemented none of M0-T001 … M0-T011 and no part
+of this task). Outcome: **done**, no blocking findings, no follow-ups, so no follow-up task.
+
+Checked, macOS 27.2 on the reference machine, Rust 1.99.1, cargo-llvm-cov 0.9.1, cargo-deny
+0.20.2, on branch `task/M0-T010-m0-exit-review` 83670f7:
+1. Acceptance criteria:
+   - ROADMAP M0 exit criteria: all five checked; the diff checks only criterion 5. Evidence in
+     parts 1 and 2 re-checked where it can be re-run (items 2–4). Met.
+   - Seeded-violation run: table of 14 seeds in journal `2026-11-09-M0-T010.md`, each with the
+     catching step and rule. Not repeated: M0-T011 changed no check (its diff touches only
+     tests, doc comments, the CI workflow and the spec). Met.
+   - Spec review and promotion: `docs/specs/xtask.md` `maturity: usable`, `spec_version` 17,
+     §13 every box checked with evidence, §14 history row; `docs/specs/README.md` row
+     `usable`; STATUS.md regenerated. Met.
+   - XTASK-R013 measured (103–107 ms for the native checks, budget 5 s) and recorded in the
+     journal. Met.
+2. `cargo xtask ci`: 11 steps pass (native checks together 102 ms in this run).
+3. `usable` gates (MATURITY.md, tool-crate variants), re-run myself:
+   - `cargo xtask trace --crate xtask`: MUST 49/49, SHOULD 2/4, `trace: ok` (gate on at
+     `usable`).
+   - `cargo xtask coverage`: xtask 98.05 % (5050/5150), floor 97.6; tool target 75 %.
+   - Real-binary tests: `xtask/tests/commands.rs` helpers (`assert_check_passes`,
+     `assert_check_report`, `assert_usage_error`) assert exit code, stdout and stderr for
+     `check-arch`, `check-docs`, `hygiene`, `trace`, `status`, `doctor`, `coverage`; `cli.rs`
+     covers `help`, `ci.rs` covers `ci`. These tests also cover the gate "integration tests
+     exercise the public API the way a dependent crate would": for a tool crate, the public
+     interface is the command line.
+   - Doc examples, documented items, used in CI: as in part 2 (`doc` step with `-D warnings`
+     passes; `missing_docs = "deny"`).
+4. CI: run 42675334617 (790777e, the promotion commit): all 5 jobs pass (`checks` on macOS,
+   Windows and Linux, `coverage`, `deny`). Run 42675876098 (83670f7, the owner's URL change to
+   `Cargo.toml` metadata and three docs) was still running when this review was written. Merge
+   to `main` only once it is green (WORKFLOW.md §8).
+5. No fake progress: no oracle changed (floor 97.6, no golden or baseline touched); the
+   promotion is all or nothing to one level; no placeholder.
+6. Session boundaries (ADR-0020): part 1 and part 2 were each done in an owner-started session
+   after that session's one review (journals `2026-11-09-M0-T010.md`, `2026-11-09-M0-T010-2.md`);
+   neither session implemented M0-T011 or M0-T002 … M0-T009; no sub-agents.

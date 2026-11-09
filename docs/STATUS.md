@@ -9,21 +9,20 @@
 
 ## Current milestone
 
-**M0** (Guardrails): 10 of 11 tasks done.
+**M1** (Headless core): 0 of 10 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
-| [M0-T001](tasks/M0-T001-workspace-bootstrap.md) | Bootstrap the Cargo workspace | done | — |
-| [M0-T002](tasks/M0-T002-xtask-ci-command.md) | xtask ci command | done | M0-T001 |
-| [M0-T003](tasks/M0-T003-check-docs.md) | Frontmatter parser and check-docs | done | M0-T002 |
-| [M0-T004](tasks/M0-T004-check-arch.md) | check-arch | done | M0-T002 |
-| [M0-T005](tasks/M0-T005-trace-and-hygiene.md) | trace and hygiene | done | M0-T003 |
-| [M0-T006](tasks/M0-T006-coverage-floors.md) | Coverage with per-crate floors | done | M0-T002 |
-| [M0-T007](tasks/M0-T007-github-actions-ci.md) | GitHub Actions CI | done | M0-T002 |
-| [M0-T008](tasks/M0-T008-status-generator.md) | status generator | done | M0-T003 |
-| [M0-T009](tasks/M0-T009-deny-and-doctor.md) | cargo deny policy and doctor | done | M0-T002 |
-| [M0-T010](tasks/M0-T010-m0-exit-review.md) | M0 exit review | review | M0-T001, M0-T002, M0-T003, M0-T004, M0-T005, M0-T006, M0-T007, M0-T008, M0-T009, M0-T011 |
-| [M0-T011](tasks/M0-T011-xtask-binary-tests.md) | Real-binary integration tests for every xtask command | done | M0-T009 |
+| [M1-T001](tasks/M1-T001-m1-kickoff.md) | M1 kickoff | todo | M0-T010 |
+| [M1-T002](tasks/M1-T002-check-docs-follow-ups.md) | check-docs follow-ups from the M0-T003 review | todo | M0-T003 |
+| [M1-T003](tasks/M1-T003-check-arch-follow-ups.md) | check-arch follow-ups from the M0-T004 review | todo | M0-T004 |
+| [M1-T004](tasks/M1-T004-trace-hygiene-follow-ups.md) | trace and hygiene follow-ups from the M0-T005 review | todo | M0-T005 |
+| [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | todo | M0-T006 |
+| [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | todo | M0-T007 |
+| [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | todo | M0-T008 |
+| [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | todo | M0-T009 |
+| [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | todo | M0-T009 |
+| [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 
 ## Blocked tasks
 
@@ -33,7 +32,7 @@ None.
 
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
-| M0 (Guardrails) | 11 | 0 | 0 | 0 | 1 | 10 |
+| M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
 | M1 (Headless core) | 10 | 10 | 0 | 0 | 0 | 0 |
 
 ## Crates

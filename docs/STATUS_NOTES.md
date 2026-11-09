@@ -6,8 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It reviews M0-T010 (M0 exit review, `xtask` promoted to `usable`, in
-`review`). After that M0 is complete; the next task is M1-T001 (M1 kickoff). ADR-0020.
+M0 is complete (M0-T010 reviewed and `done`, 2026-11-09). The next task is M1-T001 (M1 kickoff),
+which places the review follow-up tasks below in the M1 order.
 
 ## Prerequisites the project owner handles (not agent tasks)
 
