@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 13
+spec_version: 14
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -445,6 +445,8 @@ as `output_tail` in both output modes.
 | XTASK-R080 | MUST | `doctor` reports, for each tool (rustc, cargo, rustfmt, clippy, cargo-llvm-cov, cargo-deny, nightly toolchain with Miri), whether it is present, its version, and an install hint if missing. |
 | XTASK-R081 | MUST | The `deny` step runs `cargo deny check` with the repository `deny.toml`. If `cargo-deny` is missing, the step is skipped (R006). |
 | XTASK-R082 | MUST | `deny.toml` rejects every dependency whose licence is not in the allow list of `docs/process/DEPENDENCIES.md` ("Licence policy"), in particular every GPL, LGPL and AGPL licence. MPL-2.0 is accepted only through a per-crate `exceptions` entry. |
+| XTASK-R083 | MUST | `deny.toml` rejects every dependency whose source is not crates.io: any git dependency (`allow-git` is empty) and any other registry. |
+| XTASK-R084 | MUST | `deny.toml` rejects every dependency that has a RustSec vulnerability advisory or an `unmaintained` advisory, unless the advisory is in `[advisories] ignore`. |
 
 `doctor` and `deny` details (added in `spec_version` 13):
 
@@ -484,6 +486,21 @@ as `output_tail` in both output modes.
   crate (rejected) and, after the fixture licence is changed to MIT, passes. The test needs
   `cargo-deny`, so it is ignored in the `test` step and run by the `deny` job of the CI
   workflow (`cargo test --test deny_policy -- --ignored`, `xtask/tests/deny_policy.rs`).
+- R083 is verified by running `cargo deny check sources` with the repository `deny.toml` against
+  a fixture crate whose only dependency is a git dependency on a local repository
+  (`file://<temp>/dep`, created by the test with `git`), which is rejected. A non-crates.io
+  registry is not tested (a local registry needs a registry server or index setup); the
+  repository `deny.toml` sets `unknown-registry = "deny"` and `allow-registry` to crates.io only.
+- R084 is verified by running `cargo deny --offline check advisories` with a copy of the
+  repository `deny.toml` that adds only `db-path` and `db-urls` to `[advisories]`, pointing at a
+  fixture advisory database (a git repository the test creates) that has one advisory for a
+  crates.io crate of the repository `Cargo.lock`. An `unmaintained` advisory and a vulnerability
+  advisory are each rejected; the same database without either passes. The crates come from the
+  local cargo registry cache, so no network is needed once the repository has been built.
+  cargo-deny reads the database from `<db-path>/advisory-db-<hash of the URL>`; the test takes
+  that directory name from cargo-deny's own error output on an empty `db-path`, so it does not
+  depend on the hash function. Both tests need `cargo-deny` (and R083 needs `git`), so they are
+  ignored in the `test` step and run by the `deny` CI job like R082.
 
 ## 7. Invariants
 
@@ -522,6 +539,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
+| `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency; `check advisories` on a fixture advisory database, with a passing control | cargo-deny's sources and advisories checks |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -563,3 +581,4 @@ Promotion to `usable` (M0 exit):
 | 11 | 2026-11-08 | `coverage` details (measurement, file → crate mapping, `ci/coverage.toml` format, integer arithmetic, stale entries are R062, `--update-floors` keeps comments, output); R060: `--locked`; LIM-XTASK-0006 | M0-T006 |
 | 12 | 2026-11-09 | `status` details (sources, unreadable input is R070, order, layout, write-if-changed, `--check` finding location) | M0-T008 |
 | 13 | 2026-11-09 | `doctor` and `deny` details (tool table and probes, `RUSTUP_AUTO_INSTALL=0`, error vs. warning findings, output, `deny` command line); new R082 (licence policy in `deny.toml`) | M0-T009 |
+| 14 | 2026-11-09 | New R083 (sources policy) and R084 (advisory policy) of `deny.toml`, with their test approach (review 1 of M0-T009) | M0-T009 |
