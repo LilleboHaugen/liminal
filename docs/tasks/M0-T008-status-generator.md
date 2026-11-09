@@ -74,7 +74,7 @@ spec column links each crate's spec.
 **Coverage:** `xtask` 97.56 % (4879 of 5001 lines) against floor 97.6: passes within the
 0.5-point tolerance. Floor unchanged (it only rises).
 
-**Not verified:** Windows and Linux locally; CI runs them after the push.
+**CI:** run 42612728836 on `main` (1a0a0ef): all 4 jobs pass (macOS, Windows, Linux, coverage).
 
 **Next:** review (fresh session). Then M0-T009 (`cargo deny` policy and `doctor`).
 
