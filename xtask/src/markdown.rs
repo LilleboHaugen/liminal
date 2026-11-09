@@ -43,7 +43,7 @@ pub(crate) fn prose_lines(text: &str) -> Vec<(usize, &str)> {
                 }
                 Some((byte, length)) if marker.0 == byte && marker.1 >= length => {
                     // A closing fence carries no info string.
-                    if line.trim().bytes().all(|b| b == byte) {
+                    if line.trim_matches(WHITESPACE).bytes().all(|b| b == byte) {
                         fence = None;
                         continue;
                     }
@@ -60,6 +60,10 @@ pub(crate) fn prose_lines(text: &str) -> Vec<(usize, &str)> {
 
 /// The fence character and run length if `line` starts a fence (at most 3 spaces of indentation,
 /// then 3 or more backticks or tildes).
+/// GFM's whitespace for trimming table cells and fence lines: space and tab. U+00A0 and other
+/// Unicode whitespace are text (same rule as the frontmatter subset, `docs/specs/xtask.md` §6).
+const WHITESPACE: &[char] = &[' ', '\t'];
+
 fn fence_marker(line: &str) -> Option<(u8, usize)> {
     let trimmed = line.trim_start_matches(' ');
     if line.len() - trimmed.len() > 3 {
@@ -227,7 +231,7 @@ pub(crate) fn tables(text: &str) -> Vec<Table> {
 }
 
 fn is_table_line(line: &str) -> bool {
-    line.trim_start().starts_with('|')
+    line.trim_start_matches(WHITESPACE).starts_with('|')
 }
 
 fn is_delimiter(line: &str) -> bool {
@@ -238,10 +242,10 @@ fn is_delimiter(line: &str) -> bool {
         })
 }
 
-/// Cells of a table line: split on `|` not preceded by `\\`, outer pipes dropped, trimmed. An
-/// escaped `\\|` stays in the cell as written.
+/// Cells of a table line: split on `|` not preceded by `\\`, outer pipes dropped, spaces and
+/// tabs trimmed ([`WHITESPACE`]). An escaped `\\|` stays in the cell as written.
 fn cells(line: &str) -> Vec<String> {
-    let line = line.trim();
+    let line = line.trim_matches(WHITESPACE);
     let line = line.strip_prefix('|').unwrap_or(line);
     let line = line
         .strip_suffix('|')
@@ -252,11 +256,11 @@ fn cells(line: &str) -> Vec<String> {
     let bytes = line.as_bytes();
     for (index, byte) in bytes.iter().enumerate() {
         if *byte == b'|' && (index == 0 || bytes[index - 1] != b'\\') {
-            cells.push(line[start..index].trim().to_string());
+            cells.push(line[start..index].trim_matches(WHITESPACE).to_string());
             start = index + 1;
         }
     }
-    cells.push(line[start..].trim().to_string());
+    cells.push(line[start..].trim_matches(WHITESPACE).to_string());
     cells
 }
 
@@ -327,6 +331,29 @@ mod tests {
     fn indented_lines_with_four_spaces_are_not_fences_or_definitions() {
         let text = "    ```\n[a](a.md)\n    [b]: b.md\n";
         assert_eq!(targets(text), [(2, "a.md".to_string())]);
+    }
+
+    /// Verifies: XTASK-R025
+    #[test]
+    fn table_cells_trim_only_space_and_tab() {
+        let text = "| H | I | J |\n|---|---|---|\n|  x\t| x\u{a0} |\u{a0}y |\n";
+        let tables = tables(text);
+        assert_eq!(tables.len(), 1);
+        assert_eq!(tables[0].rows[0].cells, ["x", "x\u{a0}", "\u{a0}y"]);
+    }
+
+    #[test]
+    fn a_line_indented_with_u00a0_is_not_a_table_line() {
+        assert!(is_table_line("   | a |"));
+        assert!(is_table_line("\t| a |"));
+        assert!(!is_table_line("\u{a0}| a |"));
+    }
+
+    /// Verifies: XTASK-R024
+    #[test]
+    fn a_fence_followed_by_u00a0_does_not_close_the_block() {
+        let text = "```\n```\u{a0}\n[a](inside.md)\n```  \t\n[b](after.md)\n";
+        assert_eq!(targets(text), [(5, "after.md".to_string())]);
     }
 
     #[test]

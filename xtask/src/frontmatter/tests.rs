@@ -178,7 +178,7 @@ fn rejects_every_construct_outside_the_subset_with_its_line() {
         ("---\nkey: \u{feff}ab\n---\n", 2, "U+FEFF"),
         ("---\nkey: [a, b\u{feff}]\n---\n", 2, "U+FEFF"),
         ("---\nkey: a  # c\u{feff}\n---\n", 2, "U+FEFF"),
-        ("\u{feff}---\nkey: a\n---\n", 1, "line 1 must be `---`"),
+        ("\u{feff}---\nkey: a\n---\n", 1, "starts with U+FEFF"),
         ("---\nkey: a  # c\u{1}\n---\n", 2, "U+0001"),
         ("---\nk\u{1}ey: a\n---\n", 2, "U+0001"),
         ("---\n\u{a0}key: a\n---\n", 2, "not snake_case"),
@@ -376,4 +376,21 @@ proptest! {
             }
         }
     }
+}
+
+/// Verifies: XTASK-R020
+#[test]
+fn a_byte_order_mark_before_the_opening_line_is_named() {
+    let error = parse_err("\u{feff}---\nkey: a\n---\n");
+    assert_eq!(error.line, 1);
+    assert_eq!(
+        error.message,
+        "line 1 must be `---`, which opens the frontmatter; it starts with U+FEFF \
+         (byte order mark), which is not allowed: save the file as UTF-8 without BOM"
+    );
+    // A BOM in front of something else is still the plain message.
+    assert_eq!(
+        parse_err("\u{feff}# Title\n").message,
+        "line 1 must be `---`, which opens the frontmatter"
+    );
 }

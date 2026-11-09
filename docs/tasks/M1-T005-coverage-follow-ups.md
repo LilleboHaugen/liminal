@@ -60,7 +60,7 @@ Done:
 - Item 1, decided: a crate with a floor above 0.0 and no measured lines is an XTASK-R061
   **error** (its coverage is unknown, not 100 %). A `warning` was rejected: the `ci` step fails
   on any finding anyway, and a ratchet that can vanish needs a hard stop. Floor 0.0 with no lines
-  still passes; `--update-floors` still keeps the floor. Spec `docs/specs/xtask.md` v18
+  still passes; `--update-floors` still keeps the floor. Spec `docs/specs/xtask.md` v19
   ("`coverage` details"). Code: `xtask/src/coverage.rs::evaluate` (new match arm before
   `below_floor`). Test: `coverage::tests::a_crate_with_a_floor_above_0_and_no_measured_lines_fails`.
   The existing test `floors_below_the_tolerance_and_crates_without_lines_never_fail` asserted the
@@ -84,10 +84,10 @@ Not done / traps:
 context; this session did not implement any part of M1-T005. macOS 27.2 (Darwin), worktree
 `liminal-worktrees/M1-T005-review`, branch `task/M1-T005-coverage-follow-ups` at `4af8ec6`.
 
-Outcome: **done**, no blocking findings. Follow-ups: M2-T001.
+Outcome: **done**, no blocking findings. Follow-ups: M2-T002.
 
 Checked:
-- AC 1: spec v18 "`coverage` details" states the decision (floor > 0.0 and no measured lines is an
+- AC 1: spec v19 "`coverage` details" states the decision (floor > 0.0 and no measured lines is an
   R061 error; floor 0.0 passes; floor kept on update) with a history row; `coverage.rs::evaluate`
   has the new arm before `below_floor`. Test
   `a_crate_with_a_floor_above_0_and_no_measured_lines_fails` covers floors 0.1, 0.5, 78.4, 100.0,
@@ -107,5 +107,5 @@ Checked:
   parent session; the parent's journal is not on this branch (expected to be written by the
   parent; not verifiable here).
 
-Follow-ups (M2-T001): `..` and `\` in member entries (both listed as out of scope in the
+Follow-ups (M2-T002): `..` and `\` in member entries (both listed as out of scope in the
 handoff).

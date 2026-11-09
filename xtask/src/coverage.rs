@@ -76,7 +76,7 @@ pub(crate) fn evaluate(measurement: &Measurement, floors: &Floors) -> Vec<Findin
                 ));
             }
             // Coverage unknown, not 100 %: its files dropped out of the export, so its ratchet
-            // would be gone without a finding (spec v18).
+            // would be gone without a finding (spec v19).
             Some(floor) if lines.count == 0 && floor.tenths > 0 => findings.push(Finding::error(
                 "XTASK-R061",
                 format!("{CONFIG_PATH}:{}", floor.line),
