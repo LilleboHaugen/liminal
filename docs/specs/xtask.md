@@ -3,9 +3,9 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 20
+spec_version: 21
 last_reviewed: 2026-11-09
-adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
+adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
 ---
 
 # Spec: `xtask`
@@ -231,6 +231,7 @@ as `output_tail` in both output modes.
 | XTASK-R036 | MUST | No crate in layers 0–4 depends, with any dependency kind, on a layer 5 crate. |
 | XTASK-R037 | MUST | Each violation is reported with the crate, the dependency (if any), the rule ID, and a `help` text saying how to fix it. |
 | XTASK-R038 | SHOULD | From M2: `liminal_engine` and crates under `games/` depend only on crates whose spec maturity is `usable` or higher (ADR-0011). |
+| XTASK-R039 | MUST | For every workspace crate registered with `deterministic = true`, the clippy configuration clippy applies to it (the nearest `.clippy.toml` or `clippy.toml`, see details) has a `disallowed-methods` list that contains every path of the banned list in `docs/process/CODE_STYLE.md` §Lints: `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln`, the same six for `f64`, `std::collections::HashMap::new` and `std::time::Instant::now` (ADR-0009 item 7; `spec_version` 21). |
 
 `check-arch` details (added in `spec_version` 8):
 
@@ -276,8 +277,22 @@ as `output_tail` in both output modes.
   order mark and a shebang line are skipped) is `forbid(…)` with `unsafe_code` as one of its
   comma-separated items. `#![cfg_attr(…, forbid(unsafe_code))]`, an inner attribute inside an
   inline module, and text in comments or string literals do not count.
+- R039. The effective configuration of a crate is found as clippy finds it: in the crate's
+  manifest directory, then in each parent directory up to and including the repository root,
+  the first directory containing `.clippy.toml` or `clippy.toml`; `.clippy.toml` wins within
+  a directory. Clippy does not merge files (verified with clippy 0.1.99, M1-T011 journal), so
+  the root `clippy.toml` counts only for a crate without a nearer file. Directories above the
+  repository root and `CLIPPY_CONF_DIR` are not considered. A `disallowed-methods` entry is a
+  string or a table whose string `path` is the banned path; paths are compared as exact strings,
+  and extra entries are allowed. A missing `disallowed-methods` key is an empty list. A file
+  that is not valid TOML, a `disallowed-methods` that is not an array, or an entry of another
+  shape is LIM-XTASK-0004. Only crates registered as deterministic (the first `[[crate]]` entry
+  of the name) are judged; the layer does not matter. One finding per crate: at
+  `<manifest directory>/Cargo.toml` if no file applies, else at the effective file, naming every
+  missing path in the list's order. The help names `<manifest directory>/clippy.toml`, the
+  crate's own file (CODE_STYLE.md §Lints).
 - R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034 and R036, the
-  crate root file for R035. Messages name the crate and, for R032–R034 and R036, the
+  crate root file for R035, R039 as above. Messages name the crate and, for R032–R034 and R036, the
   dependency and its kind. Identical findings (a dependency declared under two `cfg` targets)
   are reported once.
 
@@ -537,7 +552,7 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039)) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
 
@@ -551,7 +566,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 |---|---|---|
 | Frontmatter parser | unit, property (round-trip of generated valid frontmatter; random invalid lines are rejected, never accepted) | Subset definition in DOCUMENTATION.md |
 | Each check rule | integration tests on fixture repositories in `xtask/tests/fixtures/<case>/` | One passing fixture plus one fixture per rule that must fail with exactly that rule ID |
-| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 (R038 from M2) |
+| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 and R039 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
@@ -620,3 +635,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
 | 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
+| 21 | 2026-11-09 | New R039 (deterministic crates' clippy `disallowed-methods` configuration) with its details; LIM-XTASK-0004 covers that configuration; ADR-0009 in `adrs` | M1-T011 |
