@@ -43,3 +43,4 @@ Rules (ADR-0001):
 | [0025](0025-public-api-snapshot-tool.md) | Public-API snapshots with cargo-public-api, from the first stable promotion | accepted |
 | [0026](0026-sub-agents-for-task-work.md) | Sub-agents for task work under the same rules as owner-started sessions | superseded by ADR-0027 |
 | [0027](0027-sub-agents-by-default-no-total-cap.md) | Sub-agents by default, no per-session total | accepted |
+| [0028](0028-public-repository.md) | Public repository — publication, CI and untrusted input | proposed |
