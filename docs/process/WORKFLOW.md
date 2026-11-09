@@ -27,7 +27,8 @@ most:
    push (§8). Then:
 2. one implementation task (priority 2 or 3).
 
-**Sub-agents (ADR-0026).** Instead, a session may act as a *parent* and spawn sub-agents for
+**Sub-agents (ADR-0026, ADR-0027).** Instead, a session should act as a *parent* whenever
+two or more tasks are eligible, and spawn sub-agents for
 task work, unless the owner forbids it in that session. A limit the owner states binds. Each sub-agent counts as a
 separate session and follows this whole document. The parent:
 - does no review, implementation or status change itself, merges no task branch, and sets
@@ -39,8 +40,9 @@ separate session and follows this whole document. The parent:
 - never gives a review to a sub-agent if any agent of this session worked on that task;
 - starts review sub-agents with a fresh context and the review prompt template of ADR-0026,
   verbatim, adding nothing;
-- runs at most 3 sub-agents at once, at most 1 of them a review, and at most 3 implementation
-  and 3 review sub-agents in total;
+- runs at most 3 sub-agents at once, at most 1 of them a review, and refills a free slot at once
+  while an eligible task exists; gives each task to at most one sub-agent per session, and ends
+  when nothing runs and nothing is eligible, or when the owner says stop;
 - relays install requests to the owner and runs an approved install itself (ADR-0022). Sub-agents
   never install;
 - ends with its own journal entry listing every sub-agent (ADR-0026 Decision 8), committed on
