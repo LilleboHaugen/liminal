@@ -82,3 +82,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T054](M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review |
 | [M2-T001](M2-T001-check-docs-markdown-follow-ups.md) | `check-docs` Markdown follow-ups from the M1-T002 review |
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
+| [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |
