@@ -42,6 +42,7 @@ places them in the M1 order.
 | M0-T006 (`coverage`) | M1-T005 |
 | M0-T007 (GitHub Actions CI) | M1-T006 |
 | M0-T008 (`status`) | M1-T007 |
+| M0-T009 (`deny`, `doctor`) | M1-T008 |
 
 ## Module notes
 

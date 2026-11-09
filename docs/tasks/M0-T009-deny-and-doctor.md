@@ -2,7 +2,7 @@
 id: M0-T009
 title: cargo deny policy and doctor
 milestone: M0
-status: review
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: [XTASK-R009, XTASK-R080, XTASK-R081, XTASK-R082]
@@ -117,4 +117,56 @@ the `coverage` job (ubuntu; install `cargo-deny` pinned with `--version … --lo
 
 ## Review
 
-_Empty._
+2026-11-09, new owner-started session (fresh context; did not write M0-T009). Outcome:
+**changes required** (first "changes required" outcome of this task). Two blocking findings,
+both B4. Follow-ups in `docs/tasks/M1-T008-deny-doctor-follow-ups.md`.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1, cargo-llvm-cov 0.9.1, cargo-deny 0.20.2:
+1. `cargo xtask ci`: pass, 11 steps (`deny` 1.3 s). `cargo xtask doctor`: 6 tools present,
+   `miri` missing (warning), exit 0. Policy tests with `--include-ignored`: 3 passed. Working
+   tree unchanged afterwards.
+2. Acceptance criteria, each by running or reading: `cargo deny check` passes on the
+   repository; the GPL fixture is rejected (test run, and mutants below); `doctor` lists the 7
+   tools of R080 with present/missing, version and hint, `--json` matches the spec shape;
+   `deny` is the last `ci` step with the spec command line. The deviation (path-crate fixture
+   with `--offline`, run on every push by the `deny` job instead of once by hand) is accepted:
+   it is stronger than the task text and recorded in the spec.
+3. Code read in full: `deny.toml`, `xtask/src/doctor.rs` and its tests, `xtask/tests/deny_policy.rs`
+   and fixture, the `ci.rs`, `ci/tests.rs`, `cli.rs`, `finding.rs` and workflow diffs. Checked
+   against spec v13 "`doctor` and `deny` details": agrees. `Severity::Warning` is only emitted by
+   `doctor`, whose exit code ignores warnings as specified.
+4. Own mutants (each reverted, `cargo test -p xtask --all-features -- --include-ignored`):
+   `deny.toml` drops `Unicode-3.0`: killed. Adds `LGPL-2.1-or-later`: killed.
+   `[licenses.private] ignore = true`: killed (the fixture crates are private).
+   `confidence-threshold = 0.5`: survived (follow-up 3). `unknown-git = "allow"`: survived
+   (finding 1). `unknown-registry = "allow"`: survived (finding 1). `unmaintained = "none"`:
+   survived (finding 2). In each surviving case `cargo deny check` on the repository also passes.
+5. No placeholders, no weakened tests; the `ci/tests.rs` step-list change is justified in the
+   journal. No `unwrap`/`expect` outside tests except `expect("invariant: …")`. No unsafe.
+   Determinism: n/a. Architecture: no new crate dependency (cargo-deny is an external tool,
+   listed in DEPENDENCIES.md §External tools). cargo-deny install recorded with owner approval
+   (ADR-0022). Session boundaries: the M0-T009 journal shows an owner-started session after the
+   M0-T008 review, no sub-agents.
+
+Required changes:
+1. **B4: the sources policy is untested.** Scope and handoff claim "sources: crates.io only".
+   Mutants `unknown-git = "allow"` and `unknown-registry = "allow"` pass every test. Realistic
+   input: an agent adds `foo = { git = "https://github.com/…" }` to a crate; with either mutant
+   `cargo deny check` accepts it. Add a policy test that a git dependency is rejected by the
+   repository `deny.toml`. Verified feasible without network: a fixture crate depending on
+   `{ git = "file://<temp>/dep" }` (a `git init` + commit in a temp directory) makes
+   `cargo deny --config deny.toml --manifest-path … check sources` report `sources FAILED`.
+   (A non-crates.io registry test is welcome but not required if it needs network; say so.)
+2. **B4: the advisory policy is untested.** Goal: "security-advisory policy is enforced
+   automatically"; scope and handoff claim unmaintained crates and vulnerabilities are errors.
+   Mutant `unmaintained = "none"` passes every test. Add a policy test with a fixture advisory
+   database that makes the repository `deny.toml` reject (a) a crate with an `unmaintained`
+   advisory and (b) a crate with a vulnerability advisory. Verified feasible offline with
+   cargo-deny 0.20.2: a copy of `deny.toml` with only `db-path` and `db-urls` added under
+   `[advisories]` (`db-urls` must be `https://`; `file://` is rejected), the fixture database
+   committed into a git repository at `<db-path>/advisory-db-<hash>` (the directory name
+   cargo-deny derives from the URL; it prints it on a miss), `cargo deny --offline … check
+   advisories`, and a crates.io dependency already in `Cargo.lock` (e.g. `itoa`, from the local
+   registry cache). With `informational = "unmaintained"` the check reports
+   `advisories FAILED`; with the mutant it reports `advisories ok`. Document the URL-hash
+   dependency in the test (it may change with the cargo-deny version).
