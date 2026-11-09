@@ -15,7 +15,7 @@ Start a new session. It reviews M0-T010 (M0 exit review, `xtask` promoted to `us
   (`/opt/homebrew/opt/rustup/bin` on PATH), stable 1.99.1 installed. M0-T001 pinned `1.99.1` in
   `rust-toolchain.toml`.
 - ~~`git init` and create the GitHub repository.~~ Done 2026-11-08:
-  `https://github.com/LilleboHaugen/rust-game-engine` (branch `main`).
+  `https://github.com/LilleboHaugen/liminal` (branch `main`).
 
 ## Tools every agent machine needs
 
