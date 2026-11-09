@@ -1,12 +1,18 @@
-//! Tests of the licence policy in `deny.toml` (XTASK-R082, `docs/specs/xtask.md` "`doctor` and
-//! `deny` details").
+//! Tests of the policy in `deny.toml` (XTASK-R082 licences, R083 sources, R084 advisories;
+//! `docs/specs/xtask.md` "`doctor` and `deny` details").
 //!
-//! They run `cargo deny check licenses` with the repository `deny.toml` on a copy of the fixture
+//! R082: `cargo deny check licenses` with the repository `deny.toml` on a copy of the fixture
 //! `xtask/tests/fixtures/deny/`, a crate that depends on a path crate whose licence each case
-//! sets. They need `cargo-deny`, so they are ignored in the `test` step of `ci` and run by the
-//! `deny` job of the CI workflow (`cargo test --test deny_policy -- --ignored`). No network access
-//! is needed (`--offline`, path crates only).
+//! sets. R083: `check sources` on a crate with a git dependency on a local repository the test
+//! creates. R084: `check advisories` with a copy of `deny.toml` that adds only `db-path` and
+//! `db-urls`, against a fixture advisory database the test creates.
+//!
+//! They need `cargo-deny` (R083 and R084 also `git`), so they are ignored in the `test` step of
+//! `ci` and run by the `deny` job of the CI workflow (`cargo test --test deny_policy --
+//! --ignored`). No network access is needed: path crates, a `file://` git repository, and for
+//! R084 crates of the repository `Cargo.lock` from the local registry cache (`--offline`).
 
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -189,4 +195,263 @@ fn the_documented_licence_list_is_read() {
         licences.contains(&("CC0-1.0".to_string(), false)),
         "{licences:?}"
     );
+}
+
+/// Runs `cargo deny [--offline] --config <config> --manifest-path <manifest> check <which>`.
+/// Returns whether it passed, and stdout followed by stderr.
+fn run_deny(config: &Path, manifest: &Path, offline: bool, which: &str) -> (bool, String) {
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let mut command = Command::new(cargo);
+    command.arg("deny");
+    if offline {
+        command.arg("--offline");
+    }
+    let output = command
+        .args(["--color", "never", "--config"])
+        .arg(config)
+        .arg("--manifest-path")
+        .arg(manifest)
+        .args(["check", which])
+        .output()
+        .expect("cargo starts (these tests run under cargo)");
+    let mut text = String::from_utf8_lossy(&output.stdout).into_owned();
+    text.push_str(&String::from_utf8_lossy(&output.stderr));
+    assert!(
+        !text.contains("no such command"),
+        "cargo-deny is not installed; `cargo xtask doctor` shows the install hint"
+    );
+    (output.status.success(), text)
+}
+
+/// Runs `git` with `args` in `dir`, with an identity and no signing, so it works on any machine.
+fn git(dir: &Path, args: &[&str]) {
+    let status = Command::new("git")
+        .args([
+            "-c",
+            "user.name=xtask test",
+            "-c",
+            "user.email=xtask@invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "init.defaultBranch=main",
+        ])
+        .args(args)
+        .current_dir(dir)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .expect("test setup: git starts (the R083 and R084 tests need git)");
+    assert!(
+        status.success(),
+        "test setup: git {args:?} in {} failed",
+        dir.display()
+    );
+}
+
+/// Makes `dir` a git repository with one commit of everything in it.
+fn commit_all(dir: &Path) {
+    git(dir, &["init", "--quiet"]);
+    git(dir, &["add", "--all"]);
+    git(dir, &["commit", "--quiet", "--message", "fixture"]);
+}
+
+/// Writes `text` to `path`, creating parent directories.
+fn write(path: &Path, text: &str) {
+    std::fs::create_dir_all(path.parent().expect("test setup: a file path has a parent"))
+        .expect("test setup: create a directory");
+    std::fs::write(path, text).expect("test setup: write a fixture file");
+}
+
+/// A `file://` URL for a local directory (`/a/b` → `file:///a/b`, `C:\a` → `file:///C:/a`).
+fn file_url(path: &Path) -> String {
+    let path = path.to_string_lossy().replace('\\', "/");
+    if path.starts_with('/') {
+        format!("file://{path}")
+    } else {
+        format!("file:///{path}")
+    }
+}
+
+/// Verifies: XTASK-R083
+#[test]
+#[ignore = "M0-T009: needs cargo-deny and git; the `deny` job of the CI workflow runs it"]
+fn git_dependencies_are_rejected() {
+    let root = TempRoot::new("deny-git");
+    let dep = root.path().join("dep");
+    write(
+        &dep.join("Cargo.toml"),
+        "[package]\nname = \"fixture_git_dep\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         license = \"MIT\"\npublish = false\n\n[workspace]\n",
+    );
+    write(&dep.join("src/lib.rs"), "");
+    commit_all(&dep);
+
+    let app = root.path().join("app");
+    write(
+        &app.join("Cargo.toml"),
+        &format!(
+            "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+             license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
+             fixture_git_dep = {{ git = \"{}\" }}\n\n[workspace]\n",
+            file_url(&dep)
+        ),
+    );
+    write(&app.join("src/lib.rs"), "");
+
+    // Not `--offline`: cargo fetches the local git repository (no network involved).
+    let (passed, output) = run_deny(
+        &repo_root().join("deny.toml"),
+        &app.join("Cargo.toml"),
+        false,
+        "sources",
+    );
+    assert!(!passed, "a git dependency was accepted:\n{output}");
+    assert!(output.contains("sources FAILED"), "{output}");
+    assert!(output.contains("fixture_git_dep"), "{output}");
+}
+
+/// One fixture advisory: `(RUSTSEC id, crate, informational kind or None for a vulnerability)`.
+type Advisory = (&'static str, &'static str, Option<&'static str>);
+
+/// The `version` of `name` in the repository `Cargo.lock`, so the fixture resolves offline from
+/// the local registry cache that building the repository filled.
+fn locked_version(name: &str) -> String {
+    let lock = std::fs::read_to_string(repo_root().join("Cargo.lock"))
+        .expect("test setup: read Cargo.lock");
+    let header = format!("name = \"{name}\"\n");
+    let at = lock
+        .find(&header)
+        .unwrap_or_else(|| panic!("test setup: {name} is in Cargo.lock"))
+        + header.len();
+    lock[at..]
+        .lines()
+        .next()
+        .and_then(|line| line.strip_prefix("version = \""))
+        .and_then(|rest| rest.strip_suffix('"'))
+        .unwrap_or_else(|| panic!("test setup: {name} has a version line in Cargo.lock"))
+        .to_string()
+}
+
+/// Crates.io crates of the repository `Cargo.lock` that the advisory fixture depends on.
+const ADVISED: &[&str] = &["itoa", "memchr"];
+
+/// The advisory URL in the fixture config. Never fetched (`--offline`); it only names the
+/// database directory under `db-path` (cargo-deny 0.20.2 rejects `file://` URLs here).
+const FIXTURE_DB_URL: &str = "https://liminal.invalid/advisory-db";
+
+/// Runs `cargo deny --offline check advisories` with the repository `deny.toml`, extended only by
+/// `db-path` and `db-urls`, on a crate depending on [`ADVISED`] through a path crate, with a
+/// fixture advisory database holding `advisories`. Returns whether it passed, and the output.
+fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
+    let root = TempRoot::new(&format!("deny-advisories-{name}"));
+    let db_path = root.path().join("db");
+    std::fs::create_dir_all(&db_path).expect("test setup: create db-path");
+
+    let policy =
+        std::fs::read_to_string(repo_root().join("deny.toml")).expect("test setup: read deny.toml");
+    assert!(
+        policy.contains("\n[advisories]\n"),
+        "deny.toml has an [advisories] table"
+    );
+    let config = root.path().join("deny.toml");
+    write(
+        &config,
+        &policy.replacen(
+            "\n[advisories]\n",
+            &format!(
+                "\n[advisories]\ndb-path = '{}'\ndb-urls = ['{FIXTURE_DB_URL}']\n",
+                db_path.display()
+            ),
+            1,
+        ),
+    );
+
+    // The advised crates are transitive (app → middle → advised), so the test also covers
+    // `unmaintained = "all"` (not only direct dependencies of workspace crates). `middle` is a
+    // path crate outside `app/`, so it is a dependency, not a workspace member.
+    let middle = root.path().join("middle");
+    let mut dependencies = String::new();
+    for name in ADVISED {
+        writeln!(dependencies, "{name} = \"={}\"", locked_version(name))
+            .expect("invariant: writing to a String cannot fail");
+    }
+    write(
+        &middle.join("Cargo.toml"),
+        &format!(
+            "[package]\nname = \"fixture_middle\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+             license = \"MIT\"\npublish = false\n\n[dependencies]\n{dependencies}"
+        ),
+    );
+    write(&middle.join("src/lib.rs"), "");
+    let app = root.path().join("app");
+    write(
+        &app.join("Cargo.toml"),
+        "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+         license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
+         fixture_middle = { path = \"../middle\" }\n\n[workspace]\n",
+    );
+    write(&app.join("src/lib.rs"), "");
+    let manifest = app.join("Cargo.toml");
+
+    // With an empty db-path, cargo-deny names the directory it expects
+    // (`<db-path>/advisory-db-<hash of the URL>`); take the name from its output instead of
+    // depending on its hash function.
+    let (passed, output) = run_deny(&config, &manifest, true, "advisories");
+    assert!(!passed, "advisories passed without a database:\n{output}");
+    let start = output
+        .find("advisory-db-")
+        .unwrap_or_else(|| panic!("cargo-deny names the expected database directory:\n{output}"));
+    let dir: String = output[start..]
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .collect();
+
+    let db = db_path.join(&dir);
+    write(
+        &db.join("README.md"),
+        "Fixture advisory database (XTASK-R084).\n",
+    );
+    // Every database also has an advisory for a crate outside the graph, so the control case has
+    // a valid, non-empty database and only an advisory for a dependency can fail the check.
+    let unrelated: Advisory = ("RUSTSEC-2026-9000", "liminal_fixture_unused", None);
+    for (id, krate, informational) in advisories.iter().chain([&unrelated]) {
+        let informational = informational.map_or(String::new(), |kind| {
+            format!("informational = \"{kind}\"\n")
+        });
+        write(
+            &db.join(format!("crates/{krate}/{id}.md")),
+            &format!(
+                "```toml\n[advisory]\nid = \"{id}\"\npackage = \"{krate}\"\ndate = \"2026-01-01\"\n\
+                 {informational}\n[versions]\npatched = []\n```\n\n# Fixture advisory for {krate}\n\n\
+                 Test fixture (XTASK-R084), not a real advisory.\n"
+            ),
+        );
+    }
+    commit_all(&db);
+
+    run_deny(&config, &manifest, true, "advisories")
+}
+
+/// Verifies: XTASK-R084
+#[test]
+#[ignore = "M0-T009: needs cargo-deny and git; the `deny` job of the CI workflow runs it"]
+fn unmaintained_and_vulnerable_crates_are_rejected() {
+    let (passed, output) = check_advisories("none", &[]);
+    assert!(passed, "control without advisories failed:\n{output}");
+    assert!(output.contains("advisories ok"), "{output}");
+
+    let (passed, output) = check_advisories(
+        "unmaintained",
+        &[("RUSTSEC-2026-9001", "itoa", Some("unmaintained"))],
+    );
+    assert!(!passed, "an unmaintained crate was accepted:\n{output}");
+    assert!(output.contains("RUSTSEC-2026-9001"), "{output}");
+    assert!(output.contains("error[unmaintained]"), "{output}");
+
+    let (passed, output) =
+        check_advisories("vulnerability", &[("RUSTSEC-2026-9002", "memchr", None)]);
+    assert!(!passed, "a vulnerable crate was accepted:\n{output}");
+    assert!(output.contains("RUSTSEC-2026-9002"), "{output}");
+    assert!(output.contains("error[vulnerability]"), "{output}");
 }

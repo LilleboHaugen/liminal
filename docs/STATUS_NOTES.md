@@ -6,8 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It reviews M0-T009 (`cargo deny` policy and `doctor`), then continues with
-M0-T010 (M0 exit review), the last M0 task (ADR-0020).
+Start a new session. It reviews M0-T009 (review 2: the sources and advisory policy tests added
+after review 1), then continues with M0-T010 (M0 exit review), the last M0 task (ADR-0020).
 
 ## Prerequisites the project owner handles (not agent tasks)
 

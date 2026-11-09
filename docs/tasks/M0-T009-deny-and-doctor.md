@@ -2,10 +2,10 @@
 id: M0-T009
 title: cargo deny policy and doctor
 milestone: M0
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T002]
-requirements: [XTASK-R009, XTASK-R080, XTASK-R081, XTASK-R082]
+requirements: [XTASK-R009, XTASK-R080, XTASK-R081, XTASK-R082, XTASK-R083, XTASK-R084]
 ---
 
 # M0-T009: `cargo deny` policy and `doctor`
@@ -55,6 +55,43 @@ sources: crates.io only); `deny` step in `ci`; `doctor` command; adding the `den
 and skip behaviour).
 
 ## Handoff
+
+2026-11-09, second implementation session (the session that did review 1; it did not write the
+first implementation). Status → `review`. Both required changes of review 1 are done:
+
+1. **R083, sources (finding 1).** New requirement XTASK-R083 (spec v14). Test
+   `git_dependencies_are_rejected` (`xtask/tests/deny_policy.rs`): a fixture crate with one git
+   dependency on a local repository (`file://`, created with `git` in a temporary directory) is
+   rejected by `cargo deny check sources` with the repository `deny.toml` (`sources FAILED`,
+   names the crate). A non-crates.io registry is not tested (it needs a registry server or a
+   local index setup); recorded in the spec.
+2. **R084, advisories (finding 2).** New requirement XTASK-R084. Test
+   `unmaintained_and_vulnerable_crates_are_rejected`: a copy of `deny.toml` that adds only
+   `db-path` and `db-urls`, a fixture advisory database (git repository) and `--offline`. Three
+   cases: no advisory for a dependency → `advisories ok` (control); `informational =
+   "unmaintained"` for `itoa` → `error[unmaintained]`; vulnerability for `memchr` →
+   `error[vulnerability]`. `itoa` and `memchr` (versions from the repository `Cargo.lock`, both
+   normal dependencies of `serde_json`, so in the registry cache after any build) are
+   transitive (app → path crate → them), so `unmaintained = "all"` is covered, not only direct
+   dependencies. The database directory name (`advisory-db-<hash of URL>`) is read from
+   cargo-deny's own output on an empty `db-path`, so the test does not depend on the hash.
+
+**Mutants (each reverted):** `unknown-git = "allow"`: killed. `unmaintained = "none"`: killed.
+`unmaintained = "workspace"`: killed (it survived the first version of the test, which had the
+advised crates as direct dependencies). `ignore = ["RUSTSEC-2026-9002"]`: killed.
+`unknown-registry = "allow"`: still survives (not tested, see item 1).
+
+**Verified:** macOS 27.2, Rust 1.99.1, cargo-deny 0.20.2: `cargo xtask ci` passes (11 steps);
+`cargo test -p xtask --all-features --locked --test deny_policy -- --include-ignored`: 5 passed.
+`trace`: R082–R084 each have a test. Coverage unchanged (only `xtask/tests/` changed, which is
+not measured). CI run: see the journal entry `2026-11-09-M0-T009-2.md`.
+
+**Not verified:** the new tests on Windows and macOS CI (the `deny` job is Linux only; locally
+macOS).
+
+**Next:** review 2 (re-review scope, ADR-0021) in a fresh session. Then M0-T010.
+
+## Handoff (first implementation session)
 
 2026-11-09, implementation session (after the review of M0-T008 in the same session). Status →
 `review`.
