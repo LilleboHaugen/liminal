@@ -6,8 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It reviews M0-T009 (review 2: the sources and advisory policy tests added
-after review 1), then continues with M0-T010 (M0 exit review), the last M0 task (ADR-0020).
+Start a new session. It continues with M0-T010 (M0 exit review), the last M0 task. No task is
+in `review` (ADR-0020).
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -42,7 +42,8 @@ places them in the M1 order.
 | M0-T006 (`coverage`) | M1-T005 |
 | M0-T007 (GitHub Actions CI) | M1-T006 |
 | M0-T008 (`status`) | M1-T007 |
-| M0-T009 (`deny`, `doctor`) | M1-T008 |
+| M0-T009 (`deny`, `doctor`), review 1 | M1-T008 |
+| M0-T009 (`deny`, `doctor`), review 2 | M1-T009 |
 
 ## Module notes
 
