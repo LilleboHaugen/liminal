@@ -1,8 +1,9 @@
 # Review
 
 Reviews are done by a session that did **not** write the work being reviewed, starting from a fresh
-context. That session is started by the project owner, never by the author's session or any other
-agent (ADR-0020). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
+context. That reviewer is a session the project owner started, or a review sub-agent spawned by such
+a session with a fresh context and only the ADR-0026 review prompt. It is never the author, the
+author's parent session, or any sub-agent of that session (ADR-0026). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
 finds nothing should say what it checked.
 
 ## 1. Task review (status `review` → `done`)
@@ -23,8 +24,11 @@ Check, in order:
    is included in the state hash.
 8. **Docs:** public items documented; examples run; no stale docs elsewhere.
 9. **Architecture:** no new dependency without ADR; layer rules hold.
-10. **Session boundaries (ADR-0020):** the journal entries for this task show that the work was done in
-    owner-started sessions, with no sub-agent implementing or reviewing it.
+10. **Session boundaries (ADR-0026):** from the journals and the task file: each session that
+    worked on the task was owner-started, or a sub-agent listed in its parent's journal (within
+    any limit the owner set for that session); no agent of a session that implemented any part of the
+    task reviewed it; a review sub-agent's prompt was the ADR-0026 template verbatim; no
+    sub-agent spawned agents or ran an install; merges to `main` were serial with CI green.
 
 ### Findings and outcome (ADR-0021)
 

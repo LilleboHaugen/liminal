@@ -1,10 +1,10 @@
 ---
 id: ADR-0020
 title: Session boundaries — owner-started sessions only, no sub-agents for task work
-status: accepted
+status: superseded
 date: 2026-11-08
 supersedes: []
-superseded_by: []
+superseded_by: [ADR-0026]
 ---
 
 # ADR-0020: Session boundaries — owner-started sessions only, no sub-agents for task work

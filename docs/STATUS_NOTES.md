@@ -8,8 +8,14 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-0025 are accepted.
 M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
-it) first, then the engine crates (plan in M1-T001 "Handoff"). Next task by the pick rule:
-M1-T002. ADR-0020.
+it) first, then the engine crates (plan in M1-T001 "Handoff").
+
+ADR-0026 (sub-agents for task work) is accepted (ADR review 2026-11-09) and supersedes
+ADR-0020. Sessions may spawn sub-agents under its rules (AGENTS.md step 6, WORKFLOW.md §2).
+
+M1-T002 is in `review` on branch `task/M1-T002-check-docs-follow-ups` (not yet on `main`).
+The next session reviews M1-T002, then continues with M1-T003. That branch also edits this
+file; when merging it, combine both versions.
 
 ## Prerequisites the project owner handles (not agent tasks)
 

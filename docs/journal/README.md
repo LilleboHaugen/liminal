@@ -11,7 +11,7 @@ File name: `YYYY-MM-DD-<task-id-or-topic>.md`. If two sessions share a date and 
 ```markdown
 # YYYY-MM-DD — <task ID>: <short title>
 
-**Session type:** implementation | review | kickoff | planning
+**Session type:** implementation | review | kickoff | planning | parent
 **Tasks touched:** M1-T014 (in-progress → review)
 
 ## Done
@@ -32,5 +32,9 @@ File name: `YYYY-MM-DD-<task-id-or-topic>.md`. If two sessions share a date and 
 ## Next
 - The exact next step.
 ```
+
+A sub-agent writes `implementation (sub-agent, parent: <parent journal file>)` or
+`review (sub-agent, parent: <parent journal file>)`. A parent entry lists every sub-agent it
+spawned (ADR-0026 Decision 8).
 
 Keep entries factual and short. A journal entry is not a place for plans: those go in task files.

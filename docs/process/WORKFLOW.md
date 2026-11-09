@@ -20,19 +20,39 @@ Priority order:
 Set `status: in-progress` in the task frontmatter. If two agents work in parallel, each works on its own
 branch `task/<ID>-<slug>`, and they must not take tasks that touch the same crate.
 
-**Session boundary (ADR-0020).** Only the project owner starts sessions; parallel agents are parallel
-sessions the owner started. One session does at most:
-1. one review (priority 1 above). If it sets the task to `done`, merge the branch to `main` and push
-   (§8). Then:
+**Session boundary (ADR-0026).** Only the project owner starts sessions; parallel agents are
+parallel sessions the owner started, or sub-agents of one (below). One session does at
+most:
+1. one review (priority 1 above). If it sets the task to `done`, merge the branch to `main` and
+   push (§8). Then:
 2. one implementation task (priority 2 or 3).
+
+**Sub-agents (ADR-0026).** Instead, a session may act as a *parent* and spawn sub-agents for
+task work, unless the owner forbids it in that session. A limit the owner states binds. Each sub-agent counts as a
+separate session and follows this whole document. The parent:
+- does no review, implementation or status change itself, merges no task branch, and sets
+  nothing to `done`;
+- announces each spawn to the owner (kind, task, branch);
+- assigns tasks by the priority order above, each task to one sub-agent. Concurrent
+  implementation sub-agents have disjoint, non-empty `crates`. A task with `crates: []` runs
+  alone;
+- never gives a review to a sub-agent if any agent of this session worked on that task;
+- starts review sub-agents with a fresh context and the review prompt template of ADR-0026,
+  verbatim, adding nothing;
+- runs at most 3 sub-agents at once, at most 1 of them a review, and at most 3 implementation
+  and 3 review sub-agents in total;
+- relays install requests to the owner and runs an approved install itself (ADR-0022). Sub-agents
+  never install;
+- ends with its own journal entry listing every sub-agent (ADR-0026 Decision 8), committed on
+  `session/YYYY-MM-DD-<topic>` and merged with CI green.
+
+Sub-agents never spawn agents. Read-only lookups that change no files and decide nothing may
+use helpers in a parent session or a session without sub-agents. Never review a task that any
+agent of your session worked on.
 
 A review blocks a task only on the findings listed in `docs/process/REVIEW.md` (ADR-0021). Other
 findings become one follow-up task. After two "changes required" outcomes, a remaining blocking
 finding goes to the owner (`blocked`), not to another round.
-
-Never start sub-agents, background agents, forks or new sessions to review, implement or change the
-status of a task. Read-only lookups that change no files and decide nothing may use helpers. Never
-review a task you worked on in this session.
 
 If no task is available, do not invent work. Write a journal entry saying so. If the milestone's
 remaining work is not covered by tasks, the correct next task is to write those tasks (kickoff rule,
@@ -93,7 +113,8 @@ Also check by hand:
    what is next or for the status while a task written in this session is in `review`:
    > Start a new session. It will review `<task>`, then continue with `<next task>`.
 
-   Do not start that work yourself, in this session or through another agent (ADR-0020).
+   Do not start that work yourself, in this session or through a sub-agent: a sub-agent of this
+   session may not review a task this session wrote (ADR-0026).
 
 ## 8. Branching and commits
 
@@ -101,3 +122,13 @@ Also check by hand:
 - Conventional Commits: `feat|fix|perf|refactor|test|docs|build|ci|chore(<crate or area>): <summary> (<task-id>)`.
 - ADRs: `docs(adr): ADR-0019 <title>`.
 - Do not rewrite published history on `main`.
+- Sub-agents (ADR-0026): each implementation sub-agent works in its own worktree under
+  `../liminal-worktrees/<ID>`, on its task branch. Shared files are combined by rebase or
+  merge, keeping both sides. Generated files (`docs/STATUS.md`, `Cargo.lock`) are regenerated,
+  never resolved by taking one side. Merges to `main` are one at a time, by the reviewer that
+  set `done`, with `cargo xtask ci` green on the merge result and the branch CI run green. A
+  parent's own branch `session/YYYY-MM-DD-<topic>` holds only its journal entry and
+  `docs/STATUS_NOTES.md`. A worktree is removed only when its branch is pushed and clean.
+  A review sub-agent works in its own worktree `../liminal-worktrees/<ID>-review`. The parent
+  keeps its own session branch checked out in the primary checkout, so `main` is free for the
+  merge.
