@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 12
+spec_version: 13
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -444,6 +444,46 @@ as `output_tail` in both output modes.
 |---|---|---|
 | XTASK-R080 | MUST | `doctor` reports, for each tool (rustc, cargo, rustfmt, clippy, cargo-llvm-cov, cargo-deny, nightly toolchain with Miri), whether it is present, its version, and an install hint if missing. |
 | XTASK-R081 | MUST | The `deny` step runs `cargo deny check` with the repository `deny.toml`. If `cargo-deny` is missing, the step is skipped (R006). |
+| XTASK-R082 | MUST | `deny.toml` rejects every dependency whose licence is not in the allow list of `docs/process/DEPENDENCIES.md` ("Licence policy"), in particular every GPL, LGPL and AGPL licence. MPL-2.0 is accepted only through a per-crate `exceptions` entry. |
+
+`doctor` and `deny` details (added in `spec_version` 13):
+
+- Tools, in output order. Each is probed by running a command in the repository root with stdin
+  closed and `RUSTUP_AUTO_INSTALL=0`, so a probe never installs a toolchain (ADR-0022). `cargo`
+  is `$CARGO`, else `cargo` from `PATH`, as in `ci`. A tool is present if its probe starts and
+  exits with status 0. Its version is the first non-empty line of the probe's stdout, trimmed
+  (`null` if there is none).
+
+  | Tool | Probe | Needed by `ci` steps |
+  |---|---|---|
+  | `rustc` | `rustc --version` | fmt, clippy, test, doc, coverage, deny |
+  | `cargo` | `cargo --version` | fmt, clippy, test, doc, coverage, deny |
+  | `rustfmt` | `cargo fmt --version` | fmt |
+  | `clippy` | `cargo clippy --version` | clippy |
+  | `cargo-llvm-cov` | `cargo llvm-cov --version` | coverage |
+  | `cargo-deny` | `cargo deny --version` | deny |
+  | `miri` | `rustup run nightly cargo miri --version` | none (Miri tests of `unsafe` crates from M1, ADR-0018) |
+
+- Findings. Each missing tool gives one XTASK-R080 finding located at the tool name (no file is
+  involved). It is an `error` if a `ci` step needs the tool (that step would be skipped) and a
+  `warning` otherwise. Its message names the tool and the steps that need it; its help is the
+  install hint, followed by `; ask the project owner before installing (ADR-0022)`.
+- Output follows "Check command output" with the name `doctor`; human mode first prints one line
+  per tool, `  <tool>  <version>` or `  <tool>  missing`, names padded to one width. `--json`
+  prints `{ "version": 1, "ok", "findings", "tools": [ { "tool", "present", "version",
+  "needed_by", "help" } ] }`: `version` is `null` when missing, `needed_by` is the list of step
+  names (empty for `miri`), `help` is the install hint when missing and `null` otherwise. Exit 0
+  without error findings (warnings do not fail), 1 otherwise. `doctor` writes nothing (R010).
+- `deny` step (R081). Runs `cargo deny --locked --config deny.toml check` in the repository root
+  (`--locked` keeps `Cargo.lock` unchanged, R010). If `cargo deny --version` fails, the step is
+  `skipped` with reason `cargo-deny is not installed` and the `doctor` install hint as help. The
+  advisory check fetches the RustSec database into `$CARGO_HOME/advisory-dbs` (outside the
+  repository); without network access the step fails, it is not skipped.
+- R082 is verified by running `cargo deny check licenses` with the repository `deny.toml` against
+  the fixture `xtask/tests/fixtures/deny/`, whose root crate depends on a GPL-3.0-only path
+  crate (rejected) and, after the fixture licence is changed to MIT, passes. The test needs
+  `cargo-deny`, so it is ignored in the `test` step and run by the `deny` job of the CI
+  workflow (`cargo test --test deny_policy -- --ignored`, `xtask/tests/deny_policy.rs`).
 
 ## 7. Invariants
 
@@ -480,6 +520,8 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
+| `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
+| `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -520,3 +562,4 @@ Promotion to `usable` (M0 exit):
 | 10 | 2026-11-08 | `trace` and `hygiene` details (scope, `ci/hygiene.toml` format, lexing, R040 malformed rows, R041 attachment, matrix and `--json`, R050/R051 pattern rules, locations); R040: `(withdrawn` counts only outside inline code spans (R040's own text names the marker); LIM-XTASK-0004 covers `ci/hygiene.toml` | M0-T005 |
 | 11 | 2026-11-08 | `coverage` details (measurement, file → crate mapping, `ci/coverage.toml` format, integer arithmetic, stale entries are R062, `--update-floors` keeps comments, output); R060: `--locked`; LIM-XTASK-0006 | M0-T006 |
 | 12 | 2026-11-09 | `status` details (sources, unreadable input is R070, order, layout, write-if-changed, `--check` finding location) | M0-T008 |
+| 13 | 2026-11-09 | `doctor` and `deny` details (tool table and probes, `RUSTUP_AUTO_INSTALL=0`, error vs. warning findings, output, `deny` command line); new R082 (licence policy in `deny.toml`) | M0-T009 |

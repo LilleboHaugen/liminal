@@ -6,8 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M0-T008 is `done` (reviewed 2026-11-09). M0-T009 (`cargo deny` policy and `doctor`) is next; it
-needs `cargo-deny` installed (owner approval, ADR-0022).
+Start a new session. It reviews M0-T009 (`cargo deny` policy and `doctor`), then continues with
+M0-T010 (M0 exit review), the last M0 task (ADR-0020).
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -23,7 +23,8 @@ Once the matching task lands; otherwise `cargo xtask ci` reports skipped steps a
 go to `review`. Installs need the owner's approval first (ADR-0022).
 
 - `cargo-llvm-cov` (from M0-T006).
-- `cargo-deny` (from M0-T009).
+- `cargo-deny` 0.20.2 (from M0-T009; on the owner's Mac via Homebrew, 2026-11-09).
+- `cargo xtask doctor` lists every tool, its version and the install hint.
 - Later: nightly toolchain + Miri (M1).
 - To read CI runs of the private repository: GitHub CLI `gh`, logged in (installed and logged in
   on the owner's Mac on 2026-11-08).
@@ -45,10 +46,10 @@ places them in the M1 order.
 ## Module notes
 
 - Only `xtask` exists, and only `xtask` has a spec (`docs/specs/xtask.md`). Its line coverage is
-  97.68 % (floor 97.6 in `ci/coverage.toml`, measured in M0-T006). `xtask` stays `planned` until a
-  spec review exists.
+  97.39 % (floor 97.6 in `ci/coverage.toml`, within the 0.5-point tolerance; measured in
+  M0-T009). `xtask` stays `planned` until a spec review exists.
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
-  Linux; `coverage` runs in its own Linux job.
+  Linux; `coverage` and `deny` run in their own Linux jobs.
 
 ## Blockers needing an owner decision
 

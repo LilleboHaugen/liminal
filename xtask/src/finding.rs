@@ -9,15 +9,18 @@ use serde::Serialize;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum Severity {
-    /// Makes the check fail. (`warning` is added by the first check that reports one.)
+    /// Makes the check fail.
     Error,
+    /// Reported, but does not make the check fail (first used by `doctor`, XTASK-R080).
+    Warning,
 }
 
 impl Severity {
-    /// The name used in JSON and human output: `error`.
+    /// The name used in JSON and human output: `error` or `warning`.
     pub(crate) fn as_str(self) -> &'static str {
         match self {
             Severity::Error => "error",
+            Severity::Warning => "warning",
         }
     }
 }
@@ -51,6 +54,19 @@ impl Finding {
             location: location.into(),
             message: message.into(),
             help: help.into(),
+        }
+    }
+
+    /// A warning finding for `rule` at `location`: reported, but the check still passes.
+    pub(crate) fn warning(
+        rule: &str,
+        location: impl Into<String>,
+        message: impl Into<String>,
+        help: impl Into<String>,
+    ) -> Self {
+        Self {
+            severity: Severity::Warning,
+            ..Self::error(rule, location, message, help)
         }
     }
 }
