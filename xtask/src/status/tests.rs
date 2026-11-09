@@ -254,6 +254,85 @@ fn a_milestone_heading_without_the_dash_form_gives_the_id_alone() {
     );
 }
 
+/// Verifies: XTASK-R070
+#[test]
+fn the_spec_cell_links_the_spec_file_by_its_file_name_not_the_crate_name() {
+    // `alpha_lib` is not a workspace member, so R026 does not fix its spec's file name;
+    // `check-docs` R022 reports the mismatch, but `status` still links a file that exists.
+    let root = temp_fixture("spec-file-name");
+    std::fs::rename(
+        root.path().join("docs/specs/alpha_lib.md"),
+        root.path().join("docs/specs/alpha.md"),
+    )
+    .unwrap();
+    let text = generate(&repo::load(root.path()).unwrap()).unwrap();
+    assert!(
+        text.contains("| alpha_lib | 1 | usable | [alpha.md](specs/alpha.md) |\n"),
+        "{text}"
+    );
+    assert!(!text.contains("alpha_lib.md"), "{text}");
+}
+
+/// Verifies: XTASK-R070
+#[test]
+fn two_specs_for_one_crate_are_unreadable_input() {
+    let root = temp_fixture("duplicate-spec");
+    let original = std::fs::read_to_string(root.path().join("docs/specs/demo.md")).unwrap();
+    let copy = original
+        .replacen("req_prefix: DEMO", "req_prefix: DEMOOLD", 1)
+        .replacen("maturity: experimental", "maturity: usable", 1);
+    assert_ne!(copy, original);
+    std::fs::write(root.path().join("docs/specs/demo_old.md"), copy).unwrap();
+    let (result, out) = run(root.path(), &[]);
+    assert!(matches!(result, Ok(Exit::Failure)), "{out}");
+    // `demo.md` sorts before `demo_old.md`, so the later file is reported at its `crate` line.
+    assert!(
+        out.starts_with(
+            "error XTASK-R070 docs/specs/demo_old.md:2: cannot generate docs/STATUS.md: \
+             crate `demo` already has the spec docs/specs/demo.md\n"
+        ),
+        "{out}"
+    );
+    assert!(out.ends_with("status: 1 finding\n"), "{out}");
+    assert!(status_file(root.path()).is_none(), "wrote a file");
+    let rules: Vec<String> = run_check(root.path())
+        .unwrap()
+        .into_iter()
+        .map(|f| f.rule)
+        .collect();
+    assert_eq!(rules, ["XTASK-R070"]);
+}
+
+/// Verifies: XTASK-R071
+#[test]
+fn an_up_to_date_file_is_not_rewritten_and_keeps_its_modification_time() {
+    let root = temp_fixture("mtime");
+    let path = root.path().join(PATH);
+    let old = std::time::SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(1_000_000_000);
+    let set_old = || {
+        std::fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
+    };
+    let modified = || std::fs::metadata(&path).unwrap().modified().unwrap();
+
+    std::fs::write(&path, snapshot()).unwrap();
+    set_old();
+    let (result, out) = run(root.path(), &[]);
+    assert!(matches!(result, Ok(Exit::Success)));
+    assert_eq!(out, "status: docs/STATUS.md is up to date\n");
+    assert_eq!(modified(), old, "an up-to-date file was written");
+
+    // The probe sees a write: an out-of-date file gets a new modification time.
+    std::fs::write(&path, "stale\n").unwrap();
+    set_old();
+    assert_eq!(run(root.path(), &[]).1, "status: wrote docs/STATUS.md\n");
+    assert_ne!(modified(), old);
+}
+
 #[test]
 fn the_real_repository_has_readable_status_input() {
     let model = repo::load(&repo::root()).unwrap();

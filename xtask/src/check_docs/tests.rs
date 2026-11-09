@@ -323,6 +323,30 @@ fn r022_req_prefix_is_unique_across_specs() {
     );
 }
 
+/// Verifies: XTASK-R022
+#[test]
+fn r022_a_second_spec_for_one_crate_is_reported_by_its_file_name() {
+    // A copy of a spec with only `req_prefix` and `maturity` changed (M1-T007): the file-name
+    // rule makes `crate` unique across specs, so the copy is reported.
+    let mut model = valid();
+    let text = model.markdown[SPEC]
+        .replace("req_prefix: DEMO", "req_prefix: DEMOOLD")
+        .replace("maturity: planned", "maturity: usable");
+    put(&mut model, "docs/specs/demo_old.md", &text);
+    edit(
+        &mut model,
+        "docs/specs/README.md",
+        "| `planned` |\n",
+        "| `planned` |\n| [demo_old.md](demo_old.md) | `demo` | DEMOOLD | usable |\n",
+    );
+    assert_one(
+        &model,
+        "XTASK-R022",
+        "docs/specs/demo_old.md:2",
+        "`crate` is `demo`, but the file is demo_old.md",
+    );
+}
+
 // ---------------------------------------------------------------- R023
 
 /// Verifies: XTASK-R023
@@ -624,6 +648,34 @@ fn r025_adr_status_cell_must_not_be_in_backticks() {
         "docs/adr/README.md:8",
         "listed with status ``accepted``",
     );
+}
+
+/// Verifies: XTASK-R025
+#[test]
+fn r025_a_trailing_u00a0_in_the_status_cell_is_a_mismatch() {
+    let mut model = valid();
+    edit(
+        &mut model,
+        "docs/adr/README.md",
+        "| Second decision | accepted |",
+        "| Second decision | accepted\u{a0} |",
+    );
+    assert_one(
+        &model,
+        "XTASK-R025",
+        "docs/adr/README.md:8",
+        "listed with status `accepted\u{a0}`, but its frontmatter says `accepted`",
+    );
+
+    // Spaces and tabs around the cell are not part of it (GFM).
+    let mut model = valid();
+    edit(
+        &mut model,
+        "docs/adr/README.md",
+        "| Second decision | accepted |",
+        "| Second decision |\t accepted  \t|",
+    );
+    assert!(findings_of(&model).is_empty(), "{:?}", findings_of(&model));
 }
 
 /// Verifies: XTASK-R025

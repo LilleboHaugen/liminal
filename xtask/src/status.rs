@@ -164,8 +164,8 @@ struct Task {
 /// A spec, as far as `status` needs it.
 #[derive(Debug)]
 struct Spec {
-    /// The file name inside `docs/specs/`.
-    file: String,
+    /// The path relative to the repository root, `docs/specs/<file>`.
+    path: String,
     maturity: String,
 }
 
@@ -260,15 +260,21 @@ fn read_task(path: &str, text: &str) -> Result<Task, (Option<usize>, String)> {
     })
 }
 
-/// Reads every spec file: crate name → spec. Unreadable files are reported. If two specs name
-/// the same crate, the first by path is used (`check-docs` R022 reports the other).
+/// Reads every spec file: crate name → spec. Unreadable files are reported. A spec whose
+/// `crate` is already named by a spec earlier by path is unreadable too (XTASK-R070), as a task
+/// ID used twice is; `check-docs` R022 reports it as a spec whose file name is not `<crate>.md`.
 fn specs(model: &RepoModel, findings: &mut Vec<Finding>) -> BTreeMap<String, Spec> {
     let mut specs = BTreeMap::new();
     for (path, text) in model.spec_files() {
         let read = parse(text).and_then(|frontmatter| {
-            let (name, _) = scalar(&frontmatter, "crate")?;
+            let (name, crate_line) = scalar(&frontmatter, "crate")?;
             let (maturity, line) = scalar(&frontmatter, "maturity")?;
-            if MATURITIES.contains(&maturity) {
+            if let Some(first) = specs.get(name).map(|spec: &Spec| &spec.path) {
+                Err((
+                    Some(crate_line),
+                    format!("crate `{name}` already has the spec {first}"),
+                ))
+            } else if MATURITIES.contains(&maturity) {
                 Ok((name.to_string(), maturity.to_string()))
             } else {
                 Err((
@@ -282,10 +288,13 @@ fn specs(model: &RepoModel, findings: &mut Vec<Finding>) -> BTreeMap<String, Spe
         });
         match read {
             Ok((name, maturity)) => {
-                specs.entry(name).or_insert_with(|| Spec {
-                    file: file_name(path).to_string(),
-                    maturity,
-                });
+                specs.insert(
+                    name,
+                    Spec {
+                        path: path.to_string(),
+                        maturity,
+                    },
+                );
             }
             Err((line, message)) => findings.push(unreadable(path, line, &message)),
         }
@@ -469,10 +478,10 @@ fn render(
     crates.sort_by(|a, b| (a.layer, &a.name).cmp(&(b.layer, &b.name)));
     for entry in crates {
         let (maturity, spec) = match specs.get(&entry.name) {
-            Some(spec) => (
-                spec.maturity.as_str(),
-                format!("[{}](specs/{})", spec.file, spec.file),
-            ),
+            Some(spec) => {
+                let file = file_name(&spec.path);
+                (spec.maturity.as_str(), format!("[{file}](specs/{file})"))
+            }
             None => ("planned", "—".to_string()),
         };
         let _ = writeln!(

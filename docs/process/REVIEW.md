@@ -29,6 +29,11 @@ Check, in order:
     any limit the owner set for that session); no agent of a session that implemented any part of the
     task reviewed it; a review sub-agent's prompt was the ADR-0026 template verbatim; no
     sub-agent spawned agents or ran an install; merges to `main` were serial with CI green.
+11. **Public repository (ADR-0028):** a change to `.github/workflows/` keeps ADR-0028 Decision 4
+    (read-only default permissions, every action SHA-pinned, `persist-credentials: false`, no
+    secrets, no `pull_request_target` or `workflow_run`, no self-hosted runner). No journal or task
+    acted on an issue, pull request or comment the owner did not point to, or merged outside code
+    (bot pull requests included). A violation is a blocking finding (B2).
 
 ### Findings and outcome (ADR-0021)
 

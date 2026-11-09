@@ -2,7 +2,7 @@
 id: M1-T012
 title: Write the spec for liminal_core
 milestone: M1
-status: review
+status: done
 crates: [liminal_core]
 depends_on: [M1-T001]
 requirements: []
@@ -100,4 +100,55 @@ Requirement IDs leave gaps between groups (template §6). Keep the API small: ev
 
 ## Review
 
-_Empty._
+2026-11-09, review sub-agent (ADR-0026/0027) of parent session `session/2026-11-09-m1-reviews`
+(journal `2026-11-09-session-m1-reviews.md`), fresh context. This session implemented no part of
+M1-T012; the author was a sub-agent of the other parent session `session/2026-11-09-m1-subagents`.
+macOS 27.2 (Darwin), worktree `liminal-worktrees/M1-T012-review`, branch at `886ed0c`.
+Task review (REVIEW.md §1) plus spec review (REVIEW.md §2), as the task's "Test requirements" say.
+
+Outcome: **done**, no blocking findings. Follow-ups: M1-T055.
+
+Checked:
+- AC 1: all 14 template sections present in order; frontmatter `maturity: planned`,
+  `spec_version: 1`, `adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0024]`.
+- AC 2: 57 requirement rows, IDs unique, each with MUST/SHOULD; grep for vague words finds only
+  the title of Lemire's paper. Ranges and failure behaviour stated (e.g. R001, R036, R037, R110,
+  R113 with the u128 bound: `(u64::MAX × 1000 + 500) / 1000` fits in u64).
+- AC 3: §5 covers every item of the task scope; consistent with `docs/ARCHITECTURE.md` §2 row and
+  §5.1/§5.2, ADR-0017 Decision (code form, message, context, help, JSON members), CODE_STYLE.md
+  §Errors example format (`{code}: {message} help: {help}`) and §Lints (`HashMap::new` banned,
+  `with_hasher(FixedState)` still possible), `architecture.toml` (layer 0, no external, dev
+  `proptest`, `unsafe = "forbid"`, `deterministic = true`). No crate dependencies to compare.
+- AC 4: 11 codes with message, help and context; every context key snake_case; JSON example
+  matches the LIM-CORE-0010 row.
+- AC 5: test kinds per area and an oracle for each; the one path with a faster structure
+  (`DetHashMap` lookup) has the `Vec` linear-search differential model (R072, R074).
+- AC 6: four workloads of `tests/determinism.rs` named, each with the bit-identity claim; §11
+  says it is not yet verified.
+- AC 7: budgets "none yet" with scenarios and machine; three name M1-T016/M1-T017 (both tasks
+  mention the `liminal_core` hasher/RNG baseline), two say "not scheduled" (follow-up item 4).
+- AC 8: the 57 spec IDs equal exactly the union of M1-T013 (24) and M1-T014 (33) frontmatter,
+  no ID in both; §6 assignment table agrees.
+- AC 9: seven open questions, each with a resolving task or milestone.
+- AC 10: `docs/specs/README.md` row present; `cargo xtask ci` passes, 11 of 11 steps, on the
+  branch; branch CI run 42686351321 green (macOS, Windows, Linux).
+- Algorithms checked against their references by reading: xoshiro256** step and output (R090),
+  SplitMix64 constants (R091), Lemire threshold `(2^32 − s) mod s` and the power-of-two shortcut
+  in §10 (no rejection when `s = 2^k`), float conversions exact (R096), INV-4 (SplitMix64 is a
+  bijection, so four consecutive outputs are distinct and the state is never all zero),
+  `Option<Handle<T>>` 8 bytes via the `NonZeroU32` niche (R030).
+- Oracle change: `xtask/src/repo.rs` `loads_the_real_repository` exact spec list replaced by
+  membership/exclusion checks; justified in the journal (any second spec failed it). Still fails
+  if `_TEMPLATE.md` or `README.md` were listed or `xtask.md` missing. Accepted.
+- Session boundaries: implementation journal names its parent (`2026-11-09-m1-subagents`); that
+  parent session is still running and its journal is not yet on any branch, so the listing is
+  not verifiable here (same situation as the M1-T005 review). No nested spawn or install recorded.
+- ADR-0028 (REVIEW.md item 11): no workflow change, no credentials or personal data in the diff.
+
+Follow-ups (M1-T055): `HandleAllocator` `#[derive(Default)]` vs "Default = new()"; `Default`
+equals `new()` untested; R060 recorded literals depend on std `Hash` impls; budget rows without a
+task; area names `TEL`/`TK` in M1-T027/M1-T047.
+
+Not a follow-up of this review but still open (spec §12 item 3, handoff): no task implements the
+ADR-0017 "Verification" check (codes in code vs spec tables). A parent session or the owner
+should create it.

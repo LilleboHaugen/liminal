@@ -9,22 +9,22 @@
 
 ## Current milestone
 
-**M1** (Headless core): 1 of 54 tasks done.
+**M1** (Headless core): 6 of 55 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
 | [M1-T001](tasks/M1-T001-m1-kickoff.md) | M1 kickoff | done | M0-T010 |
-| [M1-T002](tasks/M1-T002-check-docs-follow-ups.md) | check-docs follow-ups from the M0-T003 review | todo | M0-T003 |
-| [M1-T003](tasks/M1-T003-check-arch-follow-ups.md) | check-arch follow-ups from the M0-T004 review | todo | M0-T004 |
+| [M1-T002](tasks/M1-T002-check-docs-follow-ups.md) | check-docs follow-ups from the M0-T003 review | done | M0-T003 |
+| [M1-T003](tasks/M1-T003-check-arch-follow-ups.md) | check-arch follow-ups from the M0-T004 review | done | M0-T004 |
 | [M1-T004](tasks/M1-T004-trace-hygiene-follow-ups.md) | trace and hygiene follow-ups from the M0-T005 review | todo | M0-T005 |
-| [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | todo | M0-T006 |
+| [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | done | M0-T006 |
 | [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | todo | M0-T007 |
-| [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | todo | M0-T008 |
+| [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | done | M0-T008 |
 | [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | todo | M0-T009 |
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | todo | M0-T009 |
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | todo | M1-T001 |
-| [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | review | M1-T001 |
+| [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | done | M1-T001 |
 | [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | todo | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
 | [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | todo | M1-T013 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | todo | M1-T014 |
@@ -67,6 +67,7 @@
 | [M1-T052](tasks/M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks — ECS vs bevy_ecs and hecs | todo | M1-T051, M1-T043 |
 | [M1-T053](tasks/M1-T053-m1-exit-review.md) | M1 exit review | todo | M1-T002, M1-T003, M1-T004, M1-T005, M1-T006, M1-T007, M1-T008, M1-T009, M1-T010, M1-T011, M1-T012, M1-T013, M1-T014, M1-T015, M1-T016, M1-T017, M1-T018, M1-T019, M1-T020, M1-T021, M1-T022, M1-T023, M1-T024, M1-T025, M1-T026, M1-T027, M1-T028, M1-T029, M1-T030, M1-T031, M1-T032, M1-T033, M1-T034, M1-T035, M1-T036, M1-T037, M1-T038, M1-T039, M1-T040, M1-T041, M1-T042, M1-T043, M1-T044, M1-T045, M1-T046, M1-T047, M1-T048, M1-T049, M1-T050, M1-T051, M1-T052, M1-T054 |
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | todo | M1-T001 |
+| [M1-T055](tasks/M1-T055-liminal-core-spec-follow-ups.md) | liminal_core spec follow-ups from the M1-T012 review | todo | M1-T012 |
 
 ## Blocked tasks
 
@@ -77,7 +78,8 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 52 | 0 | 0 | 1 | 1 |
+| M1 (Headless core) | 55 | 49 | 0 | 0 | 0 | 6 |
+| M2 (Agent interface v0) | 3 | 3 | 0 | 0 | 0 | 0 |
 
 ## Crates
 
