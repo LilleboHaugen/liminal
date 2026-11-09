@@ -82,10 +82,10 @@ Status `review`. Everything in scope is done; nothing is left open.
   runs every ignored test of `deny_policy.rs`, so it runs both changed tests.
 
 Verified: `cargo xtask ci` passes on macOS (darwin 27.2, cargo-deny 0.20.2);
-`cargo test -p xtask --test deny_policy -- --ignored` passes (5 tests). Not verified: the `deny`
-CI job on ubuntu (no CI run of this branch observed by this session). Assumption for CI:
-`cargo-deny` is found on `PATH` (the test changes `CARGO_HOME`, so `$CARGO_HOME/bin` lookup
-uses the temporary directory); on GitHub runners `~/.cargo/bin` is on `PATH`.
+`cargo test -p xtask --test deny_policy -- --ignored` passes (5 tests). Branch CI run 42695532856
+(commit b604012) passed every job, including `deny (ubuntu-latest)`, which runs the changed
+tests. The registry test changes `CARGO_HOME`, so `cargo deny` must be found on `PATH` (it is on
+GitHub runners and with Homebrew).
 
 Trap: the existing `git_dependencies_are_rejected` test still writes a checkout of its fixture
 repository into the user's `$CARGO_HOME/git/` on every run (not in scope; the same
