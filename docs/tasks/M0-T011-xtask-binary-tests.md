@@ -2,7 +2,7 @@
 id: M0-T011
 title: Real-binary integration tests for every xtask command
 milestone: M0
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R002, XTASK-R007, XTASK-R009]
