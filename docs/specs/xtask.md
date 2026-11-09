@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 15
+spec_version: 16
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -35,8 +35,8 @@ pattern detection; coverage floors; STATUS.md generation; tool availability repo
 - External programs invoked: `cargo` (fmt, clippy, test, doc, metadata), `cargo-llvm-cov`, `cargo-deny`.
 - Argument parsing is hand-written (no CLI-parsing crate), to keep `xtask` fast to build.
 - Structure: all logic in a library target (`xtask/src/lib.rs` and modules), with a thin
-  `xtask/src/main.rs`. Integration tests in `xtask/tests/` call the library directly, and doc tests run
-  on it.
+  `xtask/src/main.rs`. Integration tests in `xtask/tests/` call the library directly or run the real
+  binary (`CARGO_BIN_EXE_xtask`, one test per command at least), and doc tests run on it.
 - One shared repo-model loader module (`xtask/src/repo.rs` or `repo/`) is used by every check. Workspace
   members come from `[workspace].members` in the root `Cargo.toml` (no cargo needed). Full dependency
   data comes from `cargo metadata --format-version 1 --no-deps --offline`, run in the repository
@@ -540,6 +540,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
 | `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency; `check advisories` on a fixture advisory database, with a passing control | cargo-deny's sources and advisories checks |
+| Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -567,10 +568,12 @@ M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
 - [x] Every public item documented (`missing_docs = "deny"`, `doc` step with `-D warnings`).
 - [x] Each check shown to catch a seeded violation (M0-T010 journal, 14 seeds).
 - [x] Used in CI: `cargo xtask ci` runs in every job of `.github/workflows/ci.yml`.
-- [ ] Every command covered by a real-binary integration test checking exit code and output
-      (tool-crate gate). Open: only `help`, unknown commands and `ci` usage errors are (M0-T011).
-- [ ] Runnable doc examples for the main types. Open: `run` has one; `COMMANDS`/`Command` and
-      `Exit` do not (M0-T011).
+- [x] Every command covered by a real-binary integration test checking exit code and output
+      (tool-crate gate), M0-T011: `help` in `xtask/tests/cli.rs`; `ci` in `xtask/tests/ci.rs`;
+      `check-arch`, `check-docs`, `trace`, `hygiene`, `status`, `doctor`, `coverage` in
+      `xtask/tests/commands.rs` (the real `coverage` measurement runs in the `coverage` CI job).
+- [x] Runnable doc examples for the main types: `run`, `COMMANDS`, `Command`, `Exit`
+      (`xtask/src/cli.rs`), M0-T011.
 - [ ] Promotion review by a session that implemented neither the gates' evidence nor M0-T011
       (M0-T010, continued).
 
@@ -593,3 +596,4 @@ M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
 | 13 | 2026-11-09 | `doctor` and `deny` details (tool table and probes, `RUSTUP_AUTO_INSTALL=0`, error vs. warning findings, output, `deny` command line); new R082 (licence policy in `deny.toml`) | M0-T009 |
 | 14 | 2026-11-09 | New R083 (sources policy) and R084 (advisory policy) of `deny.toml`, with their test approach (review 1 of M0-T009) | M0-T009 |
 | 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
+| 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |

@@ -9,6 +9,21 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 /// Process exit status of an xtask invocation (XTASK-R007).
+///
+/// # Examples
+///
+/// ```
+/// use xtask::Exit;
+///
+/// assert_eq!(Exit::Success.code(), 0);
+/// assert_eq!(Exit::Failure.code(), 1);
+/// assert_eq!(Exit::Usage.code(), 2);
+///
+/// // A binary turns the result of `run` into its process exit code.
+/// let exit = xtask::run(&["help".to_string(), "--bogus".to_string()], &mut Vec::new(), &mut Vec::new());
+/// assert_eq!(exit, Exit::Usage);
+/// let _code = std::process::ExitCode::from(exit.code());
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Exit {
     /// The command ran and every check passed. Exit code 0.
@@ -81,6 +96,27 @@ impl From<io::Error> for CommandError {
 pub type CommandFn = fn(args: &[String], out: &mut dyn Write) -> Result<Exit, CommandError>;
 
 /// One entry of the command table.
+///
+/// # Examples
+///
+/// ```
+/// let help = xtask::COMMANDS
+///     .iter()
+///     .find(|command| command.name == "help")
+///     .expect("`help` is registered");
+///
+/// // `run` takes the arguments after the command name and writes normal output to `out`.
+/// let mut out = Vec::new();
+/// let exit = (help.run)(&[], &mut out).expect("`help` takes no arguments");
+/// assert_eq!(exit, xtask::Exit::Success);
+/// assert!(String::from_utf8(out).unwrap().contains(help.summary));
+///
+/// // Invalid arguments are a usage error, not output.
+/// assert!(matches!(
+///     (help.run)(&["--bogus".to_string()], &mut Vec::new()),
+///     Err(xtask::CommandError::Usage(_))
+/// ));
+/// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Command {
     /// Name typed on the command line, e.g. `help`.
@@ -93,6 +129,16 @@ pub struct Command {
 
 /// Every implemented command, in the order `help` lists them. Later commands are added here by the
 /// task that implements them (`docs/specs/xtask.md` §5); a command is never listed before it works.
+///
+/// # Examples
+///
+/// ```
+/// let names: Vec<&str> = xtask::COMMANDS.iter().map(|command| command.name).collect();
+/// assert_eq!(
+///     names,
+///     ["help", "ci", "check-arch", "check-docs", "trace", "hygiene", "coverage", "status", "doctor"]
+/// );
+/// ```
 pub const COMMANDS: &[Command] = &[
     Command {
         name: "help",

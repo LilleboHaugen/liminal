@@ -2,7 +2,7 @@
 id: M0-T011
 title: Real-binary integration tests for every xtask command
 milestone: M0
-status: todo
+status: done
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R002, XTASK-R007, XTASK-R009]
@@ -65,12 +65,12 @@ and output, and the library's main types have runnable doc examples.
 
 ## Acceptance criteria
 
-- [ ] Every command of §5 has at least one real-binary test checking exit code and output; the
+- [x] Every command of §5 has at least one real-binary test checking exit code and output; the
       list is in the handoff, with the test name per command.
-- [ ] Doc examples for `COMMANDS`/`Command` and `Exit` run in `cargo test --doc -p xtask`.
-- [ ] Tests do not modify the repository (`git status` clean after `cargo test -p xtask`) and
+- [x] Doc examples for `COMMANDS`/`Command` and `Exit` run in `cargo test --doc -p xtask`.
+- [x] Tests do not modify the repository (`git status` clean after `cargo test -p xtask`) and
       pass on the macOS, Windows and Linux `checks` jobs of CI.
-- [ ] Spec §13 updated; `cargo xtask ci` passes.
+- [x] Spec §13 updated; `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -79,8 +79,83 @@ command-specific ones such as R072 for `status --check`), not on every binary te
 
 ## Handoff
 
-_No session has worked on this task yet._
+2026-11-09, one session (journal `2026-11-09-M0-T011.md`). Done; set to `review`.
+
+Real-binary tests per command (all run `env!("CARGO_BIN_EXE_xtask")` on this repository):
+
+| Command | Tests (file) | Runs covered |
+|---|---|---|
+| `help` (and no arguments) | `help_and_no_arguments_print_the_command_list_and_exit_0`, `unknown_command_and_unknown_option_print_usage_to_stderr_and_exit_2`, `non_utf8_argument_is_a_usage_error` (`cli.rs`, unchanged) | ok, exit 2 |
+| `ci` | `ci_reports_passing_and_skipped_steps_in_json_human_output_and_the_summary_file`, `unknown_step_names_exit_2_without_running_anything` (`ci.rs`) | ok `--json` and human, summary file = stdout, skipped step exit 1, `--allow-skip` exit 0, exit 2 |
+| `check-arch` | `check_arch_passes_on_the_repository`, `check_arch_rejects_unknown_options`, `check_arch_reports_a_cargo_that_cannot_start_as_internal_error_on_stderr` (`commands.rs`) | ok human and `--json`, exit 2, LIM-XTASK-0005 exit 1 |
+| `check-docs` | `check_docs_passes_on_the_repository`, `check_docs_rejects_unexpected_arguments` | ok human and `--json`, exit 2 |
+| `trace` | `trace_passes_and_prints_the_matrix`, `trace_json_with_crate_lists_only_that_crate`, `trace_rejects_a_crate_without_spec_and_a_missing_crate_name` | ok human, `--json`, `--crate`, `--crate=`, exit 2 |
+| `hygiene` | `hygiene_passes_on_the_repository`, `hygiene_rejects_unknown_options` | ok human and `--json`, exit 2 |
+| `status` | `status_check_passes_and_status_leaves_an_up_to_date_file_unchanged`, `status_has_no_json_option` | `--check` ok, `status` up to date (file bytes unchanged), exit 2 |
+| `doctor` | `doctor_reports_every_tool_whatever_is_installed`, `doctor_reports_cargo_tools_missing_when_cargo_cannot_start`, `doctor_rejects_unknown_options` | human and `--json` vs. installed tools, missing tools exit 1, exit 2 |
+| `coverage` | `coverage_is_skipped_and_fails_when_cargo_cannot_start`, `coverage_rejects_unknown_options`, `coverage_measures_every_crate_against_its_floor` (ignored; `coverage` CI job) | skipped exit 1 human and `--json`, exit 2, real measurement ok |
+
+How the traps were handled:
+- Repository root: fixed at compile time (`repo::root()`, `CARGO_MANIFEST_DIR/..`); no override was
+  added. Failure paths use usage errors, or `$CARGO` set to a missing program
+  (`CARGO_TARGET_TMPDIR/xtask-test-no-such-cargo`). Every command already reads `$CARGO` (spec), so
+  this is no test-only mechanism. Error-*finding* runs (exit 1 with findings) are not run through the
+  binary: that needs a broken repository; the library fixture tests cover them.
+- Writes: `status` without `--check` runs only after `status --check` passed and the test compares
+  `docs/STATUS.md` bytes before and after. `ci` runs write `target/xtask/ci-summary.json` (allowed by
+  R010); they are in one test so no parallel test overwrites the file between write and read.
+- Recursion: `ci` tests select native steps and `deny` (with the missing `$CARGO`, so it skips);
+  `coverage` real run is `#[ignore = "M0-T011: …"]` and run by a new step of the `coverage` CI job
+  (`cargo test --package xtask --all-features --locked --test commands -- --ignored`).
+- `doctor` assertions derive the expected output from its own `--json` report (present ⇒ no help,
+  no finding; missing ⇒ `null` version, help, R080 finding, `error` iff `needed_by` is non-empty;
+  result line counts all findings, warnings included).
+
+Doc examples: `Exit`, `Command`, `COMMANDS` (plus the existing `run`) in `xtask/src/cli.rs`.
+The `COMMANDS` example lists all names in order, so a task adding a command updates it.
+
+Evidence: two mutants of `xtask/src/main.rs` (exit code always 0; stdout routed to stderr), each
+killed (mutant 1 failed 13 binary tests in 3 files). `cargo xtask ci` passes (11 steps) on macOS;
+CI run results in the journal. Coverage 98.05 % (5050/5150), floor 97.6 left unchanged.
+
+Next: review (new session, ADR-0020). After `done`, M0-T010 continues in a session that did not
+implement M0-T011.
 
 ## Review
 
-_Empty._
+Reviewer: new session, 2026-11-09 (did not implement M0-T011). Outcome: **done**, no blocking
+findings. Follow-up task: `docs/tasks/M1-T010-binary-test-follow-ups.md`.
+
+Checked, macOS 27.2, Rust 1.99.1, cargo-llvm-cov 0.9.1, cargo-deny 0.20.2:
+1. Acceptance criteria:
+   - Every §5 command has a real-binary test that checks exit code and output: the handoff table
+     matches `xtask/tests/cli.rs`, `ci.rs`, `commands.rs` (read in full). Met.
+   - `cargo test --doc -p xtask`: 4 doc tests pass (`run`, `Exit`, `Command`, `COMMANDS`). Met.
+   - `git status` after `cargo xtask ci`, after the ignored tests and after the mutants: only
+     the owner's unrelated uncommitted edits (repository URL rename), nothing from tests. CI: run
+     42672908688 (ba58a81), attempt 1: `checks (macos-latest)`, `checks (windows-latest)`,
+     `coverage` pass; attempt 2: `checks (ubuntu-latest)`, `checks (windows-latest)`, `coverage`
+     pass. All three `checks` jobs passed. Met. The `deny` job was never created in either
+     attempt (GitHub start-up problem, also seen in run 42672235596); the run is therefore
+     marked failed. The diff changes nothing the `deny` job runs; locally `deny` passes and the
+     4 ignored `deny_policy` tests pass.
+   - Spec §3, §10, §13 updated (`spec_version` 16); `cargo xtask ci` passes (11 steps). Met.
+2. Ignored test `coverage_measures_every_crate_against_its_floor`: passes locally (5 s).
+3. Mutants against the binary tests (`--test ci --test cli --test commands`), each reverted:
+   M1 internal error → exit 2 (`cli.rs` `run`): killed. M2 internal error printed to stdout:
+   killed. M3 `trace` wired to `hygiene::command`: killed (3 tests). M4 `main.rs` exit code
+   capped at 1: killed (`unknown_step_names_exit_2_without_running_anything`).
+4. `ci` tests overwrite `target/xtask/ci-summary.json` while an outer `cargo xtask ci` runs its
+   `test` step; the outer run writes last (summary after the full run lists all 11 steps).
+5. `Verifies:` tags agree with the requirements, except the partial R072 tag (follow-up item 2).
+   `#[ignore]` names the task. No placeholders, no oracle changed (floor 97.6 unchanged). No new
+   dependency (`serde_json` is a dependency of `xtask` since M0-T002).
+6. Session boundaries: implemented in one owner-started session (journal
+   `2026-11-09-M0-T011.md`); no sub-agents.
+
+Non-blocking findings (follow-up M1-T010):
+- A moved checkout leaves a stale `xtask` binary whose compiled-in root does not exist; every
+  command then fails with misleading messages (observed in this session). In unchanged code
+  (R001, M0-T002/T003), not behaviour this task claims.
+- `Verifies: XTASK-R072` on a test that runs only the passing side of `status --check`.
+- `doctor` human-mode test does not check present tools' versions.
