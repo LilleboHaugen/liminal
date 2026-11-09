@@ -21,6 +21,7 @@ mod process;
 mod repo;
 mod requirements;
 mod rust_lexer;
+mod status;
 #[cfg(test)]
 mod test_support;
 mod trace;

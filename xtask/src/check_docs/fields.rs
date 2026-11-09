@@ -127,13 +127,13 @@ pub(super) fn one_of(allowed: &'static [&'static str]) -> impl Fn(&str) -> bool 
 }
 
 /// `^M\d+$`.
-pub(super) fn is_milestone(text: &str) -> bool {
+pub(crate) fn is_milestone(text: &str) -> bool {
     text.strip_prefix('M')
         .is_some_and(crate::frontmatter::is_integer)
 }
 
 /// `^M\d+-T\d{3}$`.
-pub(super) fn is_task_id(text: &str) -> bool {
+pub(crate) fn is_task_id(text: &str) -> bool {
     text.split_once("-T").is_some_and(|(milestone, number)| {
         is_milestone(milestone) && number.len() == 3 && number.bytes().all(|b| b.is_ascii_digit())
     })
