@@ -34,12 +34,19 @@ it works. Code without evidence is not progress.
    the plain cargo commands listed under "Commands").
 5. **Hand off.** Before the session ends — finished or not — update the task file (status + handoff notes),
    write a journal entry (`docs/journal/README.md`), and update any doc your change made stale.
-6. **Stop at the session boundary (ADR-0020).** A session does at most one review, then one
-   implementation task. When you set your task to `review`, stop task work. Never review your own
-   work, and never start other agents (sub-agents, background agents, forks) to review or implement
-   tasks. Only the project owner starts sessions. When the owner asks what is next or for the
-   status, and a task written in this session is in `review`, answer: "Start a new session. It will
-   review `<task>`, then continue with `<next task>`." Do not start that work yourself.
+6. **Stop at the session boundary (ADR-0026).** A session does at most one review, then one
+   implementation task. When you set your task to `review`, stop task work. Never review
+   your own work. Only the project owner starts sessions. A session MAY spawn sub-agents for
+   task work unless the owner forbids it in that session. It then follows ADR-0026:
+   every sub-agent counts as a separate session and meets every rule here. The parent only
+   orchestrates (no review, implementation, status change, task merge or `done`). Each
+   implementation sub-agent gets one task on its own branch and worktree, and concurrent ones
+   share no crate. A task is never reviewed by any agent of the session that wrote it. Review
+   sub-agents start fresh with the fixed prompt only. At most 3 sub-agents run at once (1
+   review), with at most 3 + 3 per session, and sub-agents never spawn agents. When the owner
+   asks what is next or for the status, and a task written in this session is in `review`,
+   answer: "Start a new session. It will review `<task>`, then continue with `<next task>`."
+   Do not start that work yourself.
 
 Full detail: `docs/process/WORKFLOW.md`.
 
@@ -96,9 +103,10 @@ Full detail: `docs/process/WORKFLOW.md`.
 - New public items are documented; primary entry points have a runnable `# Examples` doc test.
 - Requirement IDs covered by the task have `Verifies:` tests.
 - Spec, ADRs, task file, journal and any affected docs are updated in the same change.
-- The task is set to `review`, not `done`. A new session, started by the project owner (ADR-0020),
-  reviews it with `docs/process/REVIEW.md` and sets it to `done`, possibly with a follow-up task
-  for non-blocking findings (ADR-0021).
+- The task is set to `review`, not `done`. A reviewer from another session reviews it with
+  `docs/process/REVIEW.md` and sets it to `done`, possibly with a follow-up task for
+  non-blocking findings (ADR-0021). The reviewer is a session the project owner started, or
+  a review sub-agent of such a session under ADR-0026.
 
 ## Where things live
 
@@ -151,5 +159,6 @@ Full detail: `docs/process/DOCUMENTATION.md`.
 
 ## Changing the rules
 
-These rules are changed only by an accepted ADR that names the rule and the reason. Edit this file in
-the same change as the ADR.
+These rules are changed only by an accepted ADR that names the rule and the reason. Edit this
+file in the same change as the ADR. An ADR that changes these rules is reviewed and accepted in
+a session the project owner started, never by a sub-agent (ADR-0026).

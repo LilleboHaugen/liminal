@@ -1,20 +1,18 @@
 ---
 id: ADR-0026
 title: Sub-agents for task work under the same rules as owner-started sessions
-status: proposed
+status: accepted
 date: 2026-11-09
-supersedes: []
+supersedes: [ADR-0020]
 superseded_by: []
 ---
 
 # ADR-0026: Sub-agents for task work under the same rules as owner-started sessions
 
-Supersedes ADR-0020 **on acceptance**. The frontmatter field `supersedes` stays empty while this
-ADR is `proposed`: `cargo xtask check-docs` (XTASK-R021) requires supersession links to be
-symmetric and requires an ADR with a non-empty `superseded_by` to have `status: superseded`. Filling
-the field now would mark ADR-0020 superseded while this ADR is not in force, and the index would
-tell agents that the old rule no longer applies. The accepting session sets both fields (see
-"Edits on acceptance", step 1).
+Supersedes ADR-0020. While this ADR was `proposed`, its `supersedes` field stayed empty, because
+`cargo xtask check-docs` (XTASK-R021) requires symmetric supersession links and would have marked
+ADR-0020 superseded before this ADR was in force. The accepting session set both fields ("Edits on
+acceptance", step 1).
 
 ## Context
 
@@ -80,7 +78,13 @@ harness). A **wave** is all sub-agents one parent spawns.
    1. Each implementation sub-agent works on one task, on its own branch `task/<ID>-<slug>`
       (WORKFLOW.md §8), in its own git worktree. Worktrees live outside the repository directory
       (`../liminal-worktrees/<ID>` relative to the repository root), so that no Cargo workspace,
-      `check-docs` or `hygiene` scan of one worktree sees another.
+      `check-docs` or `hygiene` scan of one worktree sees another. A review sub-agent also works in
+      its own worktree, `../liminal-worktrees/<ID>-review`. Git checks out a branch in one worktree
+      at a time. Therefore, before its first spawn, the parent checks out its session branch
+      (Decision 8.3) in the primary checkout, so that `main` is free for the merging reviewer.
+      Before it spawns a review, the parent removes any worktree that still has the task branch
+      checked out (Decision 4.4). If that worktree is not clean, the parent does not assign the
+      review, and records why (Decision 10).
    2. Concurrent implementation sub-agents MUST have pairwise disjoint, non-empty `crates` lists
       in their task frontmatter. A task with `crates: []` (kickoff, exit review, docs-only) runs
       only when no other implementation sub-agent of the parent runs. The same crate rule applies
@@ -96,7 +100,8 @@ harness). A **wave** is all sub-agents one parent spawns.
    1. A task is never reviewed by any agent of a session that did implementation work on it
       (original implementation or any fix round): not the author, not the author's parent, not any
       sub-agent of that parent. A parent and all its sub-agents count as **one session** for this
-      rule and for every independence rule in `AGENTS.md`, `REVIEW.md` and ADR-0021.
+      rule and for every independence rule in `AGENTS.md`, `REVIEW.md`, ADR-0011 (maturity
+      promotion "by a different session") and ADR-0021.
    2. A review sub-agent starts from a fresh context (never a fork of the parent). Its prompt is the
       review template below, verbatim, with only the placeholders filled. The parent adds nothing:
       no summary, conclusion, hint, list of things to check, or opinion about the task, its author
@@ -161,7 +166,7 @@ harness). A **wave** is all sub-agents one parent spawns.
     first, then `in-progress` tasks with a handoff note, then `todo` tasks of the current milestone
     whose `depends_on` are all `done` at spawn time. The parent assigns tasks in that order and gives
     each task to exactly one sub-agent. It skips a task only if Decision 4.2 or 5.1 forbids it for
-    that sub-agent, and it records the skip and the reason in its journal. A task that becomes
+    that sub-agent, or Decision 4.1 (a review whose task branch is held by a worktree that is not clean), and it records the skip and the reason in its journal. A task that becomes
     `done` during the wave makes its dependents eligible for sub-agents spawned after that.
 11. **Unchanged from ADR-0020.** Sessions are started by the project owner. Parallel tracks
     (`docs/ROADMAP.md`) are still parallel sessions the owner starts. A session that spawns no
@@ -251,6 +256,11 @@ harness). A **wave** is all sub-agents one parent spawns.
   incredibly slow with just one agent running at a time." Approved by the project owner on
   2026-11-09, conditional on the ADR review (REVIEW.md §4)
   finding it consistent with the other accepted ADRs.
+- **ADR review.** Done 2026-11-09 in an owner-started session
+  (`docs/journal/2026-11-09-adr-0026-review.md`). It found the ADR consistent with ADR-0001, ADR-0011,
+  ADR-0020 (superseded explicitly), ADR-0021 and ADR-0022. Before acceptance, the review added these
+  clarifications: ADR-0011 is named in 5.1; the review sub-agent's worktree, and keeping `main` free
+  for the merge, in 4.1 and 10; and the placement of edit 6. Accepted on the same day.
 
 ## Verification
 
@@ -267,7 +277,8 @@ harness). A **wave** is all sub-agents one parent spawns.
 
 ## Edits on acceptance
 
-These edits take effect only when this ADR is accepted. They are not made while it is `proposed`.
+Applied in the acceptance commit on 2026-11-09. These edits took effect only on acceptance. They
+were not made while the ADR was `proposed`.
 `AGENTS.md` can only change by an accepted ADR ("Changing the rules"). A conditional sentence there
 would itself be a rule change without one, and it would contradict step 6 as it stands. The
 accepting session applies them in its acceptance commit, verbatim apart from fixes the ADR review
@@ -308,9 +319,11 @@ asks for:
    > a session the project owner started, never by a sub-agent (ADR-0026).
 
 6. **`docs/process/WORKFLOW.md` §2**: the paragraph starting "**Session boundary (ADR-0020).**"
-   and the paragraph starting "Never start sub-agents" are replaced by:
+   is replaced by the text below. The ADR-0021 paragraph after it ("A review blocks a task only …")
+   stays where it is. The paragraph starting "Never start sub-agents" is deleted.
 
-   > **Session boundary (ADR-0026).** Only the project owner starts sessions. One session does at
+   > **Session boundary (ADR-0026).** Only the project owner starts sessions; parallel agents are
+   > parallel sessions the owner started, or sub-agents of one (below). One session does at
    > most:
    > 1. one review (priority 1 above). If it sets the task to `done`, merge the branch to `main` and
    >    push (§8). Then:
@@ -353,6 +366,9 @@ asks for:
    >   set `done`, with `cargo xtask ci` green on the merge result and the branch CI run green. A
    >   parent's own branch `session/YYYY-MM-DD-<topic>` holds only its journal entry and
    >   `docs/STATUS_NOTES.md`. A worktree is removed only when its branch is pushed and clean.
+   >   A review sub-agent works in its own worktree `../liminal-worktrees/<ID>-review`. The parent
+   >   keeps its own session branch checked out in the primary checkout, so `main` is free for the
+   >   merge.
 
 9. **`docs/process/REVIEW.md`**: the intro's second sentence replaced by:
 

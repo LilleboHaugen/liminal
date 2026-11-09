@@ -10,14 +10,12 @@ M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-002
 M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
 it) first, then the engine crates (plan in M1-T001 "Handoff").
 
-ADR-0026 (sub-agents for task work, supersedes ADR-0020 on acceptance) is `proposed` on branch
-`adr/0026-subagents`. It is approved by the owner, on condition that the ADR review finds it
-consistent. Start a new session on that branch. It does the ADR review (REVIEW.md §4) of
-ADR-0026 and, if it is consistent, accepts it, applies its "Edits on acceptance" and merges the
-branch to `main`. Until then ADR-0020 applies: no sub-agents for task work.
+ADR-0026 (sub-agents for task work) is accepted (ADR review 2026-11-09) and supersedes
+ADR-0020. Sessions may spawn sub-agents under its rules (AGENTS.md step 6, WORKFLOW.md §2).
 
 M1-T002 is in `review` on branch `task/M1-T002-check-docs-follow-ups` (not yet on `main`).
-A session after the ADR review reviews M1-T002, then continues with M1-T003.
+The next session reviews M1-T002, then continues with M1-T003. That branch also edits this
+file; when merging it, combine both versions.
 
 ## Prerequisites the project owner handles (not agent tasks)
 

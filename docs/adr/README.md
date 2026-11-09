@@ -35,10 +35,10 @@ Rules (ADR-0001):
 | [0017](0017-error-model.md) | Error model with stable codes | accepted |
 | [0018](0018-unsafe-code-policy.md) | Unsafe code policy | accepted |
 | [0019](0019-agent-interface-revised.md) | Agent interface (revised) — probe protocol, CLI, MCP server and build gating | accepted |
-| [0020](0020-session-boundaries.md) | Session boundaries — owner-started sessions only, no sub-agents for task work | accepted |
+| [0020](0020-session-boundaries.md) | Session boundaries — owner-started sessions only, no sub-agents for task work | superseded by ADR-0026 |
 | [0021](0021-review-findings-and-round-limit.md) | Review findings — blocking criteria, follow-up tasks and a round limit | accepted |
 | [0022](0022-owner-approval-for-installs.md) | Owner approval before installing software on the owner's machine | accepted |
 | [0023](0023-benchmark-harness-and-regression-method.md) | Own benchmark harness, instruction-count regression gate, competitive crates outside the workspace | accepted |
 | [0024](0024-determinism-test-location.md) | Determinism tests for layer 0–1 crates are crate-local, built on liminal_core hashing | accepted |
 | [0025](0025-public-api-snapshot-tool.md) | Public-API snapshots with cargo-public-api, from the first stable promotion | accepted |
-| [0026](0026-sub-agents-for-task-work.md) | Sub-agents for task work under the same rules as owner-started sessions | proposed |
+| [0026](0026-sub-agents-for-task-work.md) | Sub-agents for task work under the same rules as owner-started sessions | accepted |
