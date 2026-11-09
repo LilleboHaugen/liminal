@@ -2,7 +2,7 @@
 id: M0-T011
 title: Real-binary integration tests for every xtask command
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R002, XTASK-R007, XTASK-R009]
@@ -123,4 +123,39 @@ implement M0-T011.
 
 ## Review
 
-_Empty._
+Reviewer: new session, 2026-11-09 (did not implement M0-T011). Outcome: **done**, no blocking
+findings. Follow-up task: `docs/tasks/M1-T010-binary-test-follow-ups.md`.
+
+Checked, macOS 27.2, Rust 1.99.1, cargo-llvm-cov 0.9.1, cargo-deny 0.20.2:
+1. Acceptance criteria:
+   - Every §5 command has a real-binary test that checks exit code and output: the handoff table
+     matches `xtask/tests/cli.rs`, `ci.rs`, `commands.rs` (read in full). Met.
+   - `cargo test --doc -p xtask`: 4 doc tests pass (`run`, `Exit`, `Command`, `COMMANDS`). Met.
+   - `git status` after `cargo xtask ci`, after the ignored tests and after the mutants: only
+     the owner's unrelated uncommitted edits (repository URL rename), nothing from tests. CI: run
+     42672908688 (ba58a81), attempt 1: `checks (macos-latest)`, `checks (windows-latest)`,
+     `coverage` pass; attempt 2: `checks (ubuntu-latest)`, `checks (windows-latest)`, `coverage`
+     pass. All three `checks` jobs passed. Met. The `deny` job was never created in either
+     attempt (GitHub start-up problem, also seen in run 42672235596); the run is therefore
+     marked failed. The diff changes nothing the `deny` job runs; locally `deny` passes and the
+     4 ignored `deny_policy` tests pass.
+   - Spec §3, §10, §13 updated (`spec_version` 16); `cargo xtask ci` passes (11 steps). Met.
+2. Ignored test `coverage_measures_every_crate_against_its_floor`: passes locally (5 s).
+3. Mutants against the binary tests (`--test ci --test cli --test commands`), each reverted:
+   M1 internal error → exit 2 (`cli.rs` `run`): killed. M2 internal error printed to stdout:
+   killed. M3 `trace` wired to `hygiene::command`: killed (3 tests). M4 `main.rs` exit code
+   capped at 1: killed (`unknown_step_names_exit_2_without_running_anything`).
+4. `ci` tests overwrite `target/xtask/ci-summary.json` while an outer `cargo xtask ci` runs its
+   `test` step; the outer run writes last (summary after the full run lists all 11 steps).
+5. `Verifies:` tags agree with the requirements, except the partial R072 tag (follow-up item 2).
+   `#[ignore]` names the task. No placeholders, no oracle changed (floor 97.6 unchanged). No new
+   dependency (`serde_json` is a dependency of `xtask` since M0-T002).
+6. Session boundaries: implemented in one owner-started session (journal
+   `2026-11-09-M0-T011.md`); no sub-agents.
+
+Non-blocking findings (follow-up M1-T010):
+- A moved checkout leaves a stale `xtask` binary whose compiled-in root does not exist; every
+  command then fails with misleading messages (observed in this session). In unchanged code
+  (R001, M0-T002/T003), not behaviour this task claims.
+- `Verifies: XTASK-R072` on a test that runs only the passing side of `status --check`.
+- `doctor` human-mode test does not check present tools' versions.

@@ -6,9 +6,9 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It reviews M0-T011 (real-binary tests for every xtask command, in
-`review`), then continues M0-T010 (promotion of `xtask` to `usable`, last M0 exit criterion);
-M0-T010 needs a session that did not implement M0-T011. ADR-0020.
+M0-T011 is `done` (reviewed 2026-11-09). M0-T010 (promotion of `xtask` to `usable`, last M0
+exit criterion) continues in the session that reviewed M0-T011; it did not implement M0-T011.
+ADR-0020.
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -45,6 +45,7 @@ places them in the M1 order.
 | M0-T008 (`status`) | M1-T007 |
 | M0-T009 (`deny`, `doctor`), review 1 | M1-T008 |
 | M0-T009 (`deny`, `doctor`), review 2 | M1-T009 |
+| M0-T011 (real-binary tests) | M1-T010 |
 
 ## Module notes
 
