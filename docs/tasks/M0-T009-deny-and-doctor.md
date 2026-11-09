@@ -84,7 +84,8 @@ advised crates as direct dependencies). `ignore = ["RUSTSEC-2026-9002"]`: killed
 **Verified:** macOS 27.2, Rust 1.99.1, cargo-deny 0.20.2: `cargo xtask ci` passes (11 steps);
 `cargo test -p xtask --all-features --locked --test deny_policy -- --include-ignored`: 5 passed.
 `trace`: R082–R084 each have a test. Coverage unchanged (only `xtask/tests/` changed, which is
-not measured). CI run: see the journal entry `2026-11-09-M0-T009-2.md`.
+not measured). CI run 42666478189 (4c4ac5b): all 5 jobs pass; the `deny`
+job ran both new tests (`ok`).
 
 **Not verified:** the new tests on Windows and macOS CI (the `deny` job is Linux only; locally
 macOS).
