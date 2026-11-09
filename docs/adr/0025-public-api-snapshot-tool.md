@@ -1,7 +1,7 @@
 ---
 id: ADR-0025
 title: Public-API snapshots with cargo-public-api, from the first stable promotion
-status: proposed
+status: accepted
 date: 2026-11-09
 supersedes: []
 superseded_by: []

@@ -1,7 +1,7 @@
 ---
 id: ADR-0023
 title: Own benchmark harness, instruction-count regression gate, competitive crates outside the workspace
-status: proposed
+status: accepted
 date: 2026-11-09
 supersedes: []
 superseded_by: []

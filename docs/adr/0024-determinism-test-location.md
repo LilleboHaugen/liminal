@@ -1,7 +1,7 @@
 ---
 id: ADR-0024
 title: Determinism tests for layer 0–1 crates are crate-local, built on liminal_core hashing
-status: proposed
+status: accepted
 date: 2026-11-09
 supersedes: []
 superseded_by: []

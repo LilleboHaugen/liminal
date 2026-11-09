@@ -2,7 +2,7 @@
 id: M1-T001
 title: M1 kickoff
 milestone: M1
-status: review
+status: done
 crates: []
 depends_on: [M0-T010]
 requirements: []
@@ -43,9 +43,9 @@ independent review).
 
 ## Acceptance criteria
 
-- [ ] OQ-004 and OQ-010 resolved by accepted ADRs. Their OPEN_QUESTIONS entries are marked resolved.
-      (ADR-0023, ADR-0024 written as `proposed`, entries marked resolved. Acceptance is the ADR
-      review, REVIEW.md §4, by the session that reviews this task; see Handoff.)
+- [x] OQ-004 and OQ-010 resolved by accepted ADRs. Their OPEN_QUESTIONS entries are marked resolved.
+      (ADR-0023, ADR-0024 written as `proposed`, entries marked resolved; accepted by the ADR
+      review in this task's review, 2026-11-09.)
 - [x] Every M1 work item and exit criterion in ROADMAP.md is covered by at least one task. Each task has
       checkable acceptance criteria and `depends_on` set.
 - [x] `cargo xtask check-docs` passes (task graph valid, no cycles).
@@ -107,4 +107,56 @@ issue of the comparison crates to the owner.
 
 ## Review
 
-_Empty._
+Reviewer: new session, 2026-11-09 (did not write M1-T001). Outcome: **done**, no blocking
+findings. ADR-0023, ADR-0024 and ADR-0025 accepted (REVIEW.md §4). Follow-up task:
+`docs/tasks/M1-T054-m1-kickoff-follow-ups.md`.
+
+Checked, macOS 27.2, Rust 1.99.1, cargo-llvm-cov and cargo-deny as in M0-T011:
+1. Acceptance criteria:
+   - OQ-004/OQ-010: OPEN_QUESTIONS rows and sections say "resolved (ADR-0023/0024)". ADRs
+     accepted by this review (below). Met.
+   - ROADMAP §M1 coverage: compared every work item and exit criterion with the handoff table and
+     the task files. Specs + `usable` for all eight crates (each crate's last task carries the
+     MATURITY.md evidence AC; T030/T032 cover `liminal_reflect_derive` too); testkit T047–T049;
+     baselines T017; competitive T051/T052; `headless_boids` 10 × 10,000 steps multithreaded
+     T050; Miri for math, memory, telemetry, jobs, ecs (T018 job; Miri ACs in T022, T025, T026,
+     T028, T029, T035, T036, T038, T039, T042, T043); loom for jobs, telemetry, ecs (T028, T035,
+     T042). Read in full: T011, T012, T014, T015, T016, T018, T022, T033, T050, T051, T053; the
+     others' ACs by grep. ACs are checkable (named files, commands, seeded failures, journal
+     records). Met.
+   - `check-docs` passes inside `cargo xtask ci` (11 steps pass). Branch CI run 42678170768
+     (0711096) passed. Met.
+   - Owner told: STATUS_NOTES "Next step" and the handoff's "Owner decisions coming up". Met.
+2. ADR review (REVIEW.md §4):
+   - ADR-0023: context states the constraints (runner noise, no Valgrind on macOS arm64,
+     XTASK-R032 forbids layer 5 dev-dependencies of engine crates). Alternatives include building
+     it ourselves (chosen), `criterion`, `divan`, `iai-callgrind`, wall-clock CI gate, layer-0
+     harness, in-workspace comparison crates. Consequences name costs (own harness to maintain,
+     instruction counts are a proxy, the competitive workspace can rot). Consistent with ADR-0003
+     (dev scope, ADR given) and PERFORMANCE.md. Accepted.
+   - ADR-0024: the six deterministic layer 0–1 crates match `architecture.toml`. Rejected
+     alternatives are real; no change to XTASK-R032. Accepted.
+   - ADR-0025: defers install to the first `stable` milestone and to ADR-0022; licence stated as
+     an assumption. Accepted.
+   - None adds a runtime dependency, changes a layer rule or an AGENTS.md rule: no owner approval
+     needed under §4.
+3. No fake progress: documentation-only change; no oracle (golden, baseline, floor) changed; no
+   test changed. `architecture.toml` additions are `planned` crates and `dev`-scope externals
+   referenced by ADR-0023.
+4. Session boundaries: one owner-started session (journal `2026-11-09-M1-T001.md`), after one
+   review (M0-T010). The throw-away generator script is not an agent.
+5. I agree that `liminal_benches` maturity is not an M1 exit gate: ROADMAP §M1 lists the crates
+   that must reach `usable`, and it is not among them.
+
+Non-blocking findings (follow-up M1-T054; M1-T019 and M1-T053 now depend on it):
+- ADR-0023 lets benchmarks see only public API, but M1-T022 requires `liminal_benches` to show
+  each SIMD path faster than its scalar reference. No task says how a reference implementation
+  is reachable from `liminal_benches`. Must be settled before the first spec with an optimized
+  path (M1-T019).
+- ADR-0023 does not give licence, maintenance status, transitive dependency count and `unsafe`
+  use of `bevy_ecs`, `hecs`, `glam`, `rayon` (DEPENDENCIES.md "Adding a dependency" step 2).
+  `cargo deny` in M1-T051/T052 covers licences only.
+- Stale text: ROADMAP.md line 24 ("Only M0 (and the M1 kickoff task) have detailed task files
+  today"), ROADMAP.md §M1 "ADR required per OQ-004"; TESTING.md Concurrency row omits
+  `liminal_telemetry` (ROADMAP exit criterion 4, M1-T028); `docs/specs/xtask.md`
+  (§2 Scope, §12 Open questions) still describe OQ-004 as open.

@@ -4,7 +4,7 @@ title: Write the spec for liminal_math
 milestone: M1
 status: todo
 crates: [liminal_math]
-depends_on: [M1-T001]
+depends_on: [M1-T001, M1-T054]
 requirements: []
 ---
 

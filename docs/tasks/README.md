@@ -79,3 +79,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T051](M1-T051-competitive-benchmarks-workspace-math-vs-glam-jo.md) | Competitive benchmarks: workspace, math vs `glam`, jobs vs `rayon` |
 | [M1-T052](M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks: ECS vs `bevy_ecs` and `hecs` |
 | [M1-T053](M1-T053-m1-exit-review.md) | M1 exit review |
+| [M1-T054](M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review |
