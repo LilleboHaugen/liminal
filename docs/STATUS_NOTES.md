@@ -6,8 +6,10 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It continues with M0-T010 (M0 exit review), the last M0 task. No task is
-in `review` (ADR-0020).
+Start a new session. It starts M0-T011 (real-binary tests for every xtask command), which the M0
+exit review (M0-T010) found missing for the `usable` gate. After M0-T011 is reviewed and `done`,
+a session that did not implement M0-T011 continues M0-T010 (promotion of `xtask` to `usable`,
+last M0 exit criterion). ADR-0020.
 
 ## Prerequisites the project owner handles (not agent tasks)
 

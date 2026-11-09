@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: planned
-spec_version: 14
+spec_version: 15
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -556,13 +556,23 @@ repository state (R071, INV-1).
 
 ## 13. Maturity
 
-Current: `planned`. Next: `experimental` once M0-T001/T002 land.
+Current: `planned`. Target: `usable` (M0 exit, M0-T010), in one promotion. Gate evidence from the
+M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
 
-Promotion to `usable` (M0 exit):
-- [ ] All MUST requirements traced (`cargo xtask trace --crate xtask`)
-- [ ] Coverage ≥ 75%
-- [ ] Each check shown to fail on its fixture
-- [ ] Review by a separate session
+- [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2), M0-T010.
+- [x] Compiles, all lints pass, registered in `ci/coverage.toml` (`cargo xtask ci`).
+- [x] All MUST requirements traced: `cargo xtask trace --crate xtask` with `maturity: usable`
+      gives MUST 49/49, `trace: ok`.
+- [x] Coverage ≥ 75 % (tool crate): 97.39 % (M0-T009), floor 97.6.
+- [x] Every public item documented (`missing_docs = "deny"`, `doc` step with `-D warnings`).
+- [x] Each check shown to catch a seeded violation (M0-T010 journal, 14 seeds).
+- [x] Used in CI: `cargo xtask ci` runs in every job of `.github/workflows/ci.yml`.
+- [ ] Every command covered by a real-binary integration test checking exit code and output
+      (tool-crate gate). Open: only `help`, unknown commands and `ci` usage errors are (M0-T011).
+- [ ] Runnable doc examples for the main types. Open: `run` has one; `COMMANDS`/`Command` and
+      `Exit` do not (M0-T011).
+- [ ] Promotion review by a session that implemented neither the gates' evidence nor M0-T011
+      (M0-T010, continued).
 
 ## 14. History
 
@@ -582,3 +592,4 @@ Promotion to `usable` (M0 exit):
 | 12 | 2026-11-09 | `status` details (sources, unreadable input is R070, order, layout, write-if-changed, `--check` finding location) | M0-T008 |
 | 13 | 2026-11-09 | `doctor` and `deny` details (tool table and probes, `RUSTUP_AUTO_INSTALL=0`, error vs. warning findings, output, `deny` command line); new R082 (licence policy in `deny.toml`) | M0-T009 |
 | 14 | 2026-11-09 | New R083 (sources policy) and R084 (advisory policy) of `deny.toml`, with their test approach (review 1 of M0-T009) | M0-T009 |
+| 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
