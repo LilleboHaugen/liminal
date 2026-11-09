@@ -5,6 +5,9 @@
 # Third-party actions are pinned by full commit SHA; the version is in the comment. To upgrade,
 # resolve the new tag with `git ls-remote https://github.com/<owner>/<repo>.git 'refs/tags/<tag>*'`
 # (for an annotated tag use the `^{}` line, which is the commit).
+#
+# The repository is public (ADR-0028): keep `permissions: contents: read`, SHA pins and
+# `persist-credentials: false`; no secrets, no `pull_request_target`, no self-hosted runners.
 
 name: ci
 
