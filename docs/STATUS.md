@@ -36,7 +36,7 @@
 | [M1-T021](tasks/M1-T021-implement-liminal-mathdet.md) | Implement liminal_math::det | todo | M1-T020 |
 | [M1-T022](tasks/M1-T022-implement-liminal-math-simd-paths.md) | Implement liminal_math SIMD paths | todo | M1-T021, M1-T017, M1-T018 |
 | [M1-T023](tasks/M1-T023-implement-liminal-math-geometry-reach-usable.md) | Implement liminal_math geometry; reach usable | todo | M1-T022 |
-| [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | todo | M1-T001 |
+| [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | review | M1-T001 |
 | [M1-T025](tasks/M1-T025-implement-liminal-memory-arena-and-frame-allocat.md) | Implement liminal_memory — arena and frame allocators | todo | M1-T024, M1-T014, M1-T018 |
 | [M1-T026](tasks/M1-T026-implement-liminal-memory-pool-aligned-tracking-r.md) | Implement liminal_memory — pool, aligned, tracking; reach usable | todo | M1-T025, M1-T017 |
 | [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | todo | M1-T001 |
@@ -77,7 +77,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 53 | 0 | 0 | 0 | 1 |
+| M1 (Headless core) | 54 | 52 | 0 | 0 | 1 | 1 |
 
 ## Crates
 
@@ -85,7 +85,7 @@ None.
 |---|---|---|---|
 | liminal_core | 0 | planned | — |
 | liminal_math | 0 | planned | — |
-| liminal_memory | 0 | planned | — |
+| liminal_memory | 0 | planned | [liminal_memory.md](specs/liminal_memory.md) |
 | liminal_reflect | 0 | planned | — |
 | liminal_reflect_derive | 0 | planned | — |
 | liminal_telemetry | 0 | planned | — |

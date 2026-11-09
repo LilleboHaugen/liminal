@@ -297,7 +297,15 @@ mod tests {
         assert!(adrs.contains(&"0001-record-architecture-decisions.md"));
         assert!(!adrs.contains(&"0000-template.md") && !adrs.contains(&"README.md"));
         let specs: Vec<&str> = model.spec_files().map(|(path, _)| path).collect();
-        assert_eq!(specs, ["docs/specs/xtask.md"]);
+        // M1 adds one spec per engine crate, so the exact list grows; the loader must find
+        // xtask's spec and must skip the template and the index.
+        assert!(specs.contains(&"docs/specs/xtask.md"));
+        assert!(specs.iter().all(|path| path.starts_with("docs/specs/")));
+        assert!(
+            !specs
+                .iter()
+                .any(|path| path.ends_with("/_TEMPLATE.md") || path.ends_with("/README.md"))
+        );
         let tasks: Vec<&str> = model
             .task_files()
             .map(|(path, _)| file_name(path))
