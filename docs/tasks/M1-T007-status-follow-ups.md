@@ -2,7 +2,7 @@
 id: M1-T007
 title: status generator follow-ups from the M0-T008 review
 milestone: M1
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T008]
 requirements: [XTASK-R070]
@@ -101,4 +101,38 @@ Not done: nothing in scope. Traps: none found beyond the premise above.
 
 ## Review
 
-_Empty._
+2026-11-09, review sub-agent (ADR-0026/0027) of parent session `session/2026-11-09-m1-reviews`
+(Claude Code session `96e2b3f9`, journal `docs/journal/2026-11-09-session-m1-reviews.md`), fresh
+context. That session implemented no part of M1-T007; the implementer was a sub-agent of
+`session/2026-11-09-m1-subagents`. macOS 27.2 (Darwin), worktree
+`liminal-worktrees/M1-T007-review`, branch `task/M1-T007-status-follow-ups` at `6da51b8`.
+
+Outcome: **done**, no blocking findings. Follow-ups: M2-T003.
+
+Checked:
+- Premise correction: confirmed. `xtask/src/check_docs/rules.rs` (`specs`) reports "`crate` is
+  `<name>`, but the file is <stem>.md" for every spec, with no workspace-member exemption, so the
+  M0-T008 review's claim that `check-docs` passes on a copied spec was wrong. The scope note is in
+  the task file, as rule 2 of `AGENTS.md` requires.
+- AC 1: spec layout 6 now says `[<file>](specs/<file>)`, matching `render`. Test
+  `the_spec_cell_links_the_spec_file_by_its_file_name_not_the_crate_name` would fail if `render`
+  used the crate name (asserts `[alpha.md](specs/alpha.md)` and no `alpha_lib.md`).
+- AC 2: `specs()` reports the later spec (by path) for an already-named crate as XTASK-R070 at its
+  `crate` line; the doc comment is now true. Mutation (duplicate check disabled):
+  `two_specs_for_one_crate_are_unreadable_input` fails. `check-docs` side pinned by
+  `r022_a_second_spec_for_one_crate_is_reported_by_its_file_name`.
+- AC 3: mutation (always write before choosing the message): only
+  `an_up_to_date_file_is_not_rewritten_and_keeps_its_modification_time` fails, as the handoff says.
+- AC 4: `cargo xtask ci` passes, all 11 steps, none skipped (the 4 `#[ignore]`d deny-policy tests
+  carry M0-T009 references, unchanged), on the branch and again on the merge with `main`.
+- Spec and code agree; no new dependency, no `unsafe`, no untracked TODO, no oracle change
+  (`xtask/tests/snapshots/STATUS.md` unchanged).
+- Merge with `main`: M1-T005 took `spec_version` 19 on `main`, so this change is now **v20**
+  (frontmatter, the four "`spec_version` 19" markers of this change, history row). The handoff
+  above and the implementer's journal still say 19 and are left as written.
+- Session boundaries: the implementer's journal `docs/journal/2026-11-09-M1-T007.md` names its
+  parent session; that parent's journal is not committed yet (session still running), so its
+  listing of the sub-agent is not verifiable here.
+
+Follow-ups (M2-T003): the mtime test carries `Verifies: XTASK-R071` (deterministic output and
+the generated notice), which it does not verify; write-if-changed has no requirement ID of its own.
