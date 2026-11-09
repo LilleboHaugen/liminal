@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M0** (Guardrails): 7 of 10 tasks done.
+**M0** (Guardrails): 8 of 10 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -20,7 +20,7 @@
 | [M0-T005](tasks/M0-T005-trace-and-hygiene.md) | trace and hygiene | done | M0-T003 |
 | [M0-T006](tasks/M0-T006-coverage-floors.md) | Coverage with per-crate floors | done | M0-T002 |
 | [M0-T007](tasks/M0-T007-github-actions-ci.md) | GitHub Actions CI | done | M0-T002 |
-| [M0-T008](tasks/M0-T008-status-generator.md) | status generator | review | M0-T003 |
+| [M0-T008](tasks/M0-T008-status-generator.md) | status generator | done | M0-T003 |
 | [M0-T009](tasks/M0-T009-deny-and-doctor.md) | cargo deny policy and doctor | todo | M0-T002 |
 | [M0-T010](tasks/M0-T010-m0-exit-review.md) | M0 exit review | todo | M0-T001, M0-T002, M0-T003, M0-T004, M0-T005, M0-T006, M0-T007, M0-T008, M0-T009 |
 
@@ -32,8 +32,8 @@ None.
 
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
-| M0 (Guardrails) | 10 | 2 | 0 | 0 | 1 | 7 |
-| M1 (Headless core) | 6 | 6 | 0 | 0 | 0 | 0 |
+| M0 (Guardrails) | 10 | 2 | 0 | 0 | 0 | 8 |
+| M1 (Headless core) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates
 

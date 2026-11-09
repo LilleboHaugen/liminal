@@ -6,8 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-Start a new session. It reviews M0-T008 (status generator), then continues with M0-T009
-(`cargo deny` policy and `doctor`), the first M0 `todo` with all dependencies done (ADR-0020).
+M0-T008 is `done` (reviewed 2026-11-09). M0-T009 (`cargo deny` policy and `doctor`) is next; it
+needs `cargo-deny` installed (owner approval, ADR-0022).
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -40,6 +40,7 @@ places them in the M1 order.
 | M0-T005 (`trace`, `hygiene`) | M1-T004 |
 | M0-T006 (`coverage`) | M1-T005 |
 | M0-T007 (GitHub Actions CI) | M1-T006 |
+| M0-T008 (`status`) | M1-T007 |
 
 ## Module notes
 
