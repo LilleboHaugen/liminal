@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 19
+spec_version: 20
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -170,7 +170,8 @@ Summary details (added in `spec_version` 2):
   such as `superseeded_by`. Values have these forms: ADR IDs `^ADR-\d{4}$`; `title` non-empty; dates
   as above; `layer` and `spec_version` integers (`spec_version` ≥ 1); `req_prefix` `^[A-Z]+$`; task
   `milestone` `^M\d+$`, equal to the milestone part of `id`. A spec's `crate` equals its file name
-  without `.md`. A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
+  without `.md`, so `crate` is unique across specs: a second spec for one crate has another file
+  name and is reported (`spec_version` 20). A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
   and maturity comparisons of R025 and R027. For the `depends_on` existence check (R023), a task
   file without a valid `id` (including one that fails R020) exists under the task ID its file name
   starts with (`^M\d+-T\d{3}` before the next `-` or `.md`), if any. This avoids a second, false
@@ -417,8 +418,9 @@ as `output_tail` in both output modes.
 - Unreadable input: a task file whose frontmatter does not parse (R020), or whose `id`, `title`,
   `milestone`, `status` or `depends_on` is missing or not of the R023 form, a task ID used twice,
   and a spec file whose frontmatter does not parse or whose `crate` or `maturity` is missing or
-  not of the R022 form, each give one XTASK-R070 error finding at the file (with the line where
-  known). Then `status` writes nothing and exits 1, and `status --check` fails with those
+  not of the R022 form, and a spec file whose `crate` an earlier spec file (by path) already
+  names (at the `crate` line; `spec_version` 20), each give one XTASK-R070 error finding at the
+  file (with the line where known). Then `status` writes nothing and exits 1, and `status --check` fails with those
   findings. `check-docs` reports the same files in detail. A spec whose `crate` is not in
   `architecture.toml` is ignored here (R022 reports it).
 - Order: milestones by number (`M2` before `M10`); tasks by milestone number, then task number;
@@ -440,9 +442,12 @@ as `output_tail` in both output modes.
   5. `## Milestones`: `| Milestone | Tasks | todo | in-progress | blocked | review | done |`, one
      row per milestone that has tasks, labelled `<id> (<name>)` or `<id>`.
   6. `## Crates`: `| Crate | Layer | Maturity | Spec |`, one row per `[[crate]]`; maturity from
-     the spec whose `crate` is that name, else `planned`; spec cell
-     `[<crate>.md](specs/<crate>.md)` if a spec exists, else `—`.
-- `status` writes `docs/STATUS.md` only if its content differs, then prints
+     the spec whose `crate` is that name, else `planned`; spec cell `[<file>](specs/<file>)` if
+     a spec exists, `<file>` being that spec's file name, else `—`. R022 makes `<file>` equal
+     `<crate>.md`; for a spec that breaks that rule the link still names an existing file
+     (`spec_version` 20).
+- `status` writes `docs/STATUS.md` only if its content differs (an up-to-date file is not
+  opened for writing, so its modification time stays; `spec_version` 20), then prints
   `status: wrote docs/STATUS.md` or `status: docs/STATUS.md is up to date` and exits 0.
 - `status --check` never writes (R010). If the file is missing, or differs, it reports one
   XTASK-R072 error at `docs/STATUS.md:<first differing line>` (`docs/STATUS.md` if missing),
@@ -614,3 +619,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
+| 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
