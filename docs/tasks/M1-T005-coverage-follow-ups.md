@@ -2,7 +2,7 @@
 id: M1-T005
 title: coverage follow-ups from the M0-T006 review
 milestone: M1
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T006]
 requirements: [XTASK-R060, XTASK-R061]
@@ -42,11 +42,11 @@ disabled silently by a crate that measures no lines, or by a member path spelled
 
 ## Acceptance criteria
 
-- [ ] Item 1 decided, written into the spec, implemented, and tested (a crate with floor > 0 and
+- [x] Item 1 decided, written into the spec, implemented, and tested (a crate with floor > 0 and
       no measured lines gives the decided outcome).
-- [ ] Item 2: a workspace with `members = ["./xtask"]` maps `xtask/src/*.rs` to `xtask` in
+- [x] Item 2: a workspace with `members = ["./xtask"]` maps `xtask/src/*.rs` to `xtask` in
       `coverage` and in `repo/sources.rs`, or is rejected with a stated error, tested.
-- [ ] `cargo xtask ci` passes.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -54,7 +54,29 @@ disabled silently by a crate that measures no lines, or by a member path spelled
 
 ## Handoff
 
-_No session has worked on this task yet._
+2026-11-09, implementation sub-agent (parent session `session/2026-11-09-m1-subagents`).
+
+Done:
+- Item 1, decided: a crate with a floor above 0.0 and no measured lines is an XTASK-R061
+  **error** (its coverage is unknown, not 100 %). A `warning` was rejected: the `ci` step fails
+  on any finding anyway, and a ratchet that can vanish needs a hard stop. Floor 0.0 with no lines
+  still passes; `--update-floors` still keeps the floor. Spec `docs/specs/xtask.md` v18
+  ("`coverage` details"). Code: `xtask/src/coverage.rs::evaluate` (new match arm before
+  `below_floor`). Test: `coverage::tests::a_crate_with_a_floor_above_0_and_no_measured_lines_fails`.
+  The existing test `floors_below_the_tolerance_and_crates_without_lines_never_fail` asserted the
+  old behaviour (floor 100.0, no lines → pass); it is renamed
+  `..._and_unmeasured_crates_with_floor_0_never_fail` and uses floor 0.0 (intended behaviour change).
+- Item 2: `xtask/src/repo/workspace.rs::normalize` removes `.` segments, empty segments and a
+  trailing `/` from each member entry before expansion (`./xtask` → `xtask`, `./crates/*` →
+  `crates/*`). Spec v18 "`check-docs` details" (member entries). Tests (`Verifies: XTASK-R060`):
+  `repo::workspace::tests::member_paths_with_dot_segments_are_normalized`,
+  `repo::coverage::tests::a_member_spelled_dot_slash_owns_its_files` (loader + `parse_export`),
+  `repo::sources::tests::a_member_spelled_dot_slash_owns_its_files`.
+
+Not done / traps:
+- `..` segments in member paths are not normalized (out of scope; cargo resolves them, xtask
+  would then map no files). A member entry that is only `.` stays `.` (the root package).
+- `\` in member entries (Windows spelling) is not normalized; not verified on Windows.
 
 ## Review
 
