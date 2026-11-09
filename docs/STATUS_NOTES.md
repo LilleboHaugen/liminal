@@ -8,8 +8,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-0025 are accepted.
 M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
-it) first, then the engine crates (plan in M1-T001 "Handoff"). M1-T002 is in `review`. Start a
-new session: it reviews M1-T002, then continues with M1-T003. ADR-0020.
+it) first, then the engine crates (plan in M1-T001 "Handoff"). M1-T002 is done (review
+2026-11-09; follow-ups in M2-T001). Next task by the pick rule: M1-T003. ADR-0026.
 
 ## Prerequisites the project owner handles (not agent tasks)
 

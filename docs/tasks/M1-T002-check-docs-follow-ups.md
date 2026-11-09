@@ -2,7 +2,7 @@
 id: M1-T002
 title: check-docs follow-ups from the M0-T003 review
 milestone: M1
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T003]
 requirements: [XTASK-R020, XTASK-R025]
@@ -101,4 +101,42 @@ Journal: `2026-11-09-M1-T002.md`. Status: `review`.
 
 ## Review
 
-_Filled in by the reviewing session._
+Reviewer: review sub-agent under ADR-0026, 2026-11-09, started fresh with the fixed prompt (did
+not write M1-T002). Outcome: **done**, no blocking findings. Follow-up task:
+`docs/tasks/M2-T001-check-docs-markdown-follow-ups.md`.
+
+Checked, macOS 27.2, Rust 1.99.1:
+1. Acceptance criteria:
+   - `markdown::tests::table_cells_trim_only_space_and_tab`: `  x\t` → `x`, `x\u{a0}` and
+     `\u{a0}y` keep U+00A0. Met.
+   - `check_docs::tests::r025_a_trailing_u00a0_in_the_status_cell_is_a_mismatch`: one R025
+     finding at `docs/adr/README.md:8`. The switch from title to status cell is justified:
+     `check_docs/indexes.rs` compares only the status column (spec §6 "Indexes"). Recorded in
+     "Scope changes". Met.
+   - `frontmatter::tests::a_byte_order_mark_before_the_opening_line_is_named`: line 1, message
+     names U+FEFF; a BOM before other text keeps the plain message. Met.
+   - Spec §6 has the two bullets, `spec_version` 18 with History row. Met.
+   - `cargo xtask ci`: all 11 steps pass (deny_policy's 4 ignored tests carry M0-T009, unchanged).
+     Met.
+2. Mutation runs (each line reverted to its old form, `cargo test -p xtask --lib`): per-cell
+   trim (middle cells, last cell), `is_table_line`, closing-fence check each make at least one new
+   test fail; removing the BOM branch fails the BOM tests. The line-level trim in `cells`
+   survives (all tests pass). It changes only the cell list of a row with non-space/tab
+   whitespace outside the outer pipes and no check-docs finding (columns are read by index), so
+   it is not B4: follow-up 2.
+3. No fake progress: no oracle changed; the one changed test expectation (BOM row of
+   `rejects_every_construct_outside_the_subset_with_its_line`) keeps line 1 and the rejection and
+   matches the new message. Journal says so.
+4. Spec agreement: §6 bullets match `markdown.rs` (`WHITESPACE` = space, tab for table-line
+   start, cells, closing fence) and `frontmatter.rs` (`\u{feff}---` after trailing space/tab
+   removal by `normalize`). `Verifies:` tags: R025 on the cell and index tests, R024 on the fence
+   test (fences decide which links R024 checks), R020 on the BOM test. Correct.
+5. Unsafe, determinism, architecture: not affected (`xtask` only, no new dependency).
+6. Docs: follow-up 1 (a misplaced doc comment). STATUS_NOTES and STATUS updated by the task.
+7. Session boundaries: journal `2026-11-09-M1-T002.md`: one session, one review (M1-T001, not its
+   own work) then this task, as ADR-0026 allows.
+
+Follow-ups (non-blocking, in M2-T001):
+1. `const WHITESPACE` sits between `fence_marker`'s doc comment and the function, so the doc
+   comment now belongs to `WHITESPACE` and `fence_marker` has none.
+2. Line-level `trim_matches(WHITESPACE)` in `cells` has no test (mutation survives).
