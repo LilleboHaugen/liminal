@@ -636,7 +636,45 @@ fn real_steps_run_the_exact_commands_of_the_spec() {
                 ],
                 vec![("RUSTDOCFLAGS", "-D warnings")]
             ),
+            (
+                "deny",
+                vec!["deny", "--locked", "--config", "deny.toml", "check"],
+                vec![]
+            ),
         ]
+    );
+}
+
+/// Verifies: XTASK-R081, XTASK-R006
+#[test]
+fn deny_step_is_skipped_with_the_doctor_hint_when_cargo_deny_is_missing() {
+    let deny = STEPS.iter().find(|step| step.name == "deny").unwrap();
+    let Action::Cargo(invocation) = &deny.action else {
+        panic!("`deny` must be a cargo step");
+    };
+    let tool = invocation.requires.unwrap();
+    assert_eq!(tool.probe, ["deny", "--version"]);
+    assert_eq!(tool.reason, "cargo-deny is not installed");
+    assert_eq!(tool.help, crate::doctor::CARGO_DENY_HELP);
+
+    // With a probe that fails, the real runner reports the step as skipped (never as a pass).
+    let missing = Step {
+        name: "deny",
+        action: Action::Cargo(CargoInvocation {
+            requires: Some(Tool {
+                probe: &["xtask-test-no-such-subcommand"],
+                ..tool
+            }),
+            ..*invocation
+        }),
+    };
+    let mut runner = RealRunner::new(repo::root());
+    assert_eq!(
+        runner.run(&missing, OutputMode::Capture),
+        Outcome::Skipped {
+            reason: "cargo-deny is not installed".to_string(),
+            help: crate::doctor::CARGO_DENY_HELP.to_string(),
+        }
     );
 }
 
@@ -664,7 +702,7 @@ fn native_check_steps_are_registered_by_name() {
         .map(|step| step.name)
         .collect();
     assert_eq!(coverage, ["coverage"]);
-    assert_eq!(STEPS.last().map(|step| step.name), Some("coverage"));
+    assert_eq!(STEPS.last().map(|step| step.name), Some("deny"));
 }
 
 #[test]

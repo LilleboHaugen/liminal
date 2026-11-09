@@ -1,0 +1,62 @@
+# cargo-deny policy for Liminal (task M0-T009, ADR-0015, docs/process/DEPENDENCIES.md).
+#
+# Run by the `deny` step of `cargo xtask ci` (XTASK-R081) as `cargo deny --locked check` in the
+# repository root. Written for cargo-deny 0.20.2 (the version pinned in .github/workflows/ci.yml).
+# Keys not set here have cargo-deny's defaults; `cargo deny init` prints the full template.
+
+[graph]
+# Every target and every feature: a licence or advisory problem on any platform we ship to
+# (macOS, Windows, Linux, ADR-0005) or behind any feature must fail the check.
+targets = []
+all-features = true
+
+# Security advisories (RustSec database, fetched to $CARGO_HOME/advisory-dbs, outside the
+# repository). With this schema every vulnerability advisory is an error; there is no key to
+# lower that.
+[advisories]
+# Unmaintained crates are errors wherever they appear in the graph (task scope).
+unmaintained = "all"
+# A yanked version is a warning only: yanking is not itself a security signal (advisories cover
+# that), and the locked version keeps building.
+yanked = "warn"
+# Every ignored advisory needs an entry of the form
+#   { id = "RUSTSEC-YYYY-NNNN", reason = "<why it does not affect us>; expires YYYY-MM-DD (<task ID>)" }
+# and is removed by that date. cargo-deny has no expiry field, so review checks the date.
+ignore = []
+
+[licenses]
+# docs/process/DEPENDENCIES.md "Licence policy". Anything not listed is rejected, which includes
+# every copyleft licence (GPL, LGPL, AGPL) in every scope.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "CC0-1.0",
+]
+confidence-threshold = 0.93
+# The allow list is the policy, wider than the current graph; unused entries are expected.
+unused-allowed-license = "allow"
+# MPL-2.0 is allowed only in the `tool` and `dev` scopes. cargo-deny cannot express scopes, so
+# each such crate gets its own entry here, with a comment naming its scope:
+#   { allow = ["MPL-2.0"], crate = "<name>" },  # scope: dev (ADR-xxxx)
+exceptions = []
+
+[licenses.private]
+# Workspace crates are checked too: each must declare MIT OR Apache-2.0 (ADR-0015).
+ignore = false
+
+[bans]
+# Duplicate versions cost build time but are not a policy violation (task M0-T009 notes).
+multiple-versions = "warn"
+wildcards = "allow"
+
+[sources]
+# crates.io only. A git or other-registry dependency needs an ADR and an entry here.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

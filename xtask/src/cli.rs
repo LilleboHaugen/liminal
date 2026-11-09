@@ -134,6 +134,11 @@ pub const COMMANDS: &[Command] = &[
         summary: "Generate docs/STATUS.md from task and spec frontmatter; --check fails if stale (XTASK-R070 … R072).",
         run: crate::status::command,
     },
+    Command {
+        name: "doctor",
+        summary: "List the tools the checks need: present or missing, version, install hint (XTASK-R080).",
+        run: crate::doctor::command,
+    },
 ];
 
 /// Runs xtask with the given arguments (the process arguments without the program name).

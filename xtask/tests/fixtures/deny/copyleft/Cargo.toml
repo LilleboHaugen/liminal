@@ -1,0 +1,8 @@
+# A dependency under a copyleft licence: `deny.toml` must reject it (XTASK-R082). It is outside
+# the app's workspace directory, so it is a dependency, not a workspace member.
+[package]
+name = "fixture_copyleft"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+publish = false

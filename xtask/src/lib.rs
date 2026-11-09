@@ -13,6 +13,7 @@ mod check_docs;
 mod ci;
 mod cli;
 mod coverage;
+mod doctor;
 mod finding;
 mod frontmatter;
 mod hygiene;

@@ -1,0 +1,13 @@
+# Root crate of the R082 fixture (docs/specs/xtask.md "`doctor` and `deny` details").
+# Its own `[workspace]` keeps it out of the Liminal workspace.
+[package]
+name = "fixture_app"
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[dependencies]
+fixture_copyleft = { path = "../copyleft" }
+
+[workspace]

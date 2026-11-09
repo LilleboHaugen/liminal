@@ -42,7 +42,7 @@ pub(crate) const STEPS: &[Step] = &[
             requires: Some(Tool {
                 probe: &["fmt", "--version"],
                 reason: "rustfmt is not installed for the pinned toolchain",
-                help: "rustup component add rustfmt",
+                help: crate::doctor::RUSTFMT_HELP,
             }),
         }),
     },
@@ -63,7 +63,7 @@ pub(crate) const STEPS: &[Step] = &[
             requires: Some(Tool {
                 probe: &["clippy", "--version"],
                 reason: "clippy is not installed for the pinned toolchain",
-                help: "rustup component add clippy",
+                help: crate::doctor::CLIPPY_HELP,
             }),
         }),
     },
@@ -112,6 +112,19 @@ pub(crate) const STEPS: &[Step] = &[
     Step {
         name: crate::coverage::NAME,
         action: Action::Coverage,
+    },
+    Step {
+        name: "deny",
+        // XTASK-R081: the repository `deny.toml`; `--locked` keeps Cargo.lock unchanged (R010).
+        action: Action::Cargo(CargoInvocation {
+            args: &["deny", "--locked", "--config", "deny.toml", "check"],
+            env: &[],
+            requires: Some(Tool {
+                probe: &["deny", "--version"],
+                reason: "cargo-deny is not installed",
+                help: crate::doctor::CARGO_DENY_HELP,
+            }),
+        }),
     },
 ];
 
