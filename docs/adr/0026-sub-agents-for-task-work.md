@@ -1,10 +1,10 @@
 ---
 id: ADR-0026
 title: Sub-agents for task work under the same rules as owner-started sessions
-status: accepted
+status: superseded
 date: 2026-11-09
 supersedes: [ADR-0020]
-superseded_by: []
+superseded_by: [ADR-0027]
 ---
 
 # ADR-0026: Sub-agents for task work under the same rules as owner-started sessions

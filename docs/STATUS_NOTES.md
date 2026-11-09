@@ -10,14 +10,10 @@ M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-002
 M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
 it) first, then the engine crates (plan in M1-T001 "Handoff").
 
-ADR-0026 (sub-agents for task work) is accepted (ADR review 2026-11-09) and supersedes
-ADR-0020. Sessions may spawn sub-agents under its rules (AGENTS.md step 6, WORKFLOW.md §2).
-
-ADR-0027 (sub-agents by default, no per-session total; supersedes ADR-0026 on acceptance) is
-`proposed` on branch `adr/0027-subagent-throughput`, requested by the owner. The next session
-starts on that branch. It does the ADR review (REVIEW.md §4) of ADR-0027 and, if it is
-consistent, accepts it, applies its "Edits on acceptance" and merges the branch to `main`. Then
-it continues with task work: the review of M1-T002 and further tasks, under the new rules.
+ADR-0027 (sub-agents by default, no per-session total) is accepted (ADR review 2026-11-09) and
+supersedes ADR-0026, whose other decisions stay in force through it. Sessions SHOULD act as a
+parent whenever two or more tasks are eligible, keep up to 3 sub-agents (1 review) running until
+nothing is eligible (AGENTS.md step 6, WORKFLOW.md §2).
 
 M1-T002 is in `review` on branch `task/M1-T002-check-docs-follow-ups` (not yet on `main`).
 The next session reviews M1-T002, then continues with M1-T003. That branch also edits this

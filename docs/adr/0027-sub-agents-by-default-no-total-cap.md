@@ -1,19 +1,18 @@
 ---
 id: ADR-0027
 title: Sub-agents by default, no per-session total
-status: proposed
+status: accepted
 date: 2026-11-09
-supersedes: []
+supersedes: [ADR-0026]
 superseded_by: []
 ---
 
 # ADR-0027: Sub-agents by default, no per-session total
 
-Supersedes ADR-0026 on acceptance. Every decision of ADR-0026 stays in force, except Decision 1
-(the last two sentences are replaced by Decision 1 here) and Decisions 9.2 and 9.4 (replaced by
-Decision 2 here). The ADR review must treat ADR-0026's text as part of this decision.
-`supersedes` stays empty while this ADR is `proposed`, for the same reason given in ADR-0026
-(XTASK-R021 symmetric links). The accepting session sets both fields.
+Supersedes ADR-0026. Every decision of ADR-0026 stays in force, except Decision 1 (replaced in
+full by Decision 1 here) and Decisions 9.2 and 9.4 (replaced by Decision 2 here). ADR-0026's text
+is part of this decision. While this ADR was `proposed`, `supersedes` stayed empty, for the same
+reason given in ADR-0026 (XTASK-R021 symmetric links). The accepting session set both fields.
 
 ## Context
 
@@ -36,8 +35,9 @@ through reviews of tasks that *other* sessions wrote. The gain is that a session
 ## Decision
 
 1. **Prefer sub-agents.** A session the project owner started SHOULD act as a parent (ADR-0026)
-   whenever two or more tasks are eligible for sub-agents at the same time (ADR-0026 Decisions 4.2,
-   5.1, 10), counting reviews and implementations. With at most one eligible task, it MAY do that
+   whenever two or more tasks are eligible for sub-agents (ADR-0026 Decisions 5.1, 10), counting
+   reviews and implementations. This holds even if ADR-0026 Decision 4.2 (disjoint crates) lets
+   only one of them run at a time: the parent then runs them one after another. With at most one eligible task, it MAY do that
    task itself in the shape of ADR-0020 (one review, then one implementation). The owner MAY forbid
    sub-agents or lower the concurrency limit in a session by saying so in that session. That
    instruction binds the session and never raises the limit. Each spawn is still announced to the
@@ -90,7 +90,16 @@ through reviews of tasks that *other* sessions wrote. The gain is that a session
 - **Owner approval.** Requested by the project owner on 2026-11-09 (quoted under Context), with
   the choice "Remove total cap" when asked about the limits. This ADR changes rules in `AGENTS.md`
   (session protocol step 6). Its ADR review (REVIEW.md §4) happens in an owner-started session
-  (ADR-0026 Decision 5.4).
+  (ADR-0026 Decision 5.4). Approved by the project owner on 2026-11-09, after the ADR review, with
+  the two clarifications listed under "ADR review".
+- **ADR review.** Done 2026-11-09 in an owner-started session
+  (`docs/journal/2026-11-09-adr-0027-review.md`). It found the ADR consistent with ADR-0001,
+  ADR-0011, ADR-0020, ADR-0021, ADR-0022 and ADR-0026 (superseded explicitly). Before acceptance it
+  made two clarifications: the preamble said only the last two sentences of ADR-0026 Decision 1
+  were replaced, but Decision 1 here also changes its first sentence and its limit sentence, so
+  Decision 1 is replaced in full; and Decision 1 no longer requires the eligible tasks to be
+  runnable at the same time, because ADR-0026 Decision 4.2 lets most early M1 tasks (all
+  `crates: [xtask]`) run only one at a time. Accepted on the same day.
 
 ## Verification
 
@@ -101,7 +110,7 @@ through reviews of tasks that *other* sessions wrote. The gain is that a session
 
 ## Edits on acceptance
 
-These edits are applied in the acceptance commit, verbatim apart from fixes the ADR review asks
+Applied in the acceptance commit on 2026-11-09, verbatim apart from fixes the ADR review asked
 for:
 
 1. **Frontmatter.** This ADR: `status: accepted`, `supersedes: [ADR-0026]`. ADR-0026:

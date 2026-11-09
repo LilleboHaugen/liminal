@@ -34,16 +34,18 @@ it works. Code without evidence is not progress.
    the plain cargo commands listed under "Commands").
 5. **Hand off.** Before the session ends — finished or not — update the task file (status + handoff notes),
    write a journal entry (`docs/journal/README.md`), and update any doc your change made stale.
-6. **Stop at the session boundary (ADR-0026).** A session does at most one review, then one
+6. **Stop at the session boundary (ADR-0026, ADR-0027).** A session does at most one review, then one
    implementation task. When you set your task to `review`, stop task work. Never review
-   your own work. Only the project owner starts sessions. A session MAY spawn sub-agents for
-   task work unless the owner forbids it in that session. It then follows ADR-0026:
+   your own work. Only the project owner starts sessions. A session SHOULD spawn sub-agents for
+   task work whenever two or more tasks are eligible, unless the owner forbids it in that session.
+   It then follows ADR-0026 and ADR-0027:
    every sub-agent counts as a separate session and meets every rule here. The parent only
    orchestrates (no review, implementation, status change, task merge or `done`). Each
    implementation sub-agent gets one task on its own branch and worktree, and concurrent ones
    share no crate. A task is never reviewed by any agent of the session that wrote it. Review
    sub-agents start fresh with the fixed prompt only. At most 3 sub-agents run at once (1
-   review), with at most 3 + 3 per session, and sub-agents never spawn agents. When the owner
+   review). Keep the slots full until no task is eligible; each task gets at most one sub-agent per
+   session. Sub-agents never spawn agents. When the owner
    asks what is next or for the status, and a task written in this session is in `review`,
    answer: "Start a new session. It will review `<task>`, then continue with `<next task>`."
    Do not start that work yourself.
