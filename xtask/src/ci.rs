@@ -106,6 +106,10 @@ pub(crate) const STEPS: &[Step] = &[
         action: Action::Check(crate::hygiene::run_check),
     },
     Step {
+        name: crate::status::STEP_NAME,
+        action: Action::Check(crate::status::run_check),
+    },
+    Step {
         name: crate::coverage::NAME,
         action: Action::Coverage,
     },
@@ -364,7 +368,11 @@ pub(crate) fn run_steps(
         if !options.json {
             let command = match &step.action {
                 Action::Cargo(invocation) => invocation.args.join(" "),
-                Action::Check(_) => format!("xtask {}", step.name),
+                // `status-check` is `status --check`; the other native steps are commands.
+                Action::Check(_) => match step.name.strip_suffix("-check") {
+                    Some(command) => format!("xtask {command} --check"),
+                    None => format!("xtask {}", step.name),
+                },
                 Action::Coverage => crate::repo::coverage::LLVM_COV_ARGS.join(" "),
             };
             writeln!(out, "==> {}: cargo {command}", step.name)?;

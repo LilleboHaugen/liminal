@@ -4,9 +4,9 @@
 //! [`check`] is a pure function of the [`RepoModel`]. Only [`run_check`] touches the file system,
 //! through the shared loader in [`crate::repo`].
 
-mod fields;
+pub(crate) mod fields;
 mod indexes;
-mod rules;
+pub(crate) mod rules;
 
 use std::io::Write;
 use std::path::Path;

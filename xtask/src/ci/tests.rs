@@ -648,7 +648,16 @@ fn native_check_steps_are_registered_by_name() {
         .filter(|step| matches!(step.action, Action::Check(_)))
         .map(|step| step.name)
         .collect();
-    assert_eq!(native, ["check-arch", "check-docs", "trace", "hygiene"]);
+    assert_eq!(
+        native,
+        [
+            "check-arch",
+            "check-docs",
+            "trace",
+            "hygiene",
+            "status-check"
+        ]
+    );
     let coverage: Vec<&str> = STEPS
         .iter()
         .filter(|step| matches!(step.action, Action::Coverage))
@@ -690,6 +699,31 @@ fn human_mode_names_native_steps_and_prints_an_internal_error() {
     assert!(
         out.contains("  check-x  FAIL (")
             && out.contains("\n      LIM-XTASK-0001: docs: could not be read\n"),
+        "{out}"
+    );
+}
+
+#[test]
+fn human_mode_shows_status_check_as_the_status_check_command() {
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "must have the signature of check::CheckFn"
+    )]
+    fn no_findings(_: &std::path::Path) -> Result<Vec<Finding>, crate::repo::LoadError> {
+        Ok(Vec::new())
+    }
+    const STEPS: &[Step] = &[Step {
+        name: "status-check",
+        action: Action::Check(no_findings),
+    }];
+    let root = TempRoot::new("ci-status-check-human");
+    let mut runner = FakeRunner::with(&[("status-check", Outcome::Pass)]);
+    let mut out = Vec::new();
+    let result = execute(&[], &mut out, root.path(), STEPS, &mut runner);
+    assert!(matches!(result, Ok(Exit::Success)));
+    let out = String::from_utf8(out).unwrap();
+    assert!(
+        out.starts_with("==> status-check: cargo xtask status --check\n"),
         "{out}"
     );
 }

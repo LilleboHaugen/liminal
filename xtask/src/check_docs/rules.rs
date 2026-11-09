@@ -26,7 +26,8 @@ const SPEC_FIELDS: &[&str] = &[
     "last_reviewed",
     "adrs",
 ];
-const MATURITIES: &[&str] = &["planned", "experimental", "usable", "stable", "optimized"];
+pub(crate) const MATURITIES: &[&str] =
+    &["planned", "experimental", "usable", "stable", "optimized"];
 const TASK_FIELDS: &[&str] = &[
     "id",
     "title",
@@ -36,7 +37,7 @@ const TASK_FIELDS: &[&str] = &[
     "depends_on",
     "requirements",
 ];
-const TASK_STATUSES: &[&str] = &["todo", "in-progress", "blocked", "review", "done"];
+pub(crate) const TASK_STATUSES: &[&str] = &["todo", "in-progress", "blocked", "review", "done"];
 
 /// An ADR file, as far as the index check (R025) needs it.
 #[derive(Debug)]

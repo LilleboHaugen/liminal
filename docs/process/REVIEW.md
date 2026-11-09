@@ -51,8 +51,9 @@ Outcome, recorded in a "Review" note in the task (reviewer, date, what was check
 - Blocking findings, and the task has had fewer than two "changes required" outcomes: set
   `status: in-progress` with a numbered list of required changes, each with its class (B1–B5).
 - Blocking findings, and the task already had two "changes required" outcomes: set
-  `status: blocked`, state each finding, its class and the options, and list it under Blockers in
-  `docs/STATUS.md`. The project owner decides (accept as `done` with a follow-up task, or allow
+  `status: blocked`, state each finding, its class and the options, and add it under "Blockers
+  needing an owner decision" in `docs/STATUS_NOTES.md` (the generated `docs/STATUS.md` lists
+  every `blocked` task by itself). The project owner decides (accept as `done` with a follow-up task, or allow
   one more round), and the decision is recorded in the task file.
 
 ## 2. Spec review (before a crate becomes `experimental`)

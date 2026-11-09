@@ -129,6 +129,11 @@ pub const COMMANDS: &[Command] = &[
         summary: "Line coverage per crate (cargo llvm-cov) against ci/coverage.toml floors (XTASK-R060 … R064).",
         run: crate::coverage::command,
     },
+    Command {
+        name: "status",
+        summary: "Generate docs/STATUS.md from task and spec frontmatter; --check fails if stale (XTASK-R070 … R072).",
+        run: crate::status::command,
+    },
 ];
 
 /// Runs xtask with the given arguments (the process arguments without the program name).
