@@ -2,7 +2,7 @@
 id: M1-T006
 title: CI workflow follow-ups from the M0-T007 review
 milestone: M1
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T007]
 requirements: []
@@ -48,11 +48,12 @@ line).
 
 ## Acceptance criteria
 
-- [ ] A `pull_request`-triggered run on a task branch passes; run ID in the journal.
-- [ ] Trigger set decided, implemented, reason in the workflow header and the journal.
-- [ ] Action-update path decided (Dependabot config committed, or manual cadence written into the
+- [x] A `pull_request`-triggered run on a task branch passes; run ID in the journal.
+- [x] Trigger set decided, implemented, reason in the workflow header and the journal.
+- [x] Action-update path decided (Dependabot config committed, or manual cadence written into the
       workflow header).
-- [ ] `cargo xtask ci` passes; CI green on `main` after the change.
+- [ ] `cargo xtask ci` passes; CI green on `main` after the change. (`cargo xtask ci` and branch
+      CI pass; "green on `main`" is checked by the reviewer after the merge, WORKFLOW.md §8.)
 
 ## Test requirements
 
@@ -60,7 +61,26 @@ None in code. Verification is the CI runs linked in the journal.
 
 ## Handoff
 
-_No session has worked on this task yet._
+2026-11-09, implementation sub-agent (journal `docs/journal/2026-11-09-M1-T006.md`).
+
+**Done:**
+- `pull_request` run verified on draft PR #1 (commit 2719f6c, old workflow): run 42686383503,
+  attempt 2 green (attempt 1: macOS job never got a hosted runner; re-ran that job only). The
+  same commit's `push` run 42686372259 ran in parallel: duplicate cost confirmed.
+- Trigger set decided: `push` on every branch, no `pull_request`; `event_name` dropped from the
+  concurrency group. Reason in the header of `.github/workflows/ci.yml` and the journal.
+- Action updates: `.github/dependabot.yml`, `github-actions` ecosystem, monthly, one grouped pull
+  request, prefix `ci(deps)`. Handling rule (merge only through a task) in the workflow header and
+  `docs/STATUS_NOTES.md`.
+- PR #1 closed without merging after the new-trigger check (see journal "Verified").
+
+**Not done / not verified:**
+- "CI green on `main` after the change": the reviewer checks it after merging.
+- Dependabot behaviour: observable only after `dependabot.yml` is on `main`.
+- Dependabot *security* alerts are a repository setting (owner), not configured here.
+
+**Traps:** `cancel-in-progress: true` also cancels an older `main` run when two merges are pushed
+quickly (journal "Problems"); not changed, outside scope.
 
 ## Review
 

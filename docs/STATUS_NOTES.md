@@ -63,7 +63,9 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
   98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in M0-T011). `xtask` is `usable`
   (M0-T010, 2026-11-09).
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
-  Linux; `coverage` and `deny` run in their own Linux jobs.
+  Linux; `coverage` and `deny` run in their own Linux jobs. There is no `pull_request` trigger
+  (M1-T006). Dependabot (`.github/dependabot.yml`) opens a monthly grouped pull request for the
+  SHA-pinned actions (`gh pr list --author app/dependabot`); it is merged only through a task.
 
 ## Blockers needing an owner decision
 

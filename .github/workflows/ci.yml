@@ -1,22 +1,32 @@
-# Quality gates on every push and pull request (M0-T007; ADR-0005: native builds per Tier 1 OS).
+# Quality gates on every push to any branch (M0-T007; ADR-0005: native builds per Tier 1 OS).
 # Every job runs `cargo xtask ci` (docs/specs/xtask.md §5); steps that need an extra tool run in
 # their own job on Linux and are deselected (`--skip`) in `checks`.
 #
-# Third-party actions are pinned by full commit SHA; the version is in the comment. To upgrade,
-# resolve the new tag with `git ls-remote https://github.com/<owner>/<repo>.git 'refs/tags/<tag>*'`
-# (for an annotated tag use the `^{}` line, which is the commit).
+# Triggers (M1-T006): `push` on every branch, no `pull_request`. Task branches are merged to `main`
+# locally by the reviewer, who needs the branch's own CI run (docs/process/WORKFLOW.md §8), so
+# `push: branches: [main]` would leave task branches unchecked. A pull request shows the `push` run
+# of its head commit as its checks. `push` plus `pull_request` ran every job twice per push on a
+# branch with an open pull request (verified on PR #1, M1-T006); the only extra the `pull_request`
+# run checks is the merge with `main`, which the reviewer already runs locally (`cargo xtask ci` on
+# the merge result) and the `main` push run checks after the merge.
+#
+# Third-party actions are pinned by full commit SHA; the version is in the comment. Dependabot
+# (.github/dependabot.yml, M1-T006) checks them monthly and opens one grouped pull request with the
+# new SHAs and version comments; its branch gets a normal `push` run. Handle such a pull request in
+# a task like any other change (do not merge it on GitHub without a reviewed task). To re-pin by
+# hand, resolve the new tag with `git ls-remote https://github.com/<owner>/<repo>.git
+# 'refs/tags/<tag>*'` (for an annotated tag use the `^{}` line, which is the commit).
 
 name: ci
 
 on:
   push:
-  pull_request:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
