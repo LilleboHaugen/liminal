@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 17
+spec_version: 18
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -194,7 +194,9 @@ Summary details (added in `spec_version` 2):
 - Workspace members (R026) come from `[workspace].members` in the root `Cargo.toml`. A member is a
   directory path, or `<dir>/*` (every direct subdirectory of `<dir>` containing a `Cargo.toml`).
   Other glob patterns are internal error LIM-XTASK-0004. The crate name is `[package].name` of the
-  member's `Cargo.toml`.
+  member's `Cargo.toml`. A member entry is normalized before use (added in `spec_version` 18):
+  `.` segments, empty segments and a trailing `/` are removed (`./xtask` and `xtask/./` are
+  `xtask`), so member directories match repository-relative file paths in every command.
 
 Check command output (R009, all check commands): human mode prints, per finding,
 `<severity> <rule> <location>: <message>` and an indented `help:` line, then
@@ -365,8 +367,11 @@ as `output_tail` in both output modes.
   members belongs to the innermost one. Files outside the repository root or outside every
   member are ignored. `\` in paths reads as `/`. If the export lists files but none is inside the
   root, that is LIM-XTASK-0002, so a differently spelled root never makes every crate look
-  unmeasured. A crate with no measured lines is shown as such, is never below its floor and
-  keeps its floor on update. If `cargo llvm-cov` fails (for example a test fails), that is
+  unmeasured. A crate with no measured lines is shown as such and keeps its floor on update.
+  Its coverage is unknown, not 100 %: if its floor is above 0.0 it is an R061 error (changed in
+  `spec_version` 18; before, it always passed), whose help names the likely causes (member path,
+  source files) and says a crate with no code to measure gets floor 0.0 with a journal entry.
+  With floor 0.0 it passes. If `cargo llvm-cov` fails (for example a test fails), that is
   LIM-XTASK-0006.
 - `ci/coverage.toml`. Exactly one top-level table, `[floors]`, mapping crate name to a TOML
   integer or float from 0 to 100 with at most one decimal. Anything else is LIM-XTASK-0004.
@@ -600,3 +605,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
+| 18 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
