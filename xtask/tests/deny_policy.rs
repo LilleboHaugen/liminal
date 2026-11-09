@@ -320,6 +320,120 @@ fn git_dependencies_are_rejected() {
     assert!(output.contains("fixture_git_dep"), "{output}");
 }
 
+/// The `checksum` of `name` in the repository `Cargo.lock` (the SHA-256 of its `.crate` file).
+fn locked_checksum(name: &str) -> String {
+    let lock = std::fs::read_to_string(repo_root().join("Cargo.lock"))
+        .expect("test setup: read Cargo.lock");
+    let header = format!("name = \"{name}\"\n");
+    let at = lock
+        .find(&header)
+        .unwrap_or_else(|| panic!("test setup: {name} is in Cargo.lock"));
+    lock[at..]
+        .lines()
+        .take_while(|line| !line.is_empty())
+        .find_map(|line| line.strip_prefix("checksum = \""))
+        .and_then(|rest| rest.strip_suffix('"'))
+        .unwrap_or_else(|| panic!("test setup: {name} has a checksum line in Cargo.lock"))
+        .to_string()
+}
+
+/// The `.crate` file of `name` at its locked version in the local crates.io cache
+/// (`$CARGO_HOME/registry/cache/index.crates.io-*/`), which building the repository filled.
+fn cached_crate(name: &str) -> PathBuf {
+    let cargo_home = std::env::var_os("CARGO_HOME").map_or_else(
+        || {
+            std::env::home_dir()
+                .expect("test setup: a home directory for the default CARGO_HOME")
+                .join(".cargo")
+        },
+        PathBuf::from,
+    );
+    let file = format!("{name}-{}.crate", locked_version(name));
+    let cache = cargo_home.join("registry/cache");
+    std::fs::read_dir(&cache)
+        .unwrap_or_else(|_| panic!("test setup: read {}", cache.display()))
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with("index.crates.io-")
+        })
+        .map(|entry| entry.path().join(&file))
+        .find(|path| path.is_file())
+        .unwrap_or_else(|| panic!("test setup: {file} is in {}", cache.display()))
+}
+
+/// Verifies: XTASK-R083
+#[test]
+#[ignore = "M0-T009: needs cargo-deny and git; the `deny` job of the CI workflow runs it"]
+fn other_registry_dependencies_are_rejected() {
+    // A registry other than crates.io: a git index at a `file://` URL whose `dl` is a `file://`
+    // directory holding the crates.io `.crate` file of `itoa` (its checksum is in Cargo.lock), so
+    // cargo resolves and downloads it without network access.
+    let root = TempRoot::new("deny-registry");
+    let dl = root.path().join("dl");
+    let file = format!("itoa-{}.crate", locked_version("itoa"));
+    std::fs::create_dir_all(&dl).expect("test setup: create the download directory");
+    std::fs::copy(cached_crate("itoa"), dl.join(&file)).expect("test setup: copy the .crate");
+    let index = root.path().join("index");
+    write(
+        &index.join("config.json"),
+        &format!(
+            "{{\"dl\": \"{}/{{crate}}-{{version}}.crate\"}}\n",
+            file_url(&dl)
+        ),
+    );
+    write(
+        &index.join("it/oa/itoa"),
+        &format!(
+            "{{\"name\":\"itoa\",\"vers\":\"{}\",\"deps\":[],\"cksum\":\"{}\",\
+             \"features\":{{}},\"yanked\":false}}\n",
+            locked_version("itoa"),
+            locked_checksum("itoa")
+        ),
+    );
+    commit_all(&index);
+
+    let app = root.path().join("app");
+    write(
+        &app.join("Cargo.toml"),
+        &format!(
+            "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+             license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
+             itoa = {{ version = \"={}\", registry = \"fixture\" }}\n\n[workspace]\n",
+            locked_version("itoa")
+        ),
+    );
+    write(&app.join("src/lib.rs"), "");
+
+    // Not `--offline`: cargo fetches the local index (no network involved). The registry is
+    // named through the environment, as cargo reads config files from the working directory,
+    // not the manifest's. A separate CARGO_HOME keeps the fixture registry out of the user's
+    // cache; nothing from crates.io is needed.
+    let env = [
+        ("CARGO_REGISTRIES_FIXTURE_INDEX", file_url(&index)),
+        (
+            "CARGO_HOME",
+            root.path()
+                .join("cargo-home")
+                .to_string_lossy()
+                .into_owned(),
+        ),
+    ];
+    let (passed, output) = run_deny(
+        &repo_root().join("deny.toml"),
+        &app.join("Cargo.toml"),
+        false,
+        "sources",
+        &env,
+    );
+    assert!(!passed, "another registry was accepted:\n{output}");
+    assert!(output.contains("sources FAILED"), "{output}");
+    assert!(output.contains("error[source-not-allowed]"), "{output}");
+    assert!(output.contains("itoa"), "{output}");
+}
+
 /// One fixture advisory: `(RUSTSEC id, crate, informational kind or None for a vulnerability)`.
 type Advisory = (&'static str, &'static str, Option<&'static str>);
 

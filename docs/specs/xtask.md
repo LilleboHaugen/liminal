@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 18
+spec_version: 19
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -495,14 +495,21 @@ as `output_tail` in both output modes.
   workflow (`cargo test --test deny_policy -- --ignored`, `xtask/tests/deny_policy.rs`).
 - R083 is verified by running `cargo deny check sources` with the repository `deny.toml` against
   a fixture crate whose only dependency is a git dependency on a local repository
-  (`file://<temp>/dep`, created by the test with `git`), which is rejected. A non-crates.io
-  registry is not tested (a local registry needs a registry server or index setup); the
-  repository `deny.toml` sets `unknown-registry = "deny"` and `allow-registry` to crates.io only.
+  (`file://<temp>/dep`, created by the test with `git`), which is rejected; and against a
+  fixture crate whose only dependency comes from a second registry, which is rejected with
+  `error[source-not-allowed]` (added in `spec_version` 19). That registry is a git index the
+  test creates at a `file://` URL (named through `CARGO_REGISTRIES_FIXTURE_INDEX`), whose `dl`
+  is a `file://` directory holding the `.crate` file of a crate of the repository `Cargo.lock`,
+  copied from the local crates.io cache, with the checksum from `Cargo.lock`; cargo runs with a
+  temporary `CARGO_HOME`, so no network is needed and the user's cache is not changed.
 - R084 is verified by running `cargo deny --offline check advisories` with a copy of the
   repository `deny.toml` that adds only `db-path` and `db-urls` to `[advisories]`, pointing at a
   fixture advisory database (a git repository the test creates) that has one advisory for a
   crates.io crate of the repository `Cargo.lock`. An `unmaintained` advisory and a vulnerability
-  advisory are each rejected; the same database without either passes. The crates come from the
+  advisory are each rejected; the same database without either passes. The `unmaintained` case
+  runs twice: once on a crate the fixture app reaches only through a path crate, once on a
+  direct dependency of the app (added in `spec_version` 19), so `unmaintained = "all"` is
+  distinguished from `"workspace"` and `"transitive"`. The crates come from the
   local cargo registry cache, so no network is needed once the repository has been built.
   cargo-deny reads the database from `<db-path>/advisory-db-<hash of the URL>`; the test takes
   that directory name from cargo-deny's own error output on an empty `db-path`, so it does not
@@ -546,7 +553,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
-| `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency; `check advisories` on a fixture advisory database, with a passing control | cargo-deny's sources and advisories checks |
+| `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency and on a dependency from a local second registry; `check advisories` on a fixture advisory database with transitive and direct advised crates, with passing controls | cargo-deny's sources and advisories checks |
 | Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
@@ -608,3 +615,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
+| 19 | 2026-11-09 | R083 test approach: a second (local git index) registry is now tested; R084: the `unmaintained` case also covers a direct dependency (review 2 of M0-T009) | M1-T009 |

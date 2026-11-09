@@ -2,7 +2,7 @@
 id: M1-T009
 title: deny policy test gaps from review 2 of M0-T009
 milestone: M1
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R083, XTASK-R084]
@@ -47,10 +47,10 @@ distinguish are either tested or recorded in the spec as unchecked, with the rea
 
 ## Acceptance criteria
 
-- [ ] Item 1: a test case rejects a direct dependency with an `unmaintained` advisory; the mutant
+- [x] Item 1: a test case rejects a direct dependency with an `unmaintained` advisory; the mutant
       `unmaintained = "transitive"` fails a test (record in the journal).
-- [ ] Item 2: tested with mutant `unknown-registry = "allow"` killed, or the spec says why not.
-- [ ] Spec `spec_version` bumped if its text changes; `cargo xtask ci` passes; the `deny` CI job
+- [x] Item 2: tested with mutant `unknown-registry = "allow"` killed, or the spec says why not.
+- [x] Spec `spec_version` bumped if its text changes; `cargo xtask ci` passes; the `deny` CI job
       runs the changed tests.
 
 ## Test requirements
@@ -59,7 +59,37 @@ distinguish are either tested or recorded in the spec as unchecked, with the rea
 
 ## Handoff
 
-_No session has worked on this task yet._
+2026-11-09, implementation sub-agent (parent session branch `session/2026-11-09-m1-subagents`).
+Status `review`. Everything in scope is done; nothing is left open.
+
+- Item 1 (`xtask/tests/deny_policy.rs`): `check_advisories` takes a `Graph` (which advised crates
+  the app depends on directly, which only through `fixture_middle`).
+  `unmaintained_and_vulnerable_crates_are_rejected` now also runs a passing control with `itoa`
+  as a direct dependency and rejects an `unmaintained` advisory on that direct `itoa`
+  (`RUSTSEC-2026-9003`). Mutants run by hand: `unmaintained = "transitive"` fails ("a direct
+  unmaintained crate was accepted"), `unmaintained = "workspace"` fails ("a transitive
+  unmaintained crate was accepted").
+- Item 2: cargo-deny 0.20.2 does reject an offline local registry. New test
+  `other_registry_dependencies_are_rejected` builds a git index at a `file://` URL (with
+  `config.json` `dl` pointing at a `file://` directory) holding `itoa` at its locked version; the
+  `.crate` file is copied from the local crates.io cache and its checksum taken from `Cargo.lock`.
+  The registry is named through `CARGO_REGISTRIES_FIXTURE_INDEX` (cargo reads config files from
+  the working directory, not the manifest directory), and `CARGO_HOME` is a temporary directory
+  so the fixture registry does not land in the user's cache. Mutant `unknown-registry = "allow"`
+  fails the test ("another registry was accepted").
+- Spec `docs/specs/xtask.md` → `spec_version` 19 (R083/R084 test approach, §10 table, history).
+  CI workflow comment above the `deny_policy` step updated (R082–R084). The `deny` CI job already
+  runs every ignored test of `deny_policy.rs`, so it runs both changed tests.
+
+Verified: `cargo xtask ci` passes on macOS (darwin 27.2, cargo-deny 0.20.2);
+`cargo test -p xtask --test deny_policy -- --ignored` passes (5 tests). Not verified: the `deny`
+CI job on ubuntu (no CI run of this branch observed by this session). Assumption for CI:
+`cargo-deny` is found on `PATH` (the test changes `CARGO_HOME`, so `$CARGO_HOME/bin` lookup
+uses the temporary directory); on GitHub runners `~/.cargo/bin` is on `PATH`.
+
+Trap: the existing `git_dependencies_are_rejected` test still writes a checkout of its fixture
+repository into the user's `$CARGO_HOME/git/` on every run (not in scope; the same
+`CARGO_HOME` override would fix it).
 
 ## Review
 
