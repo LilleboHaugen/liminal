@@ -9,10 +9,19 @@ performance is measured, recorded and defended.
 |---|---|---|
 | Reference | Apple M5 Pro (6P + 12E cores), 20-core GPU, 24 GB, macOS 27.2, Metal 4 | Budgets are defined here |
 | Low-end target | Steam Deck (AMD Van Gogh APU, 16 GB shared, 1280×800) | Budgets for demo games, when hardware is available |
-| CI | GitHub-hosted runners | Shared and noisy. Used only for instruction-count gates (OQ-004) |
+| CI | GitHub-hosted runners | Shared and noisy. Used only for instruction-count gates (ADR-0023) |
 
 Each baseline file records the machine ID, OS version, toolchain version, commit and power state
 (plugged in, no thermal throttling).
+
+## Harness and baselines (ADR-0023)
+
+- Engine benchmarks live in the `liminal_benches` crate (`benches/`), on Liminal's own `std`-only
+  harness. Engine crates have no `benches/` directories.
+- Wall-clock baselines: reference machine only, `ci/perf/<machine-id>/<crate>.json`, compared by
+  `cargo xtask bench` (not part of `cargo xtask ci`).
+- CI gate: instruction counts of single-threaded cases under Valgrind on Linux,
+  `ci/perf/ci-linux-x86_64/instructions.json`; more than 1 % increase fails.
 
 ## Budgets
 
@@ -38,9 +47,10 @@ open-source equivalent:
 | `liminal_voxel` meshing | Published binary greedy meshing implementations (chosen at M5 kickoff) |
 | `liminal_serial` | `serde_json`, `bincode` / `postcard` |
 
-Comparison crates are dev-dependencies of a dedicated benchmark crate only, never of engine crates.
-Each needs an ADR (OQ-004). Results are written to `ci/perf/competitive/<crate>-<date>.json` and
-summarized in the spec.
+Comparison crates are dev-dependencies of the competitive benchmark crate only, a separate Cargo
+workspace at `benches/competitive/`, never of engine crates. ADR-0023 approves `bevy_ecs`, `hecs`,
+`glam` and `rayon`; later comparison crates need an ADR each. Results are written to
+`ci/perf/competitive/<crate>-<date>.json` and summarized in the spec.
 
 ## Iteration-latency budgets
 

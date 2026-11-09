@@ -15,11 +15,11 @@ ADR-0010.
 | Differential | Unit or integration | Simple reference implementation | Every optimized algorithm (AGENTS.md rule 4) |
 | Golden image | Integration, rendering crates | Approved image in `tests/golden/<backend>/` | Every rendering feature |
 | Snapshot | Integration | Approved text/JSON output in `tests/snapshots/` | Schemas, protocol messages, CLI output, error formats |
-| Determinism / replay | `liminal_testkit` | Recorded state hashes | Deterministic crates at `usable`+, demo games |
+| Determinism / replay | Layer 0–1: the crate's `tests/determinism.rs`; apps: `liminal_testkit` (ADR-0024) | State hashes from `liminal_core`, compared across runs; recorded literals where cross-platform identity is claimed | Deterministic crates at `usable`+, demo games |
 | Concurrency | `loom` tests behind `cfg(loom)` | Exhaustive interleavings | Lock-free code in `liminal_jobs`, `liminal_ecs` |
 | Miri | `cargo +nightly miri test -p <crate>` | Undefined-behaviour detection | Every crate with `unsafe = "allow"` (where Miri can run) |
 | Fuzz | `fuzz/` with `cargo fuzz` (nightly) | No panic, round-trip invariants | Parsers: cooked formats, JSON, protocol, importers (at `stable`) |
-| Benchmark | `benches/` | Baselines in `ci/perf/` | Performance-critical crates at `stable`+ |
+| Benchmark | `benches/` crate `liminal_benches`; comparisons in `benches/competitive/` (ADR-0023) | Baselines in `ci/perf/` | Performance-critical crates at `stable`+ |
 
 ## Requirement traceability
 
@@ -82,7 +82,13 @@ line, because it hides the gap. Reviewers check for assertion-free tests.
 
 ## Determinism tests
 
-`liminal_testkit` provides:
+Layer 0–1 deterministic crates test determinism in their own `tests/determinism.rs`, with the
+`liminal_core` state hasher: a seeded workload runs at least twice and the hashes are compared;
+`liminal_ecs` and `liminal_app` also compare single- and multithreaded execution. Where a spec
+claims cross-platform bit-identity, the test also compares against a recorded hash literal
+(ADR-0024).
+
+For whole apps, `liminal_testkit` provides:
 - `assert_deterministic(app_builder, seed, steps, runs)`: runs N times, compares state hashes at every
   step, and reports the first diverging step and the components that differ.
 - Replay files: recorded input streams plus expected state hashes at checkpoints. A replay is a

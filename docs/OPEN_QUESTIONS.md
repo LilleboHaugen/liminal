@@ -10,13 +10,13 @@ without going through that process.
 | OQ-001 | Shader language and compilation toolchain | M3 kickoff (spike) | open |
 | OQ-002 | Serialization: own reflection-driven serializer or `serde` | M2 kickoff | open |
 | OQ-003 | Authored text format: strict JSON, JSON5/JSONC or other | M2 kickoff | open |
-| OQ-004 | Benchmark harness and CI regression method | M1 kickoff | open |
+| OQ-004 | Benchmark harness and CI regression method | M1 kickoff | resolved (ADR-0023) |
 | OQ-005 | Audio decoding formats and decoder source | M6 kickoff | open |
 | OQ-006 | Linux packaging target (Steam Linux Runtime version, glibc floor) | M7 kickoff | open |
 | OQ-007 | GPU test coverage on hosted CI runners (macOS/Windows) | M3 | open |
 | OQ-008 | Physics architecture (solver type, determinism strategy across platforms) | M6 kickoff | open |
 | OQ-009 | Dev-time cooking vs. layer rules (runtime cannot depend on `liminal_cook`) | M4 kickoff | open |
-| OQ-010 | Where determinism/replay tests for layer 0–1 crates live (`liminal_testkit` is layer 4) | M1 kickoff | open |
+| OQ-010 | Where determinism/replay tests for layer 0–1 crates live (`liminal_testkit` is layer 4) | M1 kickoff | resolved (ADR-0024) |
 
 ---
 
@@ -56,6 +56,8 @@ no comments. JSON5/JSONC allows comments and trailing commas. Criteria: agent ge
 
 ## OQ-004 — Benchmark harness and CI regression method
 
+**Resolved by ADR-0023** (M1-T001, 2026-11-09). The text below is the original question.
+
 Wall-clock timing on shared CI runners is noisy. Candidates: `criterion` for local wall-clock
 benchmarks plus instruction-count benchmarks (`iai-callgrind`, Linux/Valgrind) for CI gating; or an
 own harness that writes the JSON `xtask` consumes. Also decide how competitive comparison crates
@@ -91,6 +93,8 @@ cooking core moves to a lower layer with importers kept in tools. Decide before 
 reload is specified.
 
 ## OQ-010 — Location of determinism tests for low-layer crates
+
+**Resolved by ADR-0024** (M1-T001, 2026-11-09). The text below is the original question.
 
 TESTING.md and MATURITY.md require determinism tests through `liminal_testkit` for deterministic crates,
 but layer 0–1 crates cannot depend on `liminal_testkit` (layer 4), not even as a dev-dependency
