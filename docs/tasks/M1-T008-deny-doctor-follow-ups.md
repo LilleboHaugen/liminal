@@ -5,7 +5,7 @@ milestone: M1
 status: in-progress
 crates: [xtask]
 depends_on: [M0-T009]
-requirements: [XTASK-R080, XTASK-R081, XTASK-R082]
+requirements: [XTASK-R080, XTASK-R081, XTASK-R082, XTASK-R085]
 ---
 
 # M1-T008: `deny` policy and `doctor` follow-ups from the M0-T009 review

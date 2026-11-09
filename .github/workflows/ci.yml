@@ -42,11 +42,24 @@ jobs:
       - run: rustup show
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - run: cargo xtask ci --skip coverage,deny
+      # Records `doctor` on every OS (M1-T008). This job installs neither cargo-llvm-cov nor
+      # cargo-deny (their steps run in the jobs below), so exit 1 is expected; 2 or more fails.
+      - if: always()
+        shell: bash
+        run: |
+          mkdir -p target/xtask
+          set +e
+          cargo xtask doctor --json > target/xtask/doctor.json
+          code=$?
+          cat target/xtask/doctor.json
+          if [ "$code" -gt 1 ]; then exit "$code"; fi
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ci-summary-${{ github.job }}-${{ matrix.os }}
-          path: target/xtask/ci-summary.json
+          path: |
+            target/xtask/ci-summary.json
+            target/xtask/doctor.json
           if-no-files-found: warn
 
   coverage:

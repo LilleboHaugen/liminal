@@ -21,7 +21,8 @@ unmaintained = "all"
 yanked = "warn"
 # Every ignored advisory needs an entry of the form
 #   { id = "RUSTSEC-YYYY-NNNN", reason = "<why it does not affect us>; expires YYYY-MM-DD (<task ID>)" }
-# and is removed by that date. cargo-deny has no expiry field, so review checks the date.
+# and is removed before that date. cargo-deny has no expiry field, so `cargo xtask hygiene`
+# checks the form, the date and the task (XTASK-R085, M1-T008).
 ignore = []
 
 [licenses]

@@ -62,6 +62,7 @@ fn every_case_directory_is_tested() {
             "r051_done_task",
             "r051_unknown_task",
             "r052_exclusion",
+            "r085_advisory_ignore",
         ]
     );
 }
@@ -171,6 +172,44 @@ fn r052_exclusion_paths_must_be_repository_relative() {
     }
     model.config.trace[0].path = "crates/demo/".to_string();
     assert_eq!(check(&model), Vec::new());
+}
+
+/// Verifies: XTASK-R085
+#[test]
+fn r085_advisory_ignore_fixture() {
+    // `valid/deny.toml` has one entry that expires in 9999 and names an open task; the overlay
+    // replaces it with an expired entry, one without an expiry, a bare ID and one naming a `done`
+    // task.
+    let findings = run_fixture(Some("r085_advisory_ignore"));
+    let summary: Vec<(&str, &str, &str)> = findings
+        .iter()
+        .map(|f| (f.rule.as_str(), f.location.as_str(), f.message.as_str()))
+        .collect();
+    let expired = format!(
+        "ignored advisory `RUSTSEC-2026-0001` expired on 2000-01-01 (today is {})",
+        advisories::today()
+    );
+    assert_eq!(
+        summary,
+        [
+            ("XTASK-R085", "deny.toml:3", expired.as_str()),
+            (
+                "XTASK-R085",
+                "deny.toml:4",
+                "the reason of ignored advisory `RUSTSEC-2026-0002` does not end with an expiry"
+            ),
+            (
+                "XTASK-R085",
+                "deny.toml:5",
+                "ignored advisory `RUSTSEC-2026-0003` has no `reason`"
+            ),
+            (
+                "XTASK-R085",
+                "deny.toml:6",
+                "ignored advisory `RUSTSEC-2026-0004` names task M0-T001, which is done"
+            ),
+        ]
+    );
 }
 
 #[test]
