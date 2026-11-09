@@ -7,7 +7,7 @@ resolver = "3"
 edition = "2024"
 rust-version = "1.99.1"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/LilleboHaugen/rust-game-engine"
+repository = "https://github.com/LilleboHaugen/liminal"
 
 # Approved external crates (architecture.toml [external.*]). Caret requirement on major.minor
 # (docs/process/DEPENDENCIES.md). Members inherit with `{ workspace = true }`.

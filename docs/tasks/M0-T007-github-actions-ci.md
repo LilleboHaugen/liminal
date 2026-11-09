@@ -92,7 +92,7 @@ None in code. Verification is the CI runs linked in the journal.
 workflow on `main`. Merged at 027dbcf, run below. If review requires changes, they follow on
 the task branch and are merged again.
 
-**Runs** (`https://github.com/LilleboHaugen/rust-game-engine/actions/runs/<id>`):
+**Runs** (`https://github.com/LilleboHaugen/liminal/actions/runs/<id>`):
 
 | Run | Ref | Result |
 |---|---|---|

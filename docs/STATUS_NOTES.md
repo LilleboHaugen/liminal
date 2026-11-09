@@ -6,9 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M0-T011 is `done` (reviewed 2026-11-09). M0-T010 (promotion of `xtask` to `usable`, last M0
-exit criterion) continues in the session that reviewed M0-T011; it did not implement M0-T011.
-ADR-0020.
+M0 is complete (M0-T010 reviewed and `done`, 2026-11-09). The next task is M1-T001 (M1 kickoff),
+which places the review follow-up tasks below in the M1 order.
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -16,7 +15,7 @@ ADR-0020.
   (`/opt/homebrew/opt/rustup/bin` on PATH), stable 1.99.1 installed. M0-T001 pinned `1.99.1` in
   `rust-toolchain.toml`.
 - ~~`git init` and create the GitHub repository.~~ Done 2026-11-08:
-  `https://github.com/LilleboHaugen/rust-game-engine` (branch `main`).
+  `https://github.com/LilleboHaugen/liminal` (branch `main`).
 
 ## Tools every agent machine needs
 
@@ -50,7 +49,8 @@ places them in the M1 order.
 ## Module notes
 
 - Only `xtask` exists, and only `xtask` has a spec (`docs/specs/xtask.md`). Its line coverage is
-  98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in M0-T011). `xtask` stays `planned` until a spec review exists.
+  98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in M0-T011). `xtask` is `usable`
+  (M0-T010, 2026-11-09).
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
   Linux; `coverage` and `deny` run in their own Linux jobs.
 
