@@ -19,7 +19,7 @@
 | [M1-T004](tasks/M1-T004-trace-hygiene-follow-ups.md) | trace and hygiene follow-ups from the M0-T005 review | todo | M0-T005 |
 | [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | todo | M0-T006 |
 | [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | todo | M0-T007 |
-| [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | in-progress | M0-T008 |
+| [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | review | M0-T008 |
 | [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | todo | M0-T009 |
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | todo | M0-T009 |
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
@@ -77,7 +77,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 51 | 1 | 0 | 0 | 2 |
+| M1 (Headless core) | 54 | 51 | 0 | 0 | 1 | 2 |
 | M2 (Agent interface v0) | 1 | 1 | 0 | 0 | 0 | 0 |
 
 ## Crates

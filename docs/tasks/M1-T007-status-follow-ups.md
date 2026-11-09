@@ -2,7 +2,7 @@
 id: M1-T007
 title: status generator follow-ups from the M0-T008 review
 milestone: M1
-status: in-progress
+status: review
 crates: [xtask]
 depends_on: [M0-T008]
 requirements: [XTASK-R070]
@@ -54,10 +54,10 @@ behaviour is either specified and tested or removed.
 
 ## Acceptance criteria
 
-- [ ] Item 1 decided and implemented; a fixture case distinguishes spec file name from crate name.
-- [ ] Item 2 specified and tested, or turned into an R070 finding with a test.
-- [ ] Item 3 tested, or the decision recorded in the spec.
-- [ ] Spec `spec_version` bumped if its text changes; `cargo xtask ci` passes.
+- [x] Item 1 decided and implemented; a fixture case distinguishes spec file name from crate name.
+- [x] Item 2 specified and tested, or turned into an R070 finding with a test.
+- [x] Item 3 tested, or the decision recorded in the spec.
+- [x] Spec `spec_version` bumped if its text changes; `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -65,7 +65,39 @@ behaviour is either specified and tested or removed.
 
 ## Handoff
 
-_No session has worked on this task yet._
+Session 2026-11-09 (implementation sub-agent). Status `review`.
+
+**Premise correction (scope note).** Items 1 and 2 assume `check-docs` R022 accepts a spec whose
+file name differs from its `crate`. It does not: since M0-T003, `xtask/src/check_docs/rules.rs`
+reports "`crate` is `<name>`, but the file is <stem>.md" (spec §6 details, "A spec's `crate`
+equals its file name without `.md`"). Reproduced on the real repository: copying
+`docs/specs/xtask.md` to `xtask_old.md` (only `req_prefix`, `maturity` changed) makes
+`check-docs` fail with that R022 finding (and R027, not indexed). So option (b) of item 1 already
+exists, and the file-name rule already makes `crate` unique across specs. Adding a separate
+"`crate` is unique" check would only give a second finding for the same file; instead the spec
+now states the implication and a test pins it. The finding that `status` reported nothing was
+correct and is fixed (below).
+
+Done:
+1. Item 1: option (a) on top of the existing rule. Spec layout 6 now says the cell is
+   `[<file>](specs/<file>)` with the spec's file name (equal to `<crate>.md` when R022 passes;
+   the link names an existing file otherwise). Code unchanged in behaviour (`Spec` now keeps the
+   path, see item 2). Test `the_spec_cell_links_the_spec_file_by_its_file_name_not_the_crate_name`
+   (`xtask/src/status/tests.rs`) renames the fixture's `alpha_lib.md` to `alpha.md`.
+2. Item 2: a spec whose `crate` an earlier spec (by path) already names is an XTASK-R070
+   unreadable-input finding at its `crate` line, like a duplicate task ID
+   (`xtask/src/status.rs` `specs()`, doc comment fixed). Tests:
+   `two_specs_for_one_crate_are_unreadable_input` (status) and
+   `r022_a_second_spec_for_one_crate_is_reported_by_its_file_name` (`check_docs/tests.rs`).
+3. Item 3: tested. `an_up_to_date_file_is_not_rewritten_and_keeps_its_modification_time` sets
+   the file's mtime to 2001 with `File::set_modified`, runs `status`, and checks the mtime; it
+   also checks that a real write changes it. Verified by hand that the always-write mutant fails
+   this test (and only this test).
+4. Spec `docs/specs/xtask.md` `spec_version` 18 → 19, history row added.
+
+Verified: `cargo xtask ci` passes on macOS (Darwin 27.2), all 11 steps, none skipped.
+
+Not done: nothing in scope. Traps: none found beyond the premise above.
 
 ## Review
 
