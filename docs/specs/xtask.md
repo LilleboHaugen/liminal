@@ -2,8 +2,8 @@
 crate: xtask
 req_prefix: XTASK
 layer: 5
-maturity: planned
-spec_version: 16
+maturity: usable
+spec_version: 17
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -557,8 +557,9 @@ repository state (R071, INV-1).
 
 ## 13. Maturity
 
-Current: `planned`. Target: `usable` (M0 exit, M0-T010), in one promotion. Gate evidence from the
-M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
+Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Next target:
+`stable` (gates in MATURITY.md; not scheduled). Gate evidence from the M0 exit review (M0-T010,
+2026-11-09; details in that task's "Review"):
 
 - [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2), M0-T010.
 - [x] Compiles, all lints pass, registered in `ci/coverage.toml` (`cargo xtask ci`).
@@ -574,8 +575,9 @@ M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
       `xtask/tests/commands.rs` (the real `coverage` measurement runs in the `coverage` CI job).
 - [x] Runnable doc examples for the main types: `run`, `COMMANDS`, `Command`, `Exit`
       (`xtask/src/cli.rs`), M0-T011.
-- [ ] Promotion review by a session that implemented neither the gates' evidence nor M0-T011
-      (M0-T010, continued).
+- [x] Promotion review by a session that implemented neither the gates' evidence nor M0-T011
+      (M0-T010, continued, 2026-11-09): trace MUST 49/49 at `usable`; coverage 98.05 %
+      (5050/5150), floor 97.6; `cargo xtask ci` passes; CI run 42674386561 attempt 2: 5 jobs pass.
 
 ## 14. History
 
@@ -597,3 +599,4 @@ M0 exit review (M0-T010, 2026-11-09; details in that task's "Review"):
 | 14 | 2026-11-09 | New R083 (sources policy) and R084 (advisory policy) of `deny.toml`, with their test approach (review 1 of M0-T009) | M0-T009 |
 | 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
+| 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |

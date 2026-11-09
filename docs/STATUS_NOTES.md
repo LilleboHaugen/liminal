@@ -6,9 +6,8 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M0-T011 is `done` (reviewed 2026-11-09). M0-T010 (promotion of `xtask` to `usable`, last M0
-exit criterion) continues in the session that reviewed M0-T011; it did not implement M0-T011.
-ADR-0020.
+Start a new session. It reviews M0-T010 (M0 exit review, `xtask` promoted to `usable`, in
+`review`). After that M0 is complete; the next task is M1-T001 (M1 kickoff). ADR-0020.
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -50,7 +49,8 @@ places them in the M1 order.
 ## Module notes
 
 - Only `xtask` exists, and only `xtask` has a spec (`docs/specs/xtask.md`). Its line coverage is
-  98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in M0-T011). `xtask` stays `planned` until a spec review exists.
+  98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in M0-T011). `xtask` is `usable`
+  (M0-T010, 2026-11-09).
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
   Linux; `coverage` and `deny` run in their own Linux jobs.
 
