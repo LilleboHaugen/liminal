@@ -2,7 +2,7 @@
 id: M1-T007
 title: status generator follow-ups from the M0-T008 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T008]
 requirements: [XTASK-R070]
