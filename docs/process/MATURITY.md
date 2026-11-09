@@ -30,7 +30,7 @@ A crate is promoted only when **every** gate for the new level is met. Gates are
 ### `stable`
 - Coverage ≥ the `stable` target. Property tests cover the crate's invariants. Differential tests
   cover every optimized path.
-- Public API snapshot committed (tool chosen at M1 kickoff). From now on, API changes are deliberate,
+- Public API snapshot committed (`cargo-public-api`, ADR-0025). From now on, API changes are deliberate,
   visible in the snapshot diff, and noted in the journal.
 - Benchmarks exist with baselines in `ci/perf/`. Competitive benchmark recorded where a comparable
   open-source crate exists.

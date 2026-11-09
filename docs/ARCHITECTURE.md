@@ -166,7 +166,9 @@ Miri, loom.
 
 ```
 AGENTS.md  CLAUDE.md  README.md  architecture.toml  Cargo.toml (M0)  rust-toolchain.toml (M0)
-crates/liminal_<name>/      engine crates: src/, tests/, benches/, README.md not required (spec lives in docs/specs)
+crates/liminal_<name>/      engine crates: src/, tests/; README.md not required (spec lives in docs/specs)
+benches/                    liminal_benches: harness + engine benchmarks (ADR-0023)
+benches/competitive/        separate workspace: comparisons with bevy_ecs, hecs, glam, rayon
 xtask/                      repository automation
 games/<name>/               original demo games (from M6)
 examples/                   minimal single-feature examples (from M3)

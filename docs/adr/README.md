@@ -38,3 +38,6 @@ Rules (ADR-0001):
 | [0020](0020-session-boundaries.md) | Session boundaries — owner-started sessions only, no sub-agents for task work | accepted |
 | [0021](0021-review-findings-and-round-limit.md) | Review findings — blocking criteria, follow-up tasks and a round limit | accepted |
 | [0022](0022-owner-approval-for-installs.md) | Owner approval before installing software on the owner's machine | accepted |
+| [0023](0023-benchmark-harness-and-regression-method.md) | Own benchmark harness, instruction-count regression gate, competitive crates outside the workspace | proposed |
+| [0024](0024-determinism-test-location.md) | Determinism tests for layer 0–1 crates are crate-local, built on liminal_core hashing | proposed |
+| [0025](0025-public-api-snapshot-tool.md) | Public-API snapshots with cargo-public-api, from the first stable promotion | proposed |

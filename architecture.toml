@@ -377,6 +377,28 @@ external = []                 # importer crates need ADRs (M4)
 dev_external = ["proptest"]
 
 [[crate]]
+name = "liminal_benches"      # benchmark harness + engine benchmarks (ADR-0023)
+path = "benches"
+layer = 5
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = []
+external = []
+dev_external = []
+
+[[crate]]
+name = "liminal_benches_competitive"  # separate Cargo workspace, excluded from the main one (ADR-0023)
+path = "benches/competitive"
+layer = 5
+kind = "lib"
+unsafe = "forbid"
+deterministic = false
+same_layer_deps = ["liminal_benches"]
+external = []
+dev_external = ["bevy_ecs", "hecs", "glam", "rayon"]
+
+[[crate]]
 name = "xtask"
 path = "xtask"
 layer = 5
@@ -470,3 +492,23 @@ reason = "xtask: parsing architecture.toml and ci/*.toml."
 scope = "tool"
 adr = "ADR-0003"
 reason = "xtask: typed access to `cargo metadata` for check-arch."
+
+[external.bevy_ecs]
+scope = "dev"
+adr = "ADR-0023"
+reason = "Competitive ECS benchmark baseline; only in the excluded benches/competitive workspace."
+
+[external.hecs]
+scope = "dev"
+adr = "ADR-0023"
+reason = "Competitive ECS benchmark baseline; only in the excluded benches/competitive workspace."
+
+[external.glam]
+scope = "dev"
+adr = "ADR-0023"
+reason = "Competitive math benchmark baseline; only in the excluded benches/competitive workspace."
+
+[external.rayon]
+scope = "dev"
+adr = "ADR-0023"
+reason = "Competitive job-system benchmark baseline; only in the excluded benches/competitive workspace."

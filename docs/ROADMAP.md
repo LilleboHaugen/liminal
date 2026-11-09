@@ -52,12 +52,15 @@ Exit criteria:
 
 Goal: a deterministic, parallel, headless simulation core with benchmarks against established engines.
 
+Tasks: kickoff M1-T001; review follow-ups M1-T002 … M1-T010; work items M1-T011 … M1-T052; exit
+review M1-T053 (`docs/tasks/README.md`).
+
 Work items:
 - Specs + implementation to `usable`: `liminal_core`, `liminal_math`, `liminal_memory`,
   `liminal_telemetry`, `liminal_reflect`(+derive), `liminal_jobs`, `liminal_ecs`, `liminal_app`.
 - `liminal_testkit` (headless subset): app harness, `step(n)`, state-hash assertions, replay of
   recorded inputs.
-- Benchmark harness decision (OQ-004) and first baselines in `ci/perf/`.
+- Benchmark harness decision (OQ-004, resolved by ADR-0023) and first baselines in `ci/perf/`.
 - Competitive benchmarks: ECS vs `bevy_ecs` and `hecs`; math vs `glam`; jobs vs `rayon`
   (comparison crates are dev-dependencies of benchmark crates only; ADR required per OQ-004).
 - Example `headless_boids`: 100k agents simulated deterministically.

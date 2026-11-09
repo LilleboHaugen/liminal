@@ -6,8 +6,10 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M0 is complete (M0-T010 reviewed and `done`, 2026-11-09). The next task is M1-T001 (M1 kickoff),
-which places the review follow-up tasks below in the M1 order.
+M0 is complete (2026-11-09). Start a new session. It reviews M1-T001 (M1 kickoff, in `review`),
+including the ADR review of ADR-0023, ADR-0024 and ADR-0025, then continues with M1-T002. M1 has
+53 tasks: follow-ups T002–T010 first, then the engine crates (plan in M1-T001 "Handoff").
+ADR-0020.
 
 ## Prerequisites the project owner handles (not agent tasks)
 
@@ -31,8 +33,8 @@ go to `review`. Installs need the owner's approval first (ADR-0022).
 
 ## Review follow-up tasks (ADR-0021)
 
-Non-blocking review findings of M0 tasks are collected in M1 tasks; the M1 kickoff (M1-T001)
-places them in the M1 order.
+Non-blocking review findings of M0 tasks are collected in M1 tasks. The M1 kickoff placed them
+first in M1 (M1-T013, the first engine implementation task, depends on T003–T005).
 
 | Reviewed task | Follow-up task |
 |---|---|
