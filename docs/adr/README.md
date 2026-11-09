@@ -41,3 +41,4 @@ Rules (ADR-0001):
 | [0023](0023-benchmark-harness-and-regression-method.md) | Own benchmark harness, instruction-count regression gate, competitive crates outside the workspace | accepted |
 | [0024](0024-determinism-test-location.md) | Determinism tests for layer 0–1 crates are crate-local, built on liminal_core hashing | accepted |
 | [0025](0025-public-api-snapshot-tool.md) | Public-API snapshots with cargo-public-api, from the first stable promotion | accepted |
+| [0026](0026-sub-agents-for-task-work.md) | Sub-agents for task work under the same rules as owner-started sessions | proposed |
