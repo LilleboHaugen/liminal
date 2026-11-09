@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 17
+spec_version: 18
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -191,6 +191,13 @@ Summary details (added in `spec_version` 2):
   `status`. For a superseded ADR it is `superseded by <IDs of superseded_by, joined by ", ">`. The
   spec maturity cell is the frontmatter `maturity`, optionally in backticks. A row that links to a
   file which is not an ADR (spec) file is an error.
+- Markdown tables and fences (R024, R025, R027; `spec_version` 18): as in GitHub Flavored
+  Markdown, a table line starts with `|` after optional spaces and tabs, and each cell is trimmed
+  of spaces and tabs only. U+00A0 and other Unicode whitespace are cell text, so an index cell
+  `accepted` followed by U+00A0 does not match the status `accepted`. A closing code fence may be
+  followed only by spaces and tabs.
+- A file whose line 1 is U+FEFF followed by `---` (UTF-8 with byte order mark) is rejected at
+  line 1 (R020); the message names U+FEFF (`spec_version` 18).
 - Workspace members (R026) come from `[workspace].members` in the root `Cargo.toml`. A member is a
   directory path, or `<dir>/*` (every direct subdirectory of `<dir>` containing a `Cargo.toml`).
   Other glob patterns are internal error LIM-XTASK-0004. The crate name is `[package].name` of the
@@ -600,3 +607,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 15 | 2026-11-09 | §13 Maturity: `usable` gate evidence from the M0 exit review; two tool-crate gates open (M0-T011) | M0-T010 |
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
+| 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
