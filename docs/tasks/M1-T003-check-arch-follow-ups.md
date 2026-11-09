@@ -2,7 +2,7 @@
 id: M1-T003
 title: check-arch follow-ups from the M0-T004 review
 milestone: M1
-status: todo
+status: review
 crates: [xtask]
 depends_on: [M0-T004]
 requirements: [XTASK-R032, XTASK-R033, XTASK-R034]
@@ -44,10 +44,10 @@ full table it claims to cover.
 
 ## Acceptance criteria
 
-- [ ] A path dependency on a root package (`manifest_dir = ""`) is a workspace dependency; a test
+- [x] A path dependency on a root package (`manifest_dir = ""`) is a workspace dependency; a test
       shows an R032 finding (not R033) for a higher-layer root package.
-- [ ] The scope test covers all 72 combinations, each run at a layer of its group.
-- [ ] `cargo xtask ci` passes.
+- [x] The scope test covers all 72 combinations, each run at a layer of its group.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -61,7 +61,37 @@ test.
 
 ## Handoff
 
-_Filled in by the implementing session(s)._
+2026-11-09, implementation sub-agent (ADR-0026/ADR-0027), branch
+`task/M1-T003-check-arch-follow-ups`. Status `review`.
+
+Done:
+1. `xtask/src/repo/metadata.rs` `relative()` returns `Some("")` for the workspace root itself
+   (with or without a trailing `/` on the root), so a path dependency on a root package gets
+   `path: Some("")`, matching the root package's `manifest_dir = ""`. Tests:
+   - `repo::metadata::tests::a_path_dependency_on_the_workspace_root_is_inside_with_an_empty_path`
+     (`Verifies: XTASK-R032`): `relative()` on the root, below it and on a non-boundary prefix
+     (`/w2`); `parse()` of a dependency on `/w` and on `C:\w` (Windows separators); a root
+     package's root-level target is still `src/lib.rs` (the task note).
+   - `check_arch::tests::r032_a_path_dependency_on_a_root_package_is_a_workspace_dependency`
+     (`Verifies: XTASK-R032`): builds the packages through `metadata::parse()` from
+     `cargo metadata`-shaped JSON (root package `high`, layer 2, registered with `path = ""`;
+     `mid`, layer 1, depends on path `/w`) and expects exactly one R032 finding at
+     `crates/mid/Cargo.toml`. Without the fix it gives R033 (checked by reverting `metadata.rs`).
+2. `xtask/src/check_arch/tests.rs`: `SCOPE_TABLE` (47 hand-listed rows) is replaced by
+   `SPEC_SCOPE_ROWS`, the six rows of the spec table copied as written, and `scope_table()`,
+   which builds the full product 2 × 3 × 3 × 4 = 72 rows and asserts that exactly one spec row
+   covers each (layer group, crate kind, dependency kind). `the_scope_table_has_every_combination_once`
+   checks 72 distinct keys. The R033/R034 test runs layers 0–4 rows at layers 0 and 4 and
+   layer 5 rows at layer 5, and asserts 108 runs.
+
+Not changed: scope rules and `docs/specs/xtask.md` (the spec already says a path dependency on a
+workspace crate's manifest directory is a workspace dependency; the code now matches it).
+
+Verified: `cargo xtask ci` passes on macOS 27.2 (arm64), Rust 1.99.1, 11 steps, no skips. Not
+verified on Windows or Linux locally (branch CI runs them).
+
+Traps: none found. `architecture.toml` `path` is not validated, so `path = ""` registers a root
+package; that is existing behaviour and out of scope.
 
 ## Review
 
