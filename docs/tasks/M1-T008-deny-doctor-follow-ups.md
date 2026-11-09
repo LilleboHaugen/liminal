@@ -2,7 +2,7 @@
 id: M1-T008
 title: deny policy and doctor follow-ups from the M0-T009 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R080, XTASK-R081, XTASK-R082]

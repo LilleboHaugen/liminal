@@ -321,3 +321,65 @@ fn the_real_command_reports_every_tool_as_json() {
         tools[1]
     );
 }
+
+/// The extra test-name filter that [`stdin_reader_child`] requires before it reads stdin, so a
+/// normal `--include-ignored` run (whose stdin may be a terminal) never blocks on it.
+const CHILD_FILTER: &str = "xtask-doctor-probe-child";
+
+/// The line [`stdin_reader_child`] writes to stderr; a probe's stdout must not contain it.
+const STDERR_MARKER: &str = "xtask-doctor-stderr-marker";
+
+/// Child process of [`a_probe_that_reads_stdin_sees_it_closed`]: reads stdin to its end, writes
+/// [`STDERR_MARKER`] to stderr and the number of bytes read to stdout. It does nothing unless
+/// its arguments contain [`CHILD_FILTER`].
+#[test]
+#[ignore = "M1-T008: runs only as the probe of a_probe_that_reads_stdin_sees_it_closed"]
+fn stdin_reader_child() {
+    if !std::env::args().any(|arg| arg == CHILD_FILTER) {
+        return;
+    }
+    let mut input = Vec::new();
+    std::io::Read::read_to_end(&mut std::io::stdin(), &mut input).unwrap();
+    eprintln!("{STDERR_MARKER}");
+    println!("xtask-stdin-bytes={}", input.len());
+}
+
+/// Probes run with stdin closed (spec "`doctor` and `deny` details"): a probe of a program that
+/// reads stdin to its end returns at once, having read nothing. Its stderr is not part of the
+/// probe's stdout (the version comes from stdout only).
+///
+/// The probe program is this test binary, run as `cargo` (the [`Program`] whose path is
+/// configurable), with [`stdin_reader_child`] as the only test.
+///
+/// Verifies: XTASK-R080
+#[test]
+fn a_probe_that_reads_stdin_sees_it_closed() {
+    let mut prober = RealProber {
+        root: repo::root(),
+        cargo: std::env::current_exe().unwrap().into_os_string(),
+    };
+    let (sender, receiver) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let probe = prober.probe(
+            Program::Cargo,
+            &[
+                "doctor::tests::stdin_reader_child",
+                CHILD_FILTER,
+                "--exact",
+                "--ignored",
+                "--nocapture",
+                "--test-threads=1",
+            ],
+        );
+        let _ = sender.send(probe);
+    });
+    let probe = receiver
+        .recv_timeout(std::time::Duration::from_secs(120))
+        .expect("the probe returned within 120 s (it blocks if stdin is not closed)");
+    let Probe::Present(stdout) = probe else {
+        panic!("the child test failed: {probe:?}");
+    };
+    assert!(stdout.contains("xtask-stdin-bytes=0"), "{stdout}");
+    assert!(stdout.contains("1 passed"), "{stdout}");
+    assert!(!stdout.contains(STDERR_MARKER), "{stdout}");
+}
