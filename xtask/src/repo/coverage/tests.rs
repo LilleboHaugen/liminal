@@ -88,6 +88,28 @@ fn windows_backslash_paths_are_read_as_slashes() {
     assert_eq!(measurement["xtask"], lines(3, 4));
 }
 
+/// Verifies: XTASK-R060
+#[test]
+fn a_member_spelled_dot_slash_owns_its_files() {
+    // `members = ["./xtask"]` is valid for cargo; its files must still count for `xtask`.
+    let root = TempRoot::new("coverage-dot-member");
+    std::fs::write(
+        root.path().join("Cargo.toml"),
+        "[workspace]\nmembers = [\"./xtask\"]\n",
+    )
+    .unwrap();
+    std::fs::create_dir_all(root.path().join("xtask")).unwrap();
+    std::fs::write(
+        root.path().join("xtask/Cargo.toml"),
+        "[package]\nname = \"xtask\"\n",
+    )
+    .unwrap();
+    let members = workspace::load(root.path()).unwrap();
+    let json = export(&[("/work/liminal/xtask/src/lib.rs", 3, 4)]);
+    let measurement = parse_export(&json, "/work/liminal", &members).unwrap();
+    assert_eq!(measurement["xtask"], lines(3, 4));
+}
+
 #[test]
 fn an_export_without_files_measures_nothing() {
     let measurement =

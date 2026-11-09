@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 19
+spec_version: 20
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -171,7 +171,7 @@ Summary details (added in `spec_version` 2):
   as above; `layer` and `spec_version` integers (`spec_version` ≥ 1); `req_prefix` `^[A-Z]+$`; task
   `milestone` `^M\d+$`, equal to the milestone part of `id`. A spec's `crate` equals its file name
   without `.md`, so `crate` is unique across specs: a second spec for one crate has another file
-  name and is reported (`spec_version` 19). A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
+  name and is reported (`spec_version` 20). A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
   and maturity comparisons of R025 and R027. For the `depends_on` existence check (R023), a task
   file without a valid `id` (including one that fails R020) exists under the task ID its file name
   starts with (`^M\d+-T\d{3}` before the next `-` or `.md`), if any. This avoids a second, false
@@ -202,7 +202,9 @@ Summary details (added in `spec_version` 2):
 - Workspace members (R026) come from `[workspace].members` in the root `Cargo.toml`. A member is a
   directory path, or `<dir>/*` (every direct subdirectory of `<dir>` containing a `Cargo.toml`).
   Other glob patterns are internal error LIM-XTASK-0004. The crate name is `[package].name` of the
-  member's `Cargo.toml`.
+  member's `Cargo.toml`. A member entry is normalized before use (added in `spec_version` 19):
+  `.` segments, empty segments and a trailing `/` are removed (`./xtask` and `xtask/./` are
+  `xtask`), so member directories match repository-relative file paths in every command.
 
 Check command output (R009, all check commands): human mode prints, per finding,
 `<severity> <rule> <location>: <message>` and an indented `help:` line, then
@@ -373,8 +375,11 @@ as `output_tail` in both output modes.
   members belongs to the innermost one. Files outside the repository root or outside every
   member are ignored. `\` in paths reads as `/`. If the export lists files but none is inside the
   root, that is LIM-XTASK-0002, so a differently spelled root never makes every crate look
-  unmeasured. A crate with no measured lines is shown as such, is never below its floor and
-  keeps its floor on update. If `cargo llvm-cov` fails (for example a test fails), that is
+  unmeasured. A crate with no measured lines is shown as such and keeps its floor on update.
+  Its coverage is unknown, not 100 %: if its floor is above 0.0 it is an R061 error (changed in
+  `spec_version` 19; before, it always passed), whose help names the likely causes (member path,
+  source files) and says a crate with no code to measure gets floor 0.0 with a journal entry.
+  With floor 0.0 it passes. If `cargo llvm-cov` fails (for example a test fails), that is
   LIM-XTASK-0006.
 - `ci/coverage.toml`. Exactly one top-level table, `[floors]`, mapping crate name to a TOML
   integer or float from 0 to 100 with at most one decimal. Anything else is LIM-XTASK-0004.
@@ -414,7 +419,7 @@ as `output_tail` in both output modes.
   `milestone`, `status` or `depends_on` is missing or not of the R023 form, a task ID used twice,
   and a spec file whose frontmatter does not parse or whose `crate` or `maturity` is missing or
   not of the R022 form, and a spec file whose `crate` an earlier spec file (by path) already
-  names (at the `crate` line; `spec_version` 19), each give one XTASK-R070 error finding at the
+  names (at the `crate` line; `spec_version` 20), each give one XTASK-R070 error finding at the
   file (with the line where known). Then `status` writes nothing and exits 1, and `status --check` fails with those
   findings. `check-docs` reports the same files in detail. A spec whose `crate` is not in
   `architecture.toml` is ignored here (R022 reports it).
@@ -440,9 +445,9 @@ as `output_tail` in both output modes.
      the spec whose `crate` is that name, else `planned`; spec cell `[<file>](specs/<file>)` if
      a spec exists, `<file>` being that spec's file name, else `—`. R022 makes `<file>` equal
      `<crate>.md`; for a spec that breaks that rule the link still names an existing file
-     (`spec_version` 19).
+     (`spec_version` 20).
 - `status` writes `docs/STATUS.md` only if its content differs (an up-to-date file is not
-  opened for writing, so its modification time stays; `spec_version` 19), then prints
+  opened for writing, so its modification time stays; `spec_version` 20), then prints
   `status: wrote docs/STATUS.md` or `status: docs/STATUS.md is up to date` and exits 0.
 - `status --check` never writes (R010). If the file is missing, or differs, it reports one
   XTASK-R072 error at `docs/STATUS.md:<first differing line>` (`docs/STATUS.md` if missing),
@@ -613,4 +618,5 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 16 | 2026-11-09 | §3 and §10: real-binary integration tests per command; §13: the two tool-crate gates' evidence | M0-T011 |
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
-| 19 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
+| 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
+| 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
