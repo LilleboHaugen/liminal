@@ -2,7 +2,7 @@
 id: M1-T009
 title: deny policy test gaps from review 2 of M0-T009
 milestone: M1
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T009]
 requirements: [XTASK-R083, XTASK-R084]
