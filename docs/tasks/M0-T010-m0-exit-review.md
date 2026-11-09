@@ -2,7 +2,7 @@
 id: M0-T010
 title: M0 exit review
 milestone: M0
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T001, M0-T002, M0-T003, M0-T004, M0-T005, M0-T006, M0-T007, M0-T008, M0-T009]
 requirements: []
