@@ -2,7 +2,7 @@
 id: M1-T005
 title: coverage follow-ups from the M0-T006 review
 milestone: M1
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T006]
 requirements: [XTASK-R060, XTASK-R061]
@@ -80,4 +80,32 @@ Not done / traps:
 
 ## Review
 
-_Empty._
+2026-11-09, review sub-agent (ADR-0026/0027) of session `session/2026-11-09-m1-subagents`, fresh
+context; this session did not implement any part of M1-T005. macOS 27.2 (Darwin), worktree
+`liminal-worktrees/M1-T005-review`, branch `task/M1-T005-coverage-follow-ups` at `4af8ec6`.
+
+Outcome: **done**, no blocking findings. Follow-ups: M2-T001.
+
+Checked:
+- AC 1: spec v18 "`coverage` details" states the decision (floor > 0.0 and no measured lines is an
+  R061 error; floor 0.0 passes; floor kept on update) with a history row; `coverage.rs::evaluate`
+  has the new arm before `below_floor`. Test
+  `a_crate_with_a_floor_above_0_and_no_measured_lines_fails` covers floors 0.1, 0.5, 78.4, 100.0,
+  severity and message. Mutation (arm condition → `false`): the test fails. The renamed test
+  still covers floor 0.0 + no lines → pass (catches `> 0` → `>= 0`).
+- AC 2: `workspace.rs::normalize` applied in `expand`; tests in the loader
+  (`./xtask`, `tools/./one/`, `./crates/*`, plus `owner`), `parse_export` and `repo/sources.rs`.
+  Mutation (restore the old `trim_end_matches('/')`): all three tests fail. `.` alone and
+  absolute paths keep their previous spelling.
+- AC 3: `cargo xtask ci` passes, all 11 steps, none skipped (4 `#[ignore]`d deny-policy tests carry
+  M0-T009 references, unchanged).
+- Oracle change: the old test asserting floor 100.0 + no lines → pass was changed to floor 0.0;
+  this is the intended behaviour change and the journal says so. `ci/coverage.toml` unchanged.
+- Spec and code agree; no new dependency, no `unsafe`, no untracked TODO; `Verifies:` tags match
+  (R061 on item 1, R060 on item 2 mapping tests).
+- Session boundaries: the implementing journal `docs/journal/2026-11-09-M1-T005.md` names its
+  parent session; the parent's journal is not on this branch (expected to be written by the
+  parent; not verifiable here).
+
+Follow-ups (M2-T001): `..` and `\` in member entries (both listed as out of scope in the
+handoff).
