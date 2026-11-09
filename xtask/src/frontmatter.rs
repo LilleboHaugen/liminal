@@ -86,6 +86,13 @@ pub(crate) fn parse(text: &str) -> Result<Frontmatter, ParseError> {
     let mut lines = text.lines().map(normalize).enumerate();
     match lines.next() {
         Some((_, "---")) => {}
+        Some((_, "\u{feff}---")) => {
+            return Err(error(
+                1,
+                "line 1 must be `---`, which opens the frontmatter; it starts with U+FEFF \
+                 (byte order mark), which is not allowed: save the file as UTF-8 without BOM",
+            ));
+        }
         _ => {
             return Err(error(
                 1,

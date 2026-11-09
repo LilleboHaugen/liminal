@@ -628,6 +628,34 @@ fn r025_adr_status_cell_must_not_be_in_backticks() {
 
 /// Verifies: XTASK-R025
 #[test]
+fn r025_a_trailing_u00a0_in_the_status_cell_is_a_mismatch() {
+    let mut model = valid();
+    edit(
+        &mut model,
+        "docs/adr/README.md",
+        "| Second decision | accepted |",
+        "| Second decision | accepted\u{a0} |",
+    );
+    assert_one(
+        &model,
+        "XTASK-R025",
+        "docs/adr/README.md:8",
+        "listed with status `accepted\u{a0}`, but its frontmatter says `accepted`",
+    );
+
+    // Spaces and tabs around the cell are not part of it (GFM).
+    let mut model = valid();
+    edit(
+        &mut model,
+        "docs/adr/README.md",
+        "| Second decision | accepted |",
+        "| Second decision |\t accepted  \t|",
+    );
+    assert!(findings_of(&model).is_empty(), "{:?}", findings_of(&model));
+}
+
+/// Verifies: XTASK-R025
+#[test]
 fn r025_duplicate_foreign_and_missing_rows() {
     let row = "| [0002](0002-second.md) | Second decision | accepted |\n";
     let mut model = valid();
