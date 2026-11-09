@@ -2,7 +2,7 @@
 id: M0-T007
 title: GitHub Actions CI
 milestone: M0
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T002]
 requirements: []
@@ -125,4 +125,43 @@ M0-T008 (status generator).
 
 ## Review
 
-_Empty._
+2026-11-09, new owner-started session (fresh context; did not write M0-T007). Outcome:
+**done**, no blocking findings. Follow-ups in M1-T006.
+
+Checked, macOS 27.2, Apple M5 Pro, Rust 1.99.1, cargo-llvm-cov 0.9.1:
+1. `cargo xtask ci` locally: pass, 9 steps. Working tree unchanged afterwards.
+2. Acceptance criteria, each by running `gh run view` against the repository, not by trusting
+   the handoff:
+   - Green on `main`: run 42530730963 (027dbcf) all 4 jobs `success`; the later `main` run
+     42531032397 (32ce27e) also `success`.
+   - Deliberate fmt error: run 42530471920, branch `test/M0-T007-fmt-error` (f2a13bd adds
+     `fn   badly_formatted ( ) { }` to `xtask/src/lib.rs`). Logs show `fmt FAIL` in `checks` on
+     macOS, Ubuntu and Windows, each job `failure`. The branch no longer exists on the remote
+     (`git ls-remote`).
+   - `permissions: contents: read` at workflow level, no job overrides it; checkout uses
+     `persist-credentials: false`.
+   - Job wall times: recomputed from `startedAt`/`completedAt` for runs 42530266416,
+     42530471920 and 42530730963; they match the handoff table.
+3. Workflow read in full against the task scope: matrix `macos-latest`/`windows-latest`/
+   `ubuntu-latest`, `--skip coverage` (only existing step names; `deny` does not exist yet),
+   `coverage` job with `cargo-llvm-cov` 0.9.1 `--locked`, no `deny` job (M0-T009 not landed;
+   M0-T009 has the note to add it), `ci-summary.json` uploaded with `if: always()` and names
+   unique per job and OS, `rust-cache`, toolchain from `rust-toolchain.toml`,
+   `CARGO_TERM_COLOR`/`RUST_BACKTRACE` set.
+4. Action pins: `git ls-remote` resolves `actions/checkout` v7.0.1 → 3d3c42e…,
+   `actions/upload-artifact` v7.0.2 → cf430e0…, `Swatinem/rust-cache` v2.9.3 (annotated) `^{}`
+   → d1527c8…. All three match the workflow.
+5. Code change: only `xtask/src/process.rs` test expectation (`Path::join` instead of a literal
+   path). The test still fails if the runner does not pass the root through (the expected
+   location contains `/repo`). Journal records it under "Oracle changes". Accepted.
+6. No placeholders, no weakened tests, no new crate dependency. `gh` install recorded with owner
+   approval (ADR-0022). Session boundaries: journal shows an owner-started session, no
+   sub-agents.
+
+Follow-ups (non-blocking, ADR-0021) in `docs/tasks/M1-T006-ci-workflow-follow-ups.md`:
+1. No `pull_request` run verified, and `push` + `pull_request` with `event_name` in the
+   concurrency group runs every job twice per push on a branch with an open pull request.
+2. No update path for SHA-pinned actions (Dependabot or a stated manual cadence).
+3. The fmt-error experiment also failed `clippy` (the added function is unused, `dead_code`
+   under `-D warnings`); the handoff reports only `fmt`. The criterion is still met, because
+   `fmt FAIL` appears independently on all three OSes.
