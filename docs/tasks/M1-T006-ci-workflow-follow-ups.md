@@ -2,7 +2,7 @@
 id: M1-T006
 title: CI workflow follow-ups from the M0-T007 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [xtask]
 depends_on: [M0-T007]
 requirements: []
