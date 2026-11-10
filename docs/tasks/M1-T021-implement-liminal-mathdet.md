@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_math]
 depends_on: [M1-T020]
-requirements: []
+requirements: [MATH-R050, MATH-R073, MATH-R074, MATH-R100, MATH-R101, MATH-R102, MATH-R103, MATH-R104, MATH-R105, MATH-R106, MATH-R107, MATH-R108, MATH-R109, MATH-R110]
 ---
 
 # M1-T021: Implement `liminal_math::det`
@@ -40,7 +40,7 @@ Requirements in frontmatter; differential tests against `f64` std functions as o
 
 ## Notes
 
-_None._
+Added by M1-T019 (2026-11-10): `docs/specs/liminal_math.md` §6 assigns `Mat4::perspective` (MATH-R050), `Quat::from_axis_angle` (MATH-R073) and `Quat::slerp` (MATH-R074) to this task, because they call `det` functions. This widens the scope above by these three operations. The exhaustive accuracy sweep is an `#[ignore]` test run once here (spec §10); measured maxima go into the spec's §10 table.
 
 ## Handoff
 
