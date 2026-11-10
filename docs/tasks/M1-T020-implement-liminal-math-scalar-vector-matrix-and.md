@@ -2,7 +2,7 @@
 id: M1-T020
 title: Implement liminal_math — scalar vector, matrix and quaternion types
 milestone: M1
-status: review
+status: in-progress
 crates: [liminal_math]
 depends_on: [M1-T019, M1-T014, M1-T060]
 requirements: [MATH-R001, MATH-R002, MATH-R003, MATH-R004, MATH-R005, MATH-R006, MATH-R007, MATH-R020, MATH-R021, MATH-R022, MATH-R023, MATH-R024, MATH-R025, MATH-R026, MATH-R040, MATH-R041, MATH-R042, MATH-R043, MATH-R044, MATH-R045, MATH-R046, MATH-R047, MATH-R048, MATH-R049, MATH-R051, MATH-R070, MATH-R071, MATH-R072, MATH-R090, MATH-R091, MATH-R092, MATH-R093, MATH-R094, MATH-R130, MATH-R190]
@@ -92,4 +92,62 @@ task.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of the parent session on branch
+`session/2026-11-10-m1-t020-t031-review`, fresh context (journal `2026-11-10-M1-T020-review.md`).
+First review of this task. Rules read from `origin/main` at `115b556` (`AGENTS.md`,
+`docs/process/REVIEW.md` §1). **Outcome: changes required (first "changes required"); status
+`in-progress`.** The `experimental` promotion of spec §13 is not decided in this review.
+
+**Required changes.**
+1. **B4.** `Mat4::inverse` is tested only on affine matrices (fourth row `(0, 0, 0, 1)`): the
+   D-trs property of MATH-R045, the hand-computed case in `tests/matrices.rs`, the no-panic test
+   and the `linear_algebra` workload. For those matrices the 2×2 minors `c[0]`, `c[1]` and `c[3]`
+   of `Minors` in `crates/liminal_math/src/mat4.rs` are 0, so every adjugate term multiplied by
+   them is unchecked. Mutation run by the reviewer: in `Minors::adjugate`, row 2, the entry
+   `-a(0, 0) * c[4] + a(0, 1) * c[2] - a(0, 3) * c[0]` changed to `... + a(0, 3) * c[0]`:
+   `cargo test -p liminal_math` passes. MATH-R045 requires "`Ok` of the adjugate divided by
+   `d`" for every matrix with a finite non-zero determinant, and the inverse of a
+   view-projection matrix (non-affine) is a realistic use. Required: a test that fails under such
+   a mutation, for example a hand-computed exact inverse of a full integer matrix with a
+   power-of-two determinant and non-zero entries in every row (including the fourth), and/or a
+   property over general well-conditioned matrices. (The reviewer's probe with that mutation:
+   max `abs(m * m⁻¹ − I)` 58.7 over 10,000 random matrices with elements in −2 to 2 and
+   `abs(det) ≥ 0.5`; 7.6e-6 without it, so the implementation itself is correct.)
+2. **B1.** `orthographic_maps_the_box_corners` in `crates/liminal_math/tests/matrices.rs` fails
+   intermittently with "Test aborted: Too many global rejects" (proptest default
+   `max_global_rejects = 1024`): its `prop_assume!(right <= 10.0 && top <= 10.0 && …)` keeps
+   about 23 % of the cases (P(`left + width ≤ 10`) ≈ 0.475 per axis), so 256 successes need
+   about 880 rejections on average. Reproduced: 4 failures in 200 runs of the test binary
+   (output: 255 successes, 1024 global rejects at line 483). `cargo xtask ci` therefore fails on
+   about 2 % of runs. Required: generate the inputs inside the domain (for example `left` in −10
+   to 9, `right` in `left + 1` to 10) instead of rejecting them.
+
+**Checked, no finding.**
+- Acceptance criteria: crate at `crates/liminal_math` (workspace member, `liminal_core` only,
+  dev `proptest` as in `architecture.toml`); `#![deny(unsafe_code)]` (not `forbid`, justified:
+  `unsafe = "allow"`); floor `liminal_math = 97.3` in `ci/coverage.toml`;
+  `crates/liminal_math/clippy.toml` repeats the root settings, the XTASK-R039 list and every
+  MATH-R004 path (compared with the requirement text by hand and by `tests/operation_set.rs`).
+  `cargo xtask trace --crate liminal_math`: every frontmatter requirement has `Verifies:` tests.
+  Doc examples on `Vec3`, `Mat4`, `Quat`, `Affine3`, `MathError`, `reference` and the crate root.
+- `cargo xtask ci` on the task branch with `origin/main` (`115b556`) merged (`3d75a73`): pass,
+  12 steps, none skipped, macOS 27.2 arm64. 15 further full runs of `cargo test -p liminal_math`:
+  no failure other than finding 2 (which did not occur in those runs).
+- Spec agreement, read line by line against §5.1 to §5.6, §5.8, §6 and §8: the exact expressions
+  of MATH-R021 to R023, R026, R041, R042, R047, R048, R049, R051, R070 to R072, R090 to R094 and
+  R130 (left-to-right sums, no FMA, division not by reciprocal); error order of `look_to` and
+  `orthographic`; `normalize` error order; every message and help text of §8 and the snapshot.
+  `perspective`, `from_axis_angle` and `slerp` are absent, as the §6 assignment notes require.
+- Tests: other mutations tried and caught — `Mat3::inverse` without the transpose
+  (`inverse_undoes_the_transform`), `Quat * Vec3` reassociated (`linear_algebra` literal and
+  `rotation_is_the_exact_expression`). Exact-expression tests include association-order and FMA
+  probes. No assertion-free test except the no-panic test of MATH-R005, which also checks the
+  error variants.
+- No placeholders, no `todo!()`, no ignored test; new oracles (snapshot, hash literal, floor)
+  are justified in the author's journal. No `unsafe`, no banned function or collection in
+  `src/`. No new external dependency. No `.github/workflows/` change.
+- Session boundaries: the author is row 5 of the parent journal
+  `2026-11-10-session-m1-t014-review.md` (spawned 22:26, before the 22:40 cutoff); this reviewer
+  did not work on the task.
+
+**Backlog entries:** 0. **Follow-up task:** none.

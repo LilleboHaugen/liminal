@@ -32,7 +32,7 @@
 | [M1-T017](tasks/M1-T017-cargo-xtask-bench-and-the-first-wall-clock-basel.md) | cargo xtask bench and the first wall-clock baselines | todo | M1-T016 |
 | [M1-T018](tasks/M1-T018-miri-and-loom-in-ci.md) | Miri and loom in CI | todo | M1-T014, M1-T006 |
 | [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | done | M1-T001, M1-T054 |
-| [M1-T020](tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md) | Implement liminal_math — scalar vector, matrix and quaternion types | review | M1-T019, M1-T014, M1-T060 |
+| [M1-T020](tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md) | Implement liminal_math — scalar vector, matrix and quaternion types | in-progress | M1-T019, M1-T014, M1-T060 |
 | [M1-T021](tasks/M1-T021-implement-liminal-mathdet.md) | Implement liminal_math::det | todo | M1-T020 |
 | [M1-T022](tasks/M1-T022-implement-liminal-math-simd-paths.md) | Implement liminal_math SIMD paths | todo | M1-T021, M1-T017, M1-T018 |
 | [M1-T023](tasks/M1-T023-implement-liminal-math-geometry-reach-usable.md) | Implement liminal_math geometry; reach usable | todo | M1-T022, M1-T060 |
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 33 | 0 | 0 | 1 | 28 |
+| M1 (Headless core) | 62 | 33 | 1 | 0 | 0 | 28 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates
