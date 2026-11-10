@@ -2,7 +2,7 @@
 id: M1-T056
 title: liminal_telemetry spec follow-ups from the M1-T027 review
 milestone: M1
-status: review
+status: done
 crates: [liminal_telemetry, xtask]
 depends_on: [M1-T027]
 requirements: []
@@ -165,4 +165,88 @@ For the reviewer:
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T056-review.md`). This agent wrote no part of M1-T056. The author was an
+implementation sub-agent of the same parent; ADR-0029 Decision 1 allows that (see "Session
+boundaries"). macOS 27.2 (arm64), Rust 1.99.1, worktree `liminal-worktrees/M1-T056-review`,
+branch at `f61f9d6` before the review commits. Rules read from `main` at `4c02a19` (ADR-0029
+wording of `AGENTS.md` and `REVIEW.md`); the branch itself predated them.
+
+Outcome: **done**, no blocking finding. Backlog entries: 6 (`docs/BACKLOG.md`, heading
+"M1-T056 — review 2026-11-10"). Follow-up task: none (no finding is contract-changing).
+
+Checked (REVIEW.md §1; the changed spec text also against §2):
+1. Acceptance criteria, each item read in the diff `02b19e7..f61f9d6`:
+   - Item 1: TELE-R063 and TELE-R064 are in the `requirements` of M1-T028 only (grep over
+     `docs/tasks/`: besides M1-T028 they occur only in prose of M1-T029 and this task); spec §6
+     "Assignment" agrees; no "provisional" permission is left.
+   - Item 2: §4 "Frame" states both call patterns; open question 11 names M1-T044.
+   - Item 3: first option of the task (clause stated not to apply), §10. The spec marks its two
+     unproven parts as assumptions. Accepted as meeting the item; one backlog entry on the
+     stated reason.
+   - Item 4: TELE-R011 with the collector identity of §4 and a described test; consistent with
+     TELE-R021 (the count is restored whether or not the guard records). One backlog entry.
+   - Item 5: §4 "Record", TELE-R052 (with a test), R056, R061, R065.
+   - Item 6: TELE-R082 and TELE-R093; no "non-NaN" wording is left; §10 snapshot input extended.
+   - Item 7: not checked in a viewer, recorded with the reason in the acceptance criterion, the
+     handoff, open question 12, TELE-R084 and M1-T029 "Notes". The item itself ties the check
+     to TELE-R084, which is M1-T029's. Accepted as a recorded split-off.
+   - Item 8: TELE-R090. Item 9a, 9b: §10 table, §9 paragraph. Item 9c: three `liminal_core`
+     links; `liminal_memory` was not on `main` then (it is now: backlog entry).
+   - Item 10: step `test-features-off`, XTASK-R014, details, `doctor`, CODE_STYLE.md; spec open
+     question 2 closed.
+   - `spec_version` bumps with history rows: telemetry 2; xtask 23, renumbered to 24 in the
+     merge of `main` (M1-T011 took 23 there). The handoff's "at 23" predates that merge.
+2. `cargo xtask ci` on `f61f9d6`: pass, 12 steps, none skipped. On the merge of `main`
+   (`4c02a19`) with the review edits: pass, 12 steps, none skipped. Branch CI runs 42865804835
+   (`39189ec`) and 42866951448 (`f61f9d6`): success (read with `gh run list`).
+3. Tests prove behaviour. Four mutants seeded by this review, each killed and reverted: a
+   skipped command treated as a pass (`a_command_that_cannot_run_skips_the_step` fails); a
+   `cargo metadata` error treated as a pass
+   (`real_step_without_cargo_is_skipped_and_a_metadata_error_fails_it`); `#[serde(default)]` on
+   the `features` member (`unexpected_output_is_lim_xtask_0002`); no stop at the first failing
+   package (`the_first_failure_ends_the_step_and_names_its_command`). The author's two mutants
+   (flag removed, filter removed) were not repeated. The `Verifies:` tags name requirements the
+   tests check; the real-workspace test runs real `cargo metadata` and `cargo test`.
+4. No fake progress: no placeholder; the two open parts (item 7, item 9c) are recorded with
+   reasons; no oracle changed (`ci/coverage.toml` and `xtask/tests/snapshots/` untouched; the
+   changed test expectations follow the new step).
+5. Spec agreement: XTASK-R014 and its details against `xtask/src/features_off.rs`,
+   `process.rs` (`run_features_off`), `ci.rs`, `repo/metadata.rs`: command line, package
+   selection, order (ascending name, from `parse`), stop at the first failure, `output_tail`
+   prefix, skip without `cargo`, failure on a metadata error, human progress line. They agree.
+6. Unsafe: none added. 7. Determinism: not a deterministic crate. 9. Architecture: no new
+   dependency; `check-arch` passes.
+8. Docs: no other list of `ci` steps is stale (searched `docs/`, `AGENTS.md`, `.github/`).
+10. Session boundaries: below. 11. Public repository: `.github/workflows/` unchanged; no issue
+    or pull request acted on.
+
+Findings (none is B1 to B5; all in `docs/BACKLOG.md`):
+- The two "on its branch" references to the `liminal_memory` spec can now be links.
+- XTASK-R014 details claim more than `--package` gives: a dev-dependency of the tested package
+  that enables its feature turns it on again (by Cargo's unification rules; not run).
+- No command builds each feature alone; XTASK-R014 has no "revisit at M3" note like XTASK-R012.
+- Spec §10: the reason given for "no safe ring" (atomics hold one word) is not the obstacle.
+- TELE-R011: the "no span before `install`" consequence holds only without a concurrent
+  collector change.
+- M1-T029's title and file name still say "frame stats".
+
+Merge edits by this review (ADR-0026 Decision 6, no task work): `docs/specs/xtask.md` version
+renumbered as above, both history rows kept; `docs/STATUS.md` regenerated; one line in
+`xtask/src/check_arch/determinism.rs` (a test helper new on `main` builds a
+`metadata::Package`, which this branch gave the field `features`; without `features:
+Vec::new()` the merge result does not compile).
+
+Session boundaries (item 10), stated as facts:
+- The author's journal names its parent `2026-11-10-session-m1-reviews.md`. That entry (branch
+  `session/2026-11-10-m1-reviews`, "in progress", read at `b32bbab`) lists the author as row 7,
+  "impl template". It does not list this review yet.
+- This review has the same parent. My prompt was the ADR-0026 review template verbatim, with
+  nothing added. The worktree's `AGENTS.md` forbade a review by a sibling; `main` carries
+  ADR-0029, which allows it, and the text on `main` is in force. I read that from the
+  repository.
+- ADR-0029 was written and merged by this parent session on an owner instruction that the ADR
+  quotes. I cannot check the quote. If the owner did not give it, this review is void under
+  ADR-0026 Decision 5.1 and the task needs a review by another session.
+- M1-T056 had one implementation sub-agent and this one review sub-agent. Neither ran an
+  install; I spawned no agent.

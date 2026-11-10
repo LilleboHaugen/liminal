@@ -132,3 +132,30 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   normalize without the `length_squared() < f32::MIN_POSITIVE` check of MATH-R160, so an axis
   such as `(1e-22, 5e-23, 0)` gives `Ok` with a quaternion of length about 0.9956. No invariant
   covers them and their property domains use unit vectors. Reject as in MATH-R160 or state it.
+
+## M1-T056 — review 2026-11-10
+
+- `docs/specs/liminal_telemetry.md` §2 and §12 item 7: two references to
+  `docs/specs/liminal_memory.md` still say "on its branch". The file is on `main` (M1-T024);
+  turn them into links (rest of M1-T056 item 9c).
+- `docs/specs/xtask.md` "`test-features-off` details", `xtask/src/features_off.rs` (`test_args`
+  doc): "`--package` selects one package, so no other workspace member can turn a feature on"
+  does not hold for the package's own dependency graph. If a dev-dependency (for example a
+  future `liminal_testkit`) depends on the tested crate with the feature enabled, Cargo unifies
+  it on again and the `cfg(not(feature))` tests silently do not run. By Cargo's rules; not run.
+  State the limit, and check it when `liminal_telemetry` gets dev-dependencies (M1-T028).
+- `docs/specs/xtask.md` XTASK-R014, `docs/process/CODE_STYLE.md`: no command builds each
+  feature alone (`--no-default-features --features x`), and no task covers it (M1-T056 handoff,
+  "For the reviewer" 2). XTASK-R014 also lacks the "revisit at M3" note of XTASK-R012: a crate
+  that needs exactly one backend feature would fail with all features off.
+- `docs/specs/liminal_telemetry.md` §10 "Ring buffer and its reference": the assumption gives
+  "atomics hold one machine word" as the reason no safe ring exists. A 48-byte record can be
+  spread over six `AtomicU64`; the obstacle is that `&'static str` names and the log `Box`
+  cannot be rebuilt from integers without `unsafe`. Correct the reason; M1-T028's review checks
+  the `unsafe` against it (REVIEW.md item 6).
+- `docs/specs/liminal_telemetry.md` TELE-R011: "so no frame record holds a span with a
+  `start_ns` before its collector's `install`" holds only if no collector is dropped and
+  installed on another thread between the guard's identity load and its push. Qualify the
+  sentence (same window as for `counter!`, `gauge!`, `log!`), or state it for one thread.
+- `docs/tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md`: title and file
+  name say "frame stats", which are M1-T028's since M1-T056 (handoff, "For the reviewer" 5).
