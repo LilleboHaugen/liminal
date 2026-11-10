@@ -85,7 +85,7 @@ None.
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
 | M1 (Headless core) | 61 | 40 | 0 | 0 | 0 | 21 |
-| M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
+| M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates
 

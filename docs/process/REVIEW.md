@@ -2,8 +2,9 @@
 
 Reviews are done by an agent that did **not** write the work being reviewed, starting from a fresh
 context. That reviewer is a session the project owner started that did not work on the task, or a
-review sub-agent spawned by such a session with a fresh context and only the ADR-0026 review
-prompt. It is never an agent that worked on the task, and never a parent session. A review
+review sub-agent spawned by such a session with a fresh context and only the review prompt of
+ADR-0030 Decision 7. The rules in force are the ones on `origin/main`, also when the task branch
+is older. It is never an agent that worked on the task, and never a parent session. A review
 sub-agent may review a task that a sibling implementation sub-agent wrote (ADR-0029). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
 finds nothing should say what it checked.
 
@@ -11,7 +12,9 @@ finds nothing should say what it checked.
 
 Check, in order:
 1. **Acceptance criteria:** each one is met. Verify by running or reading, not by trusting the checkbox.
-2. **`cargo xtask ci` passes** on your machine. Note your OS.
+2. **`cargo xtask ci` passes** on your machine. Note your OS. Run it on the final tree: the task
+   branch with `origin/main` merged in. One run on that tree is enough; do not wait for a GitHub
+   run unless an acceptance criterion needs another platform (ADR-0030 Decision 4).
 3. **Tests prove behaviour:**
    - Do the tests fail if the implementation is broken? Mentally mutate one line. Would a test catch it?
    - Are there assertion-free tests, tests that only check "no panic", or tests that mirror the
@@ -25,13 +28,15 @@ Check, in order:
    is included in the state hash.
 8. **Docs:** public items documented; examples run; no stale docs elsewhere.
 9. **Architecture:** no new dependency without ADR; layer rules hold.
-10. **Session boundaries (ADR-0026, ADR-0029):** from the journals and the task file: each session that
+10. **Session boundaries (ADR-0026, ADR-0029, ADR-0030):** from the journals and the task file: each session that
     worked on the task was owner-started, or a sub-agent listed in its parent's journal (within
     any limit the owner set for that session); no agent that implemented any part of the
     task reviewed it, and no parent session reviewed or implemented; the task had at most one
     implementation and one review sub-agent per parent session; a review sub-agent's prompt was
-    the ADR-0026 template verbatim; no
-    sub-agent spawned agents or ran an install; merges to `main` were serial with CI green.
+    the ADR-0030 template verbatim; no
+    sub-agent spawned agents or ran an install; each merge to `main` was pushed as a fast-forward
+    of `origin/main` with `cargo xtask ci` green on its tree; the session journal gives its start
+    time and budget, and nothing was started after the cutoff (ADR-0030).
 11. **Public repository (ADR-0028):** a change to `.github/workflows/` keeps ADR-0028 Decision 4
     (read-only default permissions, every action SHA-pinned, `persist-credentials: false`, no
     secrets, no `pull_request_target` or `workflow_run`, no self-hosted runner). No journal or task
