@@ -1,0 +1,33 @@
+LIM-MATH-0001: `self` has length zero and cannot be normalized. help: pass a non-zero vector; components with absolute value below 1e-19 can underflow to a zero length. Use `normalize_or` to supply a fallback direction.
+{"code":"LIM-MATH-0001","message":"`self` has length zero and cannot be normalized.","help":"pass a non-zero vector; components with absolute value below 1e-19 can underflow to a zero length. Use `normalize_or` to supply a fallback direction.","context":{"parameter":"self"}}
+
+LIM-MATH-0002: `direction` is not finite: it contains NaN or an infinity, or the result computed from it overflows. help: check the value for NaN and infinities before the call; components with absolute value above 1.8e19 overflow when squared.
+{"code":"LIM-MATH-0002","message":"`direction` is not finite: it contains NaN or an infinity, or the result computed from it overflows.","help":"check the value for NaN and infinities before the call; components with absolute value above 1.8e19 overflow when squared.","context":{"parameter":"direction"}}
+
+LIM-MATH-0003: the matrix has determinant `0` and cannot be inverted. help: a matrix with a zero scale component or with linearly dependent columns has no inverse; check the scale passed to `from_scale_rotation_translation`.
+{"code":"LIM-MATH-0003","message":"the matrix has determinant `0` and cannot be inverted.","help":"a matrix with a zero scale component or with linearly dependent columns has no inverse; check the scale passed to `from_scale_rotation_translation`.","context":{"determinant":0}}
+
+LIM-MATH-0004: projection parameter `right` has the invalid value `-2.5`. help: `perspective` needs 0 < fov_y_radians < π, aspect_ratio > 0 and 0 < z_near < z_far; `orthographic` needs left != right, bottom != top and z_near != z_far; all values finite.
+{"code":"LIM-MATH-0004","message":"projection parameter `right` has the invalid value `-2.5`.","help":"`perspective` needs 0 < fov_y_radians < π, aspect_ratio > 0 and 0 < z_near < z_far; `orthographic` needs left != right, bottom != top and z_near != z_far; all values finite.","context":{"parameter":"right","value":-2.5}}
+
+LIM-MATH-0005: `up` is zero or parallel to `direction`, so no view basis exists. help: pass an `up` vector that is not parallel to `direction`, for example `Vec3::Z` when looking straight up or down.
+{"code":"LIM-MATH-0005","message":"`up` is zero or parallel to `direction`, so no view basis exists.","help":"pass an `up` vector that is not parallel to `direction`, for example `Vec3::Z` when looking straight up or down.","context":{}}
+
+LIM-MATH-0010: box minimum `3` is greater than maximum `1.5` on axis `y`. help: pass `min <= max` on every axis, or build the box with `Aabb::from_points`.
+{"code":"LIM-MATH-0010","message":"box minimum `3` is greater than maximum `1.5` on axis `y`.","help":"pass `min <= max` on every axis, or build the box with `Aabb::from_points`.","context":{"axis":"y","min":3,"max":1.5}}
+
+LIM-MATH-0011: `radius` has the negative value `-0.25`. help: pass a radius or half extent of zero or more.
+{"code":"LIM-MATH-0011","message":"`radius` has the negative value `-0.25`.","help":"pass a radius or half extent of zero or more.","context":{"parameter":"radius","value":-0.25}}
+
+LIM-MATH-0012: cannot build a bounding box from zero points. help: pass at least one point.
+{"code":"LIM-MATH-0012","message":"cannot build a bounding box from zero points.","help":"pass at least one point.","context":{}}
+
+LIM-MATH-0013: the three points lie on one line, coincide or span too small a triangle, so they define no plane. help: pass three points that form a triangle with non-zero area; the cross product of two of its edges needs a length of at least 1.1e-19 (two perpendicular edges of length 1e-9 are enough).
+{"code":"LIM-MATH-0013","message":"the three points lie on one line, coincide or span too small a triangle, so they define no plane.","help":"pass three points that form a triangle with non-zero area; the cross product of two of its edges needs a length of at least 1.1e-19 (two perpendicular edges of length 1e-9 are enough).","context":{}}
+
+LIM-MATH-0014: the `near` plane of the view-projection matrix has a normal that is zero, shorter than 1.1e-19 or not finite, or a distance that is not finite. help: pass the product `projection * view` of matrices from `Mat4::perspective` or `Mat4::orthographic` and `Mat4::look_to`.
+{"code":"LIM-MATH-0014","message":"the `near` plane of the view-projection matrix has a normal that is zero, shorter than 1.1e-19 or not finite, or a distance that is not finite.","help":"pass the product `projection * view` of matrices from `Mat4::perspective` or `Mat4::orthographic` and `Mat4::look_to`.","context":{"plane":"near"}}
+
+LIM-MATH-0015: `normal` has the squared length `0.000000000000000000000000000000000000000734684`, which is below 1.1754944e-38, and cannot be normalized to unit length. help: pass a longer vector; a length of at least 1.1e-19 is enough. Below that the squared length is a subnormal `f32`, too coarse to give a unit vector.
+{"code":"LIM-MATH-0015","message":"`normal` has the squared length `0.000000000000000000000000000000000000000734684`, which is below 1.1754944e-38, and cannot be normalized to unit length.","help":"pass a longer vector; a length of at least 1.1e-19 is enough. Below that the squared length is a subnormal `f32`, too coarse to give a unit vector.","context":{"parameter":"normal","length_squared":0.0000000000000000000000000000000000000007346839692639297}}
+
