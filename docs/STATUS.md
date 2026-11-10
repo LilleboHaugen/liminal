@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 5 of 54 tasks done.
+**M1** (Headless core): 6 of 55 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -39,7 +39,7 @@
 | [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | todo | M1-T001 |
 | [M1-T025](tasks/M1-T025-implement-liminal-memory-arena-and-frame-allocat.md) | Implement liminal_memory — arena and frame allocators | todo | M1-T024, M1-T014, M1-T018 |
 | [M1-T026](tasks/M1-T026-implement-liminal-memory-pool-aligned-tracking-r.md) | Implement liminal_memory — pool, aligned, tracking; reach usable | todo | M1-T025, M1-T017 |
-| [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | review | M1-T001 |
+| [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | done | M1-T001 |
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
 | [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | todo | M1-T001 |
@@ -67,6 +67,7 @@
 | [M1-T052](tasks/M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks — ECS vs bevy_ecs and hecs | todo | M1-T051, M1-T043 |
 | [M1-T053](tasks/M1-T053-m1-exit-review.md) | M1 exit review | todo | M1-T002, M1-T003, M1-T004, M1-T005, M1-T006, M1-T007, M1-T008, M1-T009, M1-T010, M1-T011, M1-T012, M1-T013, M1-T014, M1-T015, M1-T016, M1-T017, M1-T018, M1-T019, M1-T020, M1-T021, M1-T022, M1-T023, M1-T024, M1-T025, M1-T026, M1-T027, M1-T028, M1-T029, M1-T030, M1-T031, M1-T032, M1-T033, M1-T034, M1-T035, M1-T036, M1-T037, M1-T038, M1-T039, M1-T040, M1-T041, M1-T042, M1-T043, M1-T044, M1-T045, M1-T046, M1-T047, M1-T048, M1-T049, M1-T050, M1-T051, M1-T052, M1-T054 |
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | todo | M1-T001 |
+| [M1-T056](tasks/M1-T056-liminal-telemetry-spec-follow-ups.md) | liminal_telemetry spec follow-ups from the M1-T027 review | todo | M1-T027 |
 
 ## Blocked tasks
 
@@ -77,7 +78,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 48 | 0 | 0 | 1 | 5 |
+| M1 (Headless core) | 55 | 49 | 0 | 0 | 0 | 6 |
 | M2 (Agent interface v0) | 3 | 3 | 0 | 0 | 0 | 0 |
 
 ## Crates

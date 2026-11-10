@@ -2,7 +2,7 @@
 id: M1-T027
 title: Write the spec for liminal_telemetry
 milestone: M1
-status: review
+status: done
 crates: [liminal_telemetry]
 depends_on: [M1-T001]
 requirements: []
@@ -100,4 +100,61 @@ change; ADR-0016 delegates these to the spec):
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026/0027) of parent session `session/2026-11-10-m1-reviews`
+(journal `2026-11-10-session-m1-reviews.md`), fresh context, prompt = the ADR-0026 review template.
+This session implemented no part of M1-T027; the author was a sub-agent (no. 13, restarted as
+no. 15) of the other parent session `2026-11-09-session-m1-subagents.md`. macOS 27.2 (Darwin),
+Rust 1.99.1, worktree `liminal-worktrees/M1-T027-review`, branch at `a7accd2`. Task review
+(REVIEW.md §1) plus spec review (REVIEW.md §2), as "Test requirements" says.
+
+Outcome: **done**, no blocking findings. Follow-ups: M1-T056.
+
+Checked:
+- AC 1: all 14 template sections present in order; frontmatter `maturity: planned`,
+  `spec_version: 1`, `adrs: [ADR-0016, ADR-0017, ADR-0018, ADR-0023]`.
+- AC 2: 45 requirement rows (44 MUST, 1 SHOULD), IDs unique (script), prefix `TELE` per the
+  scope note (reserved in `docs/specs/README.md`, CORE-R012). Search for vague words finds only
+  the quoted "near-zero cost when disabled", which §4 defines as zero run-time work per call
+  site. Counts, units and failure behaviour are stated (R002, R052, R054, R055, R056, R091).
+- AC 3: §5 covers every scope item (log records, spans, counters, gauges, macros, feature,
+  thread buffers and hand-off, frame records, both exporters without `serde`, span budget row).
+  Compared with `docs/ARCHITECTURE.md` §2 row, §4 (frame record closed after render) and §5.3,
+  ADR-0016 Decision, `architecture.toml` (layer 0, `unsafe = "allow"`, `deterministic = false`,
+  dep `liminal_core`, dev `proptest`/`loom`), and `docs/specs/liminal_core.md` as merged on
+  `main`: `EngineError`, `write_display`, `validate_error(&e, "TELE")`, `ContextValue` (derives
+  `PartialEq`, so `FrameRecord: PartialEq` holds), `Tick` (`Copy`, `Eq`, `Default`, so
+  `FrameInfo`'s derives hold), CORE-R009/R010 as cited by TELE-R082.
+- AC 4: one code, LIM-TELE-0001, with message, help and "no context"; §8 says why recording and
+  export have no errors.
+- AC 5: test kinds per area are those of TESTING.md; the one optimized path (SPSC ring) has the
+  `Mutex<VecDeque>` reference and a differential property test (R057), plus loom and Miri.
+- AC 6: eight scenarios, no invented number; six name M1-T029 (one also M1-T033), two say "not
+  scheduled" (follow-up item 9b).
+- AC 7: script over the spec and both task files: the 44 MUST IDs are exactly M1-T028 (32) plus
+  M1-T029 (12 MUST + TELE-R084 SHOULD), none in both, none unknown; the §6 table agrees.
+- AC 8: ten open questions, each with a resolving task or milestone.
+- AC 9: `docs/specs/README.md` row present. `cargo xtask ci` on `a7accd2`: pass, 11 of 11
+  steps, none skipped. Branch CI run 42856209572 on `a7accd2`: success.
+- Read for correctness: nearest-rank formula of R091 by hand for n = 1, 2, 20, 21 (the test
+  plan's cases); `T(ns)` examples; Chrome trace event shapes (`M`, `X`, `i` with `"s":"t"`, `C`)
+  against the trace event format from memory, not in a viewer (R084 is M1-T029's check);
+  record sizes of R056 (span, counter, gauge fit 48 bytes; log: follow-up item 5); macro
+  patterns of §5.1; `!Send` zero-sized guard without drop glue (R002, R022) is expressible.
+- Oracle change: `xtask/src/repo.rs` `loads_the_real_repository`, exact spec list replaced by
+  membership and exclusion checks. Justified in the journal; the file is byte-identical to the
+  version already on `main` from M1-T012 (`git diff` empty), so nothing new is weakened.
+- No fake progress: no code; scope note on the prefix is written in the task; nothing else
+  reduced.
+- Session boundaries (item 10): the author is listed in its parent's journal (rows 13 and 15;
+  the restart deviates from ADR-0027 Decision 2.3 on the owner's quoted instruction 3). The
+  author's journal names its parent as "the 2026-11-10 parent session journal" instead of the
+  file `2026-11-09-session-m1-subagents.md` (ADR-0026 Decision 8.2); the parent's entry records
+  that inconsistency. No install or nested spawn recorded.
+- ADR-0028 (item 11): no workflow change; no credentials or personal data in the diff; no
+  issue, pull request or outside code acted on.
+
+Follow-ups (M1-T056): "provisional" frame fields allowed for M1-T028; per-simulation-step
+records (ADR-0016); ADR-0018 benchmark clause and the `reference` module rule; span across two
+collectors; log record size against 48 bytes; number-format wording (R082, R093); counter and
+gauge of one name in the Chrome trace; summary `sim_steps` type; small text items; feature-off
+build in `cargo xtask ci` (spec open question 2, which the handoff left without a task).
