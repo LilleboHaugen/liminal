@@ -42,6 +42,8 @@ fn expect(pairs: &[(&str, usize)]) -> Vec<(String, usize)> {
 /// Verifies: XTASK-R050
 #[test]
 fn forbidden_macros_in_code_in_every_delimiter_and_spacing() {
+    // Line 16: `0..dbg!(x)`, a macro right after a range, is a finding (M1-T004): the lexer ends
+    // the literal `0` at `..`.
     let found = scan_case(include_str!("../../tests/fixtures/hygiene/cases/macros.rs"));
     let r050 = "XTASK-R050";
     assert_eq!(
@@ -53,7 +55,8 @@ fn forbidden_macros_in_code_in_every_delimiter_and_spacing() {
             (r050, 5),
             (r050, 6),
             (r050, 7),
-            (r050, 13)
+            (r050, 13),
+            (r050, 16)
         ])
     );
 }
@@ -85,6 +88,8 @@ fn task_markers_in_comments_need_an_existing_open_task() {
 /// Verifies: XTASK-R050, XTASK-R051
 #[test]
 fn ignore_attributes_need_a_reason_naming_an_existing_task() {
+    // Line 21: `#[foo(ignore)]` is no test ignore. `ignore` counts only directly after `[` or `,`
+    // (`spec_version` 22, M1-T004).
     let found = scan_case(include_str!(
         "../../tests/fixtures/hygiene/cases/ignores.rs"
     ));

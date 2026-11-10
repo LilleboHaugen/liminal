@@ -80,6 +80,15 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T052](M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks: ECS vs `bevy_ecs` and `hecs` |
 | [M1-T053](M1-T053-m1-exit-review.md) | M1 exit review |
 | [M1-T054](M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review |
+| [M1-T055](M1-T055-liminal-core-spec-follow-ups.md) | `liminal_core` spec follow-ups from the M1-T012 review |
+| [M1-T056](M1-T056-liminal-telemetry-spec-follow-ups.md) | `liminal_telemetry` spec follow-ups from the M1-T027 review |
+| [M1-T057](M1-T057-liminal-reflect-spec-follow-ups.md) | `liminal_reflect` and `liminal_reflect_derive` spec follow-ups from the M1-T030 review |
+| [M1-T058](M1-T058-liminal-memory-spec-follow-ups.md) | `liminal_memory` spec follow-ups from the M1-T024 review |
+| [M1-T060](M1-T060-liminal-math-spec-follow-ups.md) | `liminal_math` spec follow-ups from the M1-T019 review |
 | [M2-T001](M2-T001-check-docs-markdown-follow-ups.md) | `check-docs` Markdown follow-ups from the M1-T002 review |
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
 | [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |
+| [M2-T004](M2-T004-reference-module-rule-follow-ups.md) | Reference-module rule follow-ups from the M1-T054 review |
+| [M2-T005](M2-T005-rust-lexer-number-follow-ups.md) | Rust lexer numeric literal follow-ups from the M1-T004 review |
+| [M2-T006](M2-T006-determinism-lint-follow-ups.md) | Determinism lint follow-ups from the M1-T011 review |
+| [M2-T007](M2-T007-dependabot-and-main-run-follow-ups.md) | Dependabot handling and `main` run cancellation follow-ups from the M1-T006 review |

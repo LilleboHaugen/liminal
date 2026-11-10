@@ -18,3 +18,4 @@ use ignore::Walk;
 #[ignore = "M0-T0050: not a task ID"]
 #![ignore]
 #[tool::ignore]
+#[foo(ignore)]

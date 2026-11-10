@@ -1,0 +1,34 @@
+LIM-CORE-0001: error code text `LIM-ecs-3` does not have the form LIM-AREA-NNNN. help: write `LIM-`, the crate's requirement prefix (1 to 8 uppercase ASCII letters), `-`, and 4 digits from 0001 to 9999, for example `LIM-ECS-0007`.
+{"code":"LIM-CORE-0001","message":"error code text `LIM-ecs-3` does not have the form LIM-AREA-NNNN.","help":"write `LIM-`, the crate's requirement prefix (1 to 8 uppercase ASCII letters), `-`, and 4 digits from 0001 to 9999, for example `LIM-ECS-0007`.","context":{"text":"LIM-ecs-3"}}
+
+LIM-CORE-0002: error `LIM-ECS-0003` has context key `Entity ID`, which is not snake_case. help: use keys that match `^[a-z][a-z0-9_]*$`.
+{"code":"LIM-CORE-0002","message":"error `LIM-ECS-0003` has context key `Entity ID`, which is not snake_case.","help":"use keys that match `^[a-z][a-z0-9_]*$`.","context":{"code":"LIM-ECS-0003","key":"Entity ID"}}
+
+LIM-CORE-0003: error `LIM-ECS-0003` has context key `entity` more than once. help: give each context field a distinct key.
+{"code":"LIM-CORE-0003","message":"error `LIM-ECS-0003` has context key `entity` more than once.","help":"give each context field a distinct key.","context":{"code":"LIM-ECS-0003","key":"entity"}}
+
+LIM-CORE-0004: error `LIM-ECS-0003` has an empty message. help: return a message that says what happened.
+{"code":"LIM-CORE-0004","message":"error `LIM-ECS-0003` has an empty message.","help":"return a message that says what happened.","context":{"code":"LIM-ECS-0003"}}
+
+LIM-CORE-0005: error `LIM-ECS-0003` has an empty help text. help: return `None` from `help()` when no fix is known, otherwise a non-empty hint.
+{"code":"LIM-CORE-0005","message":"error `LIM-ECS-0003` has an empty help text.","help":"return `None` from `help()` when no fix is known, otherwise a non-empty hint.","context":{"code":"LIM-ECS-0003"}}
+
+LIM-CORE-0006: error `LIM-ECS-0003` displays as `not registered
+` instead of `LIM-ECS-0003: component "Health" is not registered.`. help: implement `Display` by calling `liminal_core::error::write_display`.
+{"code":"LIM-CORE-0006","message":"error `LIM-ECS-0003` displays as `not registered\n` instead of `LIM-ECS-0003: component \"Health\" is not registered.`.","help":"implement `Display` by calling `liminal_core::error::write_display`.","context":{"code":"LIM-ECS-0003","expected":"LIM-ECS-0003: component \"Health\" is not registered.","actual":"not registered\n"}}
+
+LIM-CORE-0007: error `LIM-ECS-0003` does not use the area `PHYS`. help: use the `req_prefix` of the crate's spec as the code's area.
+{"code":"LIM-CORE-0007","message":"error `LIM-ECS-0003` does not use the area `PHYS`.","help":"use the `req_prefix` of the crate's spec as the code's area.","context":{"code":"LIM-ECS-0003","expected_area":"PHYS"}}
+
+LIM-CORE-0010: handle `3v2` is not live. help: the handle was freed already or was not issued by this allocator; check `is_live` before freeing.
+{"code":"LIM-CORE-0010","message":"handle `3v2` is not live.","help":"the handle was freed already or was not issued by this allocator; check `is_live` before freeing.","context":{"index":3,"generation":2}}
+
+LIM-CORE-0011: all `4096` handle slots are in use or retired. help: free handles that are no longer needed, or create the allocator with a higher slot limit.
+{"code":"LIM-CORE-0011","message":"all `4096` handle slots are in use or retired.","help":"free handles that are no longer needed, or create the allocator with a higher slot limit.","context":{"slot_limit":4096}}
+
+LIM-CORE-0020: tick rate `1001` is outside 1 to 1000 ticks per second. help: use a tick rate from 1 to 1000; the default is 60 (`TickRate::DEFAULT`).
+{"code":"LIM-CORE-0020","message":"tick rate `1001` is outside 1 to 1000 ticks per second.","help":"use a tick rate from 1 to 1000; the default is 60 (`TickRate::DEFAULT`).","context":{"ticks_per_second":1001}}
+
+LIM-CORE-0030: the RNG state is all zeros, which the generator cannot use. help: restore a state saved with `Rng::state`, or create the RNG with `Rng::new`.
+{"code":"LIM-CORE-0030","message":"the RNG state is all zeros, which the generator cannot use.","help":"restore a state saved with `Rng::state`, or create the RNG with `Rng::new`.","context":{}}
+

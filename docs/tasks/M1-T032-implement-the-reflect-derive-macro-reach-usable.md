@@ -4,8 +4,8 @@ title: Implement the Reflect derive macro; reach usable for both reflect crates
 milestone: M1
 status: todo
 crates: [liminal_reflect, liminal_reflect_derive]
-depends_on: [M1-T031]
-requirements: []
+depends_on: [M1-T031, M1-T061]
+requirements: [REFL-R120, REFL-R130, REFL-R131, REFL-R132, REFLD-R001, REFLD-R002, REFLD-R003, REFLD-R004, REFLD-R005, REFLD-R020, REFLD-R021, REFLD-R030, REFLD-R031, REFLD-R032, REFLD-R033, REFLD-R034, REFLD-R035, REFLD-R050, REFLD-R051, REFLD-R052, REFLD-R053, REFLD-R070]
 ---
 
 # M1-T032: Implement the `Reflect` derive macro; reach `usable` for both reflect crates
@@ -48,7 +48,11 @@ Requirements in frontmatter; differential and compile-fail tests.
 
 ## Notes
 
-_None._
+- 2026-11-10 (M1-T057): both specs are at `spec_version` 2. The derive crate enables the
+  `proc-macro2` feature `span-locations` on its normal dependency (derive spec §3, REFLD-R050).
+  REFLD-R003 has two tests (token walk over the expansion; shadowing integration test).
+  REFLD-R033: the hand-written twins return the derived types' paths and are never registered
+  in the same `TypeRegistry` as the derived type. REFL-R120 is reworded.
 
 ## Handoff
 
