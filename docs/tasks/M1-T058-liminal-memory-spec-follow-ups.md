@@ -181,7 +181,7 @@ Checked (REVIEW.md §1):
    MEM-R074; Q1 closed; item 8 sub-items all present. `spec_version` 2 with history row; no
    requirement ID added or moved (MUST assignment in §13 and the `requirements` frontmatter of
    M1-T025/M1-T026 unchanged).
-2. `cargo xtask ci` on the task branch with `origin/main` (`35a8597`) merged in (`docs/STATUS.md`
+2. `cargo xtask ci` on the task branch with `origin/main` (`35a8597`, then `c891029`) merged in (`docs/STATUS.md`
    regenerated): pass, 12 steps, none skipped, macOS 27.2 arm64, Rust 1.99.1; again after the
    review edits.
 3. Tests: none required (documentation task).
