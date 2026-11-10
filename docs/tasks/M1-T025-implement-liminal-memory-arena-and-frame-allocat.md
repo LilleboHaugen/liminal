@@ -47,8 +47,15 @@ Requirements in frontmatter; property tests (alignment, no overlap, reset semant
   codes LIM-MEM-0001 to LIM-MEM-0004 (MEM-R002) to this task, because they are part of the `Arena`
   type. "Aligned allocation" in **Out** means `AlignedBuf` (M1-T026). Allocation statistics
   (`Arena::stats`, MEM-R070) stay in M1-T026.
-- The spec's §5 uses a placeholder name for the `liminal_core` error trait (spec Q1); use the
-  names from `docs/specs/liminal_core.md` and update the spec if they differ.
+- ~~The spec's §5 uses a placeholder name for the `liminal_core` error trait (spec Q1); use the
+  names from `docs/specs/liminal_core.md` and update the spec if they differ.~~ Done by M1-T058
+  (2026-11-10, spec v2): §5 names `liminal_core::error::EngineError`, `write_display` and
+  `validate_error`, and states the context key order per variant (MEM-R002).
+- Spec v2 changes that affect this task (M1-T058, 2026-11-10): `FrameAllocator::begin_frame`
+  returns `()` (MEM-R031, MEM-R032); zero-size requests have an address rule and still run check
+  steps 1 to 3 (§4 "Zero-size request", MEM-R011); "does not compile" in MEM-R014 means "does
+  not build" (`cargo check` does not report it); the §4 diagram now agrees with the placement
+  rule.
 
 ## Handoff
 

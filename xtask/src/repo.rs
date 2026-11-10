@@ -29,6 +29,31 @@ pub(crate) fn root() -> PathBuf {
         .to_path_buf()
 }
 
+/// Checks that `root` is a repository root: a directory that contains `architecture.toml`
+/// (XTASK-R015). The compiled-in [`root`] fails this when the checkout was moved or renamed after
+/// xtask was built.
+///
+/// # Errors
+///
+/// [`LoadError`] LIM-XTASK-0007 naming `root` and the fix.
+pub(crate) fn check_root(root: &Path) -> Result<(), LoadError> {
+    if root.join("architecture.toml").is_file() {
+        return Ok(());
+    }
+    let detail = if root.is_dir() {
+        "the repository root compiled into xtask has no architecture.toml"
+    } else {
+        "the repository root compiled into xtask does not exist"
+    };
+    Err(LoadError {
+        code: "LIM-XTASK-0007",
+        path: root.display().to_string(),
+        detail: detail.to_string(),
+        help: "The checkout was moved or renamed after xtask was built: run `cargo clean -p xtask`, \
+               then the command again",
+    })
+}
+
 /// Directories at the repository root that are never part of the model: build output and git data.
 const EXCLUDED_ROOT_DIRS: &[&str] = &[".git", "target"];
 
@@ -247,12 +272,19 @@ pub(crate) fn read(root: &Path, path: &str) -> Result<String, LoadError> {
 /// Collects every file and directory below `dir` into `paths`, sorted by the set.
 fn walk(root: &Path, dir: &Path, paths: &mut BTreeSet<String>) -> Result<(), LoadError> {
     let relative = |path: &Path| -> String {
-        path.strip_prefix(root)
+        let relative = path
+            .strip_prefix(root)
             .unwrap_or(path)
             .components()
             .map(|component| component.as_os_str().to_string_lossy())
             .collect::<Vec<_>>()
-            .join("/")
+            .join("/");
+        // The root itself has no relative path: name it absolutely, never as "" (spec §8).
+        if relative.is_empty() {
+            path.display().to_string()
+        } else {
+            relative
+        }
     };
     let entries = std::fs::read_dir(dir).map_err(|error| LoadError::read(relative(dir), &error))?;
     for entry in entries {
@@ -284,6 +316,36 @@ mod tests {
         assert!(root.join("Cargo.toml").is_file());
         assert!(root.join("xtask/Cargo.toml").is_file());
         assert!(root.join("architecture.toml").is_file());
+    }
+
+    /// Verifies: XTASK-R015
+    #[test]
+    fn check_root_accepts_the_real_root_and_names_a_missing_one() {
+        assert_eq!(check_root(&root()), Ok(()));
+
+        let missing = root().join("target/xtask-test-no-such-root");
+        let error = check_root(&missing).unwrap_err();
+        assert_eq!(error.code, "LIM-XTASK-0007");
+        assert_eq!(error.path, missing.display().to_string());
+        assert!(error.detail.ends_with("does not exist"), "{error}");
+        assert!(error.help.contains("cargo clean -p xtask"), "{error}");
+
+        // A directory that exists but is not a repository root.
+        let error = check_root(&root().join("xtask")).unwrap_err();
+        assert_eq!(error.code, "LIM-XTASK-0007");
+        assert!(
+            error.detail.ends_with("has no architecture.toml"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn an_unreadable_root_is_named_by_its_absolute_path() {
+        let missing = root().join("target/xtask-test-no-such-root");
+        let error = load(&missing).unwrap_err();
+        assert_eq!(error.code, "LIM-XTASK-0001");
+        assert_eq!(error.path, missing.display().to_string());
+        assert!(!error.to_string().contains(": : "), "{error}");
     }
 
     #[test]

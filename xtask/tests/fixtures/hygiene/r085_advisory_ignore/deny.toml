@@ -1,0 +1,7 @@
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2026-0001", reason = "fixture; expires 2000-01-01 (M0-T005)" },
+    { id = "RUSTSEC-2026-0002", reason = "fixture without an expiry" },
+    "RUSTSEC-2026-0003",
+    { id = "RUSTSEC-2026-0004", reason = "fixture; expires 9999-12-31 (M0-T001)" },
+]

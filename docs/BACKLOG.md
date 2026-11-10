@@ -184,3 +184,63 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
   would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
   changes.
+
+## M1-T037 — review 2026-11-10
+
+- `docs/specs/liminal_ecs.md` ECS-R210 and `docs/specs/liminal_jobs.md` JOBS-R121: if
+  `run_parallel` names each `JobGraph` node with the system name, `run_graph` already records a
+  span of that name, and an ECS span of its own makes two. M1-T042 picks distinct node names or
+  relies on the node span; say which in the spec.
+- `docs/specs/liminal_ecs.md` ECS-R210: schedule and system span names (`"fixed_update"`,
+  `"integrate"`) do not follow the telemetry name convention (SHOULD, `liminal_telemetry.md`
+  §5.1: lowercase, dot-separated, crate area first). Decide whether callers or the ECS prefix them.
+- `docs/specs/liminal_ecs.md` §11 rule 3 and ECS-R221: an `Rng` in a registered resource needs
+  `Rng: Typed`, which is M1-T062's decision; M1-T043 (`schedule_ticks`) does not depend on
+  M1-T062, so its `Rng` resource stays unregistered (not hashed) unless the order changes.
+- `docs/specs/liminal_ecs.md` §10 "loom" and §11: the world identity of ECS-R155 most likely
+  needs a process-global counter (an atomic of the crate's own); §10 says the crate has no
+  shared mutable state of its own. State the exception or the mechanism.
+- `docs/specs/liminal_ecs.md` ECS-R191: "equal event buffers" does not say that the sets of
+  registered event types must be equal too; one extra registered event type with empty buffers
+  changes the hash by ECS-R190 (4). Name it among the conditions.
+- `docs/tasks/README.md` has no row for M1-T059, and `depends_on` of
+  `docs/tasks/M1-T053-m1-exit-review.md` lists none of M1-T055 to M1-T061 (only M1-T062).
+
+## M1-T058 — review 2026-11-10
+
+- `docs/specs/liminal_memory.md` §5 intro and Q1 cite `docs/specs/liminal_core.md`
+  `spec_version` 1; `main` has v4 with the same names. Update the citation when M1-T025 next
+  touches the spec.
+- `docs/specs/liminal_memory.md` INV-2 ("live arena allocations lie within `[base, base +
+  used())`") holds for zero-size allocations only vacuously (§4: their address may lie outside
+  the base). Say so in INV-2 so the `debug_assert!`/property test does not check their address.
+
+## M1-T008 — review 2026-11-10
+
+- `xtask/src/doctor/tests.rs` `a_probe_that_reads_stdin_sees_it_closed` kills a `Stdio::inherit()`
+  mutant only when the test's own stdin is an open pipe; with stdin `/dev/null` (typical CI) it
+  passes. The spec says "the parent's stdin stays open"; a test could give the child an open pipe itself.
+- `xtask/src/hygiene/advisories.rs` (R085): a table entry with a valid `reason` but neither `id`
+  nor `crate` passes R085 (named `entry`); cargo-deny rejects it, so R085 could too.
+
+## M1-T061 — review 2026-11-10
+
+- `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is
+  not in the list passes, so bare prelude names (`Clone`, `Default`, `Box`, `Into`) in generated
+  code pass test (1), and test (2) does not shadow them. Same gap as in `spec_version` 2; M1-T032
+  may extend the list or the shadowing test.
+- `docs/tasks/README.md`: no row for M1-T061 (task created by the M1-T057 review).
+
+## M1-T009 — review 2026-11-10
+
+- `xtask/tests/deny_policy.rs` `git_dependencies_are_rejected` writes a checkout of its fixture
+  repository into the user's `$CARGO_HOME/git/` on every run (the reviewer's machine holds 10+
+  `dep-*` entries). Run it with a temporary `CARGO_HOME`, as `other_registry_dependencies_are_rejected` does.
+
+## M1-T010 — review 2026-11-10
+
+- `docs/specs/xtask.md` §8 says a probe whose working directory is missing is reported as
+  `working directory <path> does not exist`; `xtask/src/doctor.rs` `RealProber::probe` reports the
+  tool `missing`. Unreachable today (R015 checks the root first); align the spec sentence or the code.
+- `xtask/src/repo/metadata.rs`, `xtask/src/repo/coverage.rs`: no test shows the missing-working-
+  directory message reaches these two `start_error` call sites (only `RealRunner` is tested).

@@ -1,6 +1,7 @@
 # `hygiene` fixtures
 
-`valid/` is a complete repository that passes `hygiene`: tracked task markers, `ignore` attributes
+`valid/` is a complete repository that passes `hygiene`: a `deny.toml` whose one ignored advisory
+expires in 9999 and names an open task, tracked task markers, `ignore` attributes
 whose reasons name tasks, forbidden patterns inside string literals, a violation in a directory
 excluded by `ci/hygiene.toml`, and a violation in a `.rs` file outside every workspace member
 (`scripts/`). Every other directory except `cases/` is an overlay: the test copies `valid/`, copies
@@ -15,6 +16,7 @@ the overlay on top, and runs `hygiene`. Each overlay must give exactly the findi
 | `r051_unknown_task` | a marker naming `M9-T999`, which does not exist | XTASK-R051 |
 | `r051_done_task` | a marker naming `M0-T001`, which is `done` | XTASK-R051 |
 | `r052_exclusion` | an exclusion with a blank reason, and one whose path does not exist | XTASK-R052 |
+| `r085_advisory_ignore` | `deny.toml` ignores advisories: expired, without expiry, a bare ID, naming a `done` task | XTASK-R085 |
 
 `cases/` holds single `.rs` files that `xtask/src/hygiene/tests.rs` scans directly
 (`include_str!`). Each test lists the expected rule and line for every finding, so a line added

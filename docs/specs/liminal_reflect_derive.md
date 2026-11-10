@@ -3,7 +3,7 @@ crate: liminal_reflect_derive
 req_prefix: REFLD
 layer: 0
 maturity: planned
-spec_version: 2
+spec_version: 3
 last_reviewed: 2026-11-10
 adrs: [ADR-0003, ADR-0017, ADR-0018]
 ---
@@ -36,7 +36,7 @@ this crate directly: `liminal_reflect::value::Reflect` re-exports the macro (REF
 - Unions, lifetime parameters and const generic parameters (rejected, §8; §12 item 1).
 - Other derives (`Default`, serialization): not in this crate.
 - Renaming the `liminal_reflect` dependency in a user's `Cargo.toml` (`#[reflect(crate = …)]`):
-  not in `spec_version` 2 (§12 item 2).
+  not in `spec_version` 3 (§12 item 2).
 
 ## 3. Dependencies
 
@@ -45,8 +45,21 @@ this crate directly: `liminal_reflect::value::Reflect` re-exports the macro (REF
   It cannot have `liminal_reflect` as a dev-dependency (XTASK-R032, no same-layer edge), so tests
   that compile derived types live in `liminal_reflect` (§10).
 - External crates: `syn`, `quote`, `proc-macro2`, scope `build` (ADR-0003, `architecture.toml`
-  `external`). The `syn` features used are fixed by M1-T032 and recorded in §3 by a spec update if
-  they go beyond `derive`, `parsing`, `printing` and `proc-macro`.
+  `external`). `syn` features: `derive`, `parsing`, `printing`, `proc-macro`, and `full` and `visit`
+  (`spec_version` 3), all on the crate's normal dependency.
+  M1-T032 records any further feature here by a spec update.
+- `syn` features `full` and `visit`: the unit test of REFLD-R003 test (1) parses the expansion as
+  a `syn::File` (needs `full`: items, expressions, statements, patterns) and walks it with
+  `syn::visit::Visit` (needs `visit`). The derive's own parsing of `syn::DeriveInput` needs only
+  `derive`. They are on the normal dependency for the reason given for `span-locations` below
+  (XTASK-R034: no dev-dependency on a crate of scope `build`); no registry change and no ADR, as
+  for `span-locations`. Consequence: Cargo unifies features, so every build that contains the
+  derive compiles its `syn` with `full` and `visit`, which enlarges that compile; the effect has
+  not been measured. Checked with `syn` 3.0.9 (the version in `Cargo.lock`), `quote` 1.0.47 and
+  `proc-macro2` 1.0.107 by a probe outside the repository (M1-T061 handoff): `syn` 3.0.9 has both
+  features, and the check passes hand-written expansions of the four input kinds of REFLD-R003
+  and fails expansions that name `::liminal_core` or bare `Option`, `Some`, `None`, `Vec`,
+  `String`, a relative trait or macro, or contain a `use` item.
 - `proc-macro2` feature `span-locations`: enabled, on the crate's normal dependency
   (`proc-macro2 = { workspace = true, features = ["span-locations"] }`). The unit tests of
   REFLD-R050 need it: they run outside the compiler, where `proc_macro2::Span::start()` exists
@@ -131,7 +144,7 @@ Generated for a type `X` with generic type parameters `P1 … Pn` (n ≥ 0): `im
 |---|---|---|
 | REFLD-R001 | MUST | `#[derive(Reflect)]` on a named struct, tuple struct, unit struct, or an enum with at least one variant (any mix of unit, tuple and struct variants) generates impls of `Reflect`, `Typed` and `ReflectFields`, and for enums also `ReflectEnum`, and nothing else; the impls are inside one `const _: () = { … };` block. The generated code compiles without warnings under the workspace lints (`cargo clippy --all-targets -- -D warnings`), checked by derived test types in `liminal_reflect`'s tests. |
 | REFLD-R002 | MUST | For each generic type parameter `P` of the input, the generated impls carry the bound `P: ::liminal_reflect::value::Typed` in addition to the input's own bounds and `where` clause, which are kept unchanged. A type with two type parameters, one of them with its own bound (`T: Copy`), derives and works for `T = u8, U = String`. |
-| REFLD-R003 | MUST | Generated code names items only through absolute paths starting with `::liminal_reflect`, `::core` or `::std`. Two tests. (1) Unit test of `expand`, on inputs whose field types are primitive type names or the input's own generic parameters (a named struct, a tuple struct, an enum with all three variant kinds, a generic type with two parameters), over all tokens of the output including those inside groups, where a path "starts with `::`" when its first `::` follows neither an identifier nor `>`: every path that starts with `::` has `liminal_reflect`, `core` or `std` as its first segment; every path of two or more segments that does not start with `::` has `Self` or one of the input's generic type parameters as its first segment; every macro invocation (an identifier followed by `!` and a group) is the last segment of a path that starts with `::`; and none of the identifiers `Reflect`, `Typed`, `TypeInfo`, `Shape`, `Option`, `Some`, `None`, `Result`, `Ok`, `Err`, `Vec`, `String` occurs outside a path that starts with `::`. This is the check that the generated code depends on no crate but `liminal_reflect` and the standard library. (2) Integration test in `crates/liminal_reflect/tests/`: a file that names no crate other than `liminal_reflect` (no path, `use` or `extern crate` naming `liminal_reflect_derive`, `liminal_core` or `proptest`) declares local items named `Reflect`, `Typed`, `TypeInfo`, `Shape`, `Option`, `Some`, `None`, `Result`, `Ok`, `Err`, `Vec` and `String` and derives without errors. Test (2) shows that shadowing does not break the generated code; it cannot show that a dependency is absent, because an integration test is compiled with every dependency and dev-dependency of `liminal_reflect` available. |
+| REFLD-R003 | MUST | Generated code names items only through absolute paths starting with `::liminal_reflect`, `::core` or `::std`. Two tests. (1) Unit test of `expand`, on inputs whose field types are Rust primitive types other than `String` (`bool`, the integer types, `f32`, `f64`, `char`) or the input's own generic type parameters (a named struct, a tuple struct, an enum with all three variant kinds, a generic type with two parameters); `String` is excluded because field types and `where` clauses are copied into the expansion as written, so a field of type `String` puts a bare `String` into it. The test parses the output with `syn::parse2::<syn::File>` (a parse error fails the test) and visits the file with `syn::visit::Visit` (`syn` features `full` and `visit`, §3). A path is *absolute* when its `leading_colon` is set, and a *root* is one of `liminal_reflect`, `core`, `std`. The test fails, naming the offending item, on: (a) any `use` or `extern crate` item (`ItemUse`, `ItemExternCrate`; a `use` tree is not a `syn::Path`, so rule (d) would not see it); (b) any `syn::QSelf` without `as` (`<T>::f`: `syn` stores it as an absolute path whose first segment is `f`); (c) any `syn::Macro` whose path is not absolute with a root as first segment, or whose body does not parse as `Punctuated<syn::Expr, syn::Token![,]>::parse_terminated`; the parsed expressions are visited by rules (a) to (d), so paths inside `::std::format!(…)` and `::std::vec![…]` are checked; (d) any other `syn::Path` (every path `Visit::visit_path` reaches: types, expressions, patterns, trait bounds, attributes, visibilities) that is none of: absolute with a root as first segment; not absolute with `Self` or one of the input's generic type parameters as first segment; not absolute, of one segment, and not one of the identifiers `Reflect`, `Typed`, `TypeInfo`, `Shape`, `Option`, `Some`, `None`, `Result`, `Ok`, `Err`, `Vec`, `String`. `syn` stores the trait of a qualified path as the leading segments of the path, so `<T as ::liminal_reflect::value::Typed>::type_path()` is the absolute path `::liminal_reflect::value::Typed::type_path` and passes, and `<T as Typed>::type_path()` is the path `Typed::type_path` and fails. Identifiers that are not part of a path (field names, method names, bindings, lifetimes) name no item and are not checked. The same unit test also runs the check on two hand-written token streams, one that names `::liminal_core::…` and one that contains a bare `Option`, and asserts that it fails on each, so the check is shown not to be vacuous. This is the check that the generated code depends on no crate but `liminal_reflect` and the standard library. (2) Integration test in `crates/liminal_reflect/tests/`: a file that names no crate other than `liminal_reflect` (no path, `use` or `extern crate` naming `liminal_reflect_derive`, `liminal_core` or `proptest`) declares local items named `Reflect`, `Typed`, `TypeInfo`, `Shape`, `Option`, `Some`, `None`, `Result`, `Ok`, `Err`, `Vec` and `String` and derives without errors. Test (2) shows that shadowing does not break the generated code; it cannot show that a dependency is absent, because an integration test is compiled with every dependency and dev-dependency of `liminal_reflect` available. |
 | REFLD-R004 | MUST | Field names: a named field's identifier with any `r#` prefix removed (`r#type` → `"type"`); a tuple field's position among the input's fields in decimal, counted before ignored fields are removed (`struct T(u8, #[reflect(ignore)] C, u16)` has fields `"0"` and `"2"`). Reflected fields keep declaration order and have consecutive indices from 0. Visibility plays no part: a private field without `#[reflect(ignore)]` is reflected like a `pub` field (test type with private fields defined in a submodule of the test file, read and written by name from outside that module). |
 | REFLD-R005 | MUST | Recursive types derive and their `Typed::type_info()` returns (it does not call `type_info()` of field types): `struct Node { value: u32, children: Vec<Node> }` has a descriptor whose `children` field has `TypeRef` path `"Vec<" + Node::type_path() + ">"`. |
 
@@ -231,7 +244,7 @@ No optimized path. The oracle for generated code is the hand-written reference i
 
 | Area | Test kinds | Oracle |
 |---|---|---|
-| Parsing and validation (R001, R003 test 1, R004, R020, R021, R050, R051, R070) | unit (in `liminal_reflect_derive`, on `expand` with `proc_macro2` token input parsed from a string) | Hand-written expected messages, span starts as line and column in the input string (`span-locations`, §3), field lists and type-path expressions; a token walk over the output for the path rules of R003; second expansion (R070) |
+| Parsing and validation (R001, R003 test 1, R004, R020, R021, R050, R051, R070) | unit (in `liminal_reflect_derive`, on `expand` with `proc_macro2` token input parsed from a string) | Hand-written expected messages, span starts as line and column in the input string (`span-locations`, §3), field lists and type-path expressions; for R003 test 1, a `syn::visit::Visit` walk over the output parsed as a `syn::File` (§3), checked against two hand-written failing streams; second expansion (R070) |
 | Generated behaviour (R002, R003 test 2, R004 visibility, R005, R030–R035) | integration and property tests in `crates/liminal_reflect/tests/` | Hand-written reference impls of twin types that return the derived types' paths (M1-T031, REFLD-R033); `liminal_reflect` requirements |
 | Rejections (R050, R052) | rustdoc `compile_fail` doc tests on `liminal_reflect::value::Reflect` (no compile-test crate is approved, M1-T032) | The compiler rejects the input |
 | Spans (R053) | review, one manual compile | Compiler output recorded in the M1-T032 handoff |
@@ -258,7 +271,7 @@ behaviour.
 ## 12. Open questions
 
 1. **Const generics.** `struct Grid<const W: usize>` would need `W` in the type path. Rejected in
-   `spec_version` 2 (LIM-REFLD-0004). Revisit when a consumer needs it (voxel chunk types, M6).
+   `spec_version` 3 (LIM-REFLD-0004). Revisit when a consumer needs it (voxel chunk types, M6).
 2. **Renamed dependency.** Generated code names `::liminal_reflect`; a crate that renames the
    dependency cannot use the derive. Add `#[reflect(crate = "…")]` if a consumer (for example the
    `liminal_engine` facade re-exporting reflection) needs it; resolve in the facade's spec.
@@ -289,3 +302,4 @@ checked by the session that reviews it.
 |---|---|---|---|
 | 1 | 2026-11-10 | Initial spec | M1-T030 |
 | 2 | 2026-11-10 | Follow-ups of the M1-T030 review. REFLD-R003: split into a token check on the expansion (paths start with `::liminal_reflect`, `::core` or `::std`) and a shadowing integration test, worded as what each can show. REFLD-R033: twins return the derived type's path, descriptors are equal without exception, twins are never registered in one registry. REFLD-R050, §3: span assertions use the `proc-macro2` feature `span-locations`, enabled on the normal dependency. §4, REFLD-R004: private fields are reflected. §9: the row without a measuring task removed. References to the `liminal_reflect` spec are links | M1-T057 |
+| 3 | 2026-11-10 | Follow-up of the M1-T057 review. REFLD-R003 test (1) redefined: the spec_version 2 token rule (a path starts with `::` when its first `::` follows neither an identifier nor `>`) did not count the leading `::` after `impl`, `as`, `dyn`, `->`, `=>` or the end of `impl<…>`, so no expansion could pass. The test now parses the expansion with `syn` and checks every `syn::Path`, `syn::Macro` and `syn::QSelf`, forbids `use` and `extern crate` items, and is run on two failing streams. `String` is excluded from the field types of its inputs. §3: `syn` features `full` and `visit`. §10 row updated | M1-T061 |
