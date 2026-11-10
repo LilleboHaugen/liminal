@@ -63,7 +63,7 @@ impl dyn Reflect {
         }
     }
 
-    /// The field named `name`, mutable. Same lookup and errors as [`field`](Self::field), with
+    /// The field named `name`, mutable. Same lookup and errors as `field`, with
     /// `field_at_mut` in place of `field_at`.
     ///
     /// On success it builds the value's [`TypeInfo`](crate::info::TypeInfo) once (for the
@@ -71,7 +71,7 @@ impl dyn Reflect {
     ///
     /// # Errors
     ///
-    /// LIM-REFL-0010, 0012, 0013, as for [`field`](Self::field).
+    /// LIM-REFL-0010, 0012, 0013, as for `field`.
     pub fn field_mut(&mut self, name: &str) -> Result<&mut dyn Reflect, ReflectError> {
         let index = match self.reflect_mut() {
             ReflectMut::Struct(fields) => find_index(&*fields, name).ok_or(Miss::Struct),
@@ -127,7 +127,7 @@ impl dyn Reflect {
     /// # Errors
     ///
     /// [`ReflectError::TypeMismatch`] (LIM-REFL-0011), as for
-    /// [`downcast_ref`](Self::downcast_ref).
+    /// `downcast_ref`.
     ///
     /// # Panics
     ///

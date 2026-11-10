@@ -143,7 +143,8 @@ fn snapshot(registry: &TypeRegistry) -> (usize, String) {
 #[test]
 fn register_stores_and_is_idempotent() {
     let empty = TypeRegistry::new();
-    assert!(empty.is_empty() && empty.len() == 0 && empty.iter().next().is_none());
+    assert_eq!(empty.len(), 0);
+    assert!(empty.is_empty() && empty.iter().next().is_none());
     assert_eq!(snapshot(&TypeRegistry::default()), snapshot(&empty));
 
     let mut registry = TypeRegistry::new();

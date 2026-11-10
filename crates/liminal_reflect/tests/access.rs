@@ -77,7 +77,7 @@ fn primitive_views_refer_to_the_value() {
     let ReflectRef::Primitive(PrimitiveRef::U32(inner)) = value.reflect_ref() else {
         panic!("not a u32 view");
     };
-    assert!(std::ptr::eq(inner, &value));
+    assert!(std::ptr::eq(inner, &raw const value));
 }
 
 /// Verifies: REFL-R040

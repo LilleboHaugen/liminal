@@ -43,7 +43,7 @@
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
 | [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | done | M1-T001 |
-| [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | todo | M1-T030, M1-T014 |
+| [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | review | M1-T030, M1-T014 |
 | [M1-T032](tasks/M1-T032-implement-the-reflect-derive-macro-reach-usable.md) | Implement the Reflect derive macro; reach usable for both reflect crates | todo | M1-T031, M1-T061 |
 | [M1-T033](tasks/M1-T033-instruction-count-regression-gate-in-ci.md) | Instruction-count regression gate in CI | todo | M1-T017, M1-T022, M1-T006 |
 | [M1-T034](tasks/M1-T034-write-the-spec-for-liminal-jobs.md) | Write the spec for liminal_jobs | done | M1-T027 |
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 34 | 0 | 0 | 0 | 28 |
+| M1 (Headless core) | 62 | 33 | 0 | 0 | 1 | 28 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates
