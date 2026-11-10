@@ -1,5 +1,6 @@
 //! The `hygiene` command and `ci` step (`docs/specs/xtask.md` XTASK-R050 … R052 and the "`trace`
-//! and `hygiene` details").
+//! and `hygiene` details"; XTASK-R085, the expiry of ignored advisories in `deny.toml`, is in
+//! [`advisories`]).
 //!
 //! [`check`] is a pure function of the [`SourceModel`]. Only [`run_check`] reads files, through the
 //! shared loader in [`crate::repo`].
@@ -24,6 +25,8 @@ use crate::repo::sources::{self, CONFIG_PATH, Exclusion, SourceModel};
 use crate::repo::{LoadError, RepoModel, file_name};
 use crate::rust_lexer::{self, Kind, Token};
 
+pub(crate) mod advisories;
+
 /// Command and step name.
 pub(crate) const NAME: &str = "hygiene";
 
@@ -43,9 +46,19 @@ pub(crate) fn command(args: &[String], out: &mut dyn Write) -> Result<Exit, Comm
 ///
 /// # Errors
 ///
-/// [`LoadError`] if the repository, `ci/hygiene.toml` or a source file cannot be read.
+/// [`LoadError`] if the repository, `ci/hygiene.toml`, a source file or `deny.toml` cannot be
+/// read.
 pub(crate) fn run_check(root: &Path) -> Result<Vec<Finding>, LoadError> {
-    Ok(check(&sources::load(root)?))
+    let model = sources::load(root)?;
+    let ignores = advisories::load(root)?;
+    let mut findings = check(&model);
+    findings.extend(advisories::check(
+        &ignores,
+        advisories::today(),
+        &task_statuses(&model.repo),
+    ));
+    check::sort(&mut findings);
+    Ok(findings)
 }
 
 /// Every `hygiene` finding for `model`, sorted (spec "Check command output").
@@ -322,7 +335,7 @@ fn ignores(
         for at in open + 1..end.min(code.len()) {
             let token = code[at];
             if token.kind != Kind::Ident("ignore".to_string())
-                || !matches!(code[at - 1].kind, Kind::Punct('[' | ',' | '('))
+                || !matches!(code[at - 1].kind, Kind::Punct('[' | ','))
             {
                 continue;
             }

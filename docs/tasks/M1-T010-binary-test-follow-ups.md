@@ -2,10 +2,10 @@
 id: M1-T010
 title: Real-binary test and stale-root follow-ups from the review of M0-T011
 milestone: M1
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T011]
-requirements: [XTASK-R001, XTASK-R014, XTASK-R072, XTASK-R080]
+requirements: [XTASK-R001, XTASK-R015, XTASK-R072, XTASK-R080]
 ---
 
 # M1-T010: Real-binary test and stale-root follow-ups from the review of M0-T011
@@ -114,4 +114,24 @@ nested `ci` run).
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0030; journal `docs/journal/2026-11-10-M1-T010-review.md`).
+Outcome: **done**, no blocking finding.
+
+Checked:
+- Item 1: `repo::check_root`, `cli::run_in` (every command but `help` checks the root before
+  parsing its arguments), `process::start_error` at all three call sites, the non-empty root path
+  in `repo::walk`; spec text against code; the two cli tests iterate `COMMANDS` and compare the
+  whole stderr line. Item 2: tag removed, reason in the doc comment. Item 3: mutant
+  `tool_lines` printing `"present"` for a versioned tool (reverted): the binary `doctor` test fails.
+- Merge of `origin/main` (`70dac69`): main's `spec_version` 24 (M1-T056) took XTASK-R014, so this
+  task's requirement is renumbered **XTASK-R014 → XTASK-R015** (spec row, LIM-XTASK-0007 row,
+  test-plan row, `Verifies:` tags in `xtask/src/cli.rs` and `xtask/src/repo.rs`, this file's
+  `requirements`); this task's spec change is history row 26 (main reached 25). LIM-XTASK-0007
+  was free. `docs/STATUS.md` regenerated. The handoff above keeps the old ID as written.
+- `cargo xtask ci` on the merged tree with the review edits: 12 steps pass, none skipped, macOS
+  27.2 arm64.
+- Session boundaries: implementation sub-agent #11 of `2026-11-09-session-m1-subagents.md`.
+  No workflow change (ADR-0028).
+
+Backlog: 2 entries in `docs/BACKLOG.md` ("M1-T010 — review 2026-11-10"). Follow-up task: none
+(ADR-0030 Decision 9: `xtask` is frozen; neither entry changes a pending contract).

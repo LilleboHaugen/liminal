@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_ecs]
 depends_on: [M1-T039]
-requirements: []
+requirements: [ECS-R090, ECS-R091, ECS-R100, ECS-R101, ECS-R102, ECS-R110, ECS-R111, ECS-R112, ECS-R113, ECS-R114, ECS-R120, ECS-R121, ECS-R122]
 ---
 
 # M1-T040: Implement `liminal_ecs`: resources, events, commands, change detection
@@ -39,7 +39,7 @@ Requirements in frontmatter.
 
 ## Notes
 
-_None._
+Requirements written by M1-T037 (spec §6 "Assignment"). Points set by the spec: (1) `CommandBuffer` is a public type usable without a schedule, applied with `World::apply_commands`; "several sources" in this task's acceptance criteria is several buffers (ECS-R113). (2) Skipped (entity not live) and rejected (type errors, LIM-ECS-0040) commands are different things (ECS-R111, ECS-R112). (3) This task adds the tick columns, stamping in `Mut`, `World::change_tick`, `advance_change_tick`, `component_ticks`, the same three on `reference::World`, and the tick comparisons in the existing differential tests (ECS-R121, ECS-R122). (4) The `ecs.commands_skipped` counter (ECS-R211) is added by M1-T041 together with the `liminal_telemetry` dependency. ECS-R115 (SHOULD, allocation-free command recording) is decided here: implemented, or reported with the reason in the handoff.
 
 ## Handoff
 

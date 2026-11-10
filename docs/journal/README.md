@@ -1,10 +1,13 @@
 # Journal
 
 One entry per session, append-only. Entries are how the next session (with no memory) learns what
-happened, what was decided, and what to watch out for. Read the three newest entries at session start.
+happened, what was decided, and what to watch out for. An owner-started session reads the newest
+entry whose file name contains `session`; a sub-agent reads the entries named after its task
+(ADR-0030 Decision 6).
 
 File name: `YYYY-MM-DD-<task-id-or-topic>.md`. If two sessions share a date and topic, add `-2`.
-"Newest" means latest date. For entries on the same date, read all of them.
+A parent or owner-started session names its entry `YYYY-MM-DD-session-<topic>.md` and gives its
+start time, time budget and end time. "Newest" means latest date, then latest commit.
 
 ## Entry format
 

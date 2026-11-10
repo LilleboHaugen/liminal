@@ -1,0 +1,18 @@
+[package]
+name = "liminal_core"
+version = "0.0.0"
+description = "Liminal foundation types: error model with stable codes, generational handles, state hashing, ordered hash collections, seeded RNG streams and tick time (docs/specs/liminal_core.md)."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# Layer 0, no engine or external runtime dependency (architecture.toml).
+[dependencies]
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

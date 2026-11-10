@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_telemetry]
 depends_on: [M1-T028, M1-T017]
-requirements: []
+requirements: [TELE-R080, TELE-R081, TELE-R082, TELE-R083, TELE-R084, TELE-R090, TELE-R091, TELE-R092, TELE-R093, TELE-R094, TELE-R095]
 ---
 
 # M1-T029: Implement `liminal_telemetry`: frame stats and export; reach `usable`
@@ -21,7 +21,7 @@ Telemetry produces frame records and exports them as Chrome-trace and JSON summa
 
 ## Scope
 
-**In:** Frame records, Chrome-trace and JSON exporters with snapshot tests, span overhead benchmark, the `usable` evidence.
+**In:** Chrome-trace and JSON exporters with snapshot tests, span overhead benchmark, the `usable` evidence. (Frame records, TELE-R063 and TELE-R064 included, are M1-T028's since M1-T056.)
 
 **Out:** Integration into `liminal_app`'s loop: the `liminal_app` tasks.
 
@@ -47,7 +47,7 @@ Requirements in frontmatter; snapshot tests; benchmark.
 
 ## Notes
 
-_None._
+Requirements written by M1-T027 (spec §6 "Assignment"). TELE-R084 (SHOULD) is the Perfetto check of the acceptance criteria. It includes the two checks of spec open question 12 (a counter and a gauge with the same name; a gauge event with `"value":null`) and, depending on the result, the change to TELE-R081 described there (added by M1-T056). Benchmark case IDs and scenarios: spec §9.
 
 ## Handoff
 

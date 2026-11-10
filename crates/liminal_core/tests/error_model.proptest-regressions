@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a0007c2d093e15bf2b03fd6abbcfad18d93652fc8097fe21aa9ab4107c2a1b82 # shrinks to int = 0, uint = 0, bits = 0
+cc a1fd4c69a2c69c251e9998851eeba6cce1d6c136276f1061d01e7e2ac1a5fddd # shrinks to message = "", help = None, context = ErrorContext { fields: [("index", Bool(false)), ("index", Bool(false))] }

@@ -3,9 +3,9 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 20
+spec_version: 26
 last_reviewed: 2026-11-09
-adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
+adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
 ---
 
 # Spec: `xtask`
@@ -24,7 +24,8 @@ the same on macOS, Windows and Linux, with no shell scripts.
 pattern detection; coverage floors; STATUS.md generation; tool availability report.
 
 **Out of scope:** building or packaging games (`liminal_cli`, M7); benchmarks and perf baselines
-(added under OQ-004 in M1); asset cooking (`liminal_cook`).
+(OQ-004 is resolved by ADR-0023; `cargo xtask bench` is specified here by M1-T017, which adds
+it); asset cooking (`liminal_cook`).
 
 ## 3. Dependencies
 
@@ -66,8 +67,8 @@ cargo xtask status [--check]
 cargo xtask doctor [--json]
 ```
 
-`ci` steps, in order: `fmt`, `clippy`, `test`, `doc`, `check-arch`, `check-docs`, `trace`, `hygiene`,
-`status-check`, `coverage`, `deny`.
+`ci` steps, in order: `fmt`, `clippy`, `test`, `test-features-off`, `doc`, `check-arch`, `check-docs`,
+`trace`, `hygiene`, `status-check`, `coverage`, `deny`.
 
 During M0 each step is added to `ci` by the task that implements it. A step that does not exist yet is
 absent from `ci`. It is never stubbed as a pass. The order above is the final order.
@@ -123,7 +124,8 @@ Summary details (added in `spec_version` 2):
 | XTASK-R011 | MUST | `xtask` has no dependency on any `liminal_*` crate. |
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
-| XTASK-R014 | MUST | Every command except `help` first checks that the repository root (the parent of the `xtask/` manifest directory, fixed when xtask is compiled) is a directory that contains `architecture.toml`. If not (for example, the checkout was moved or renamed after xtask was built, and cargo did not rebuild it), the command runs nothing else: it prints exactly one line, internal error LIM-XTASK-0007 naming that root and the fix, to stderr, nothing to stdout, and exits with code 1 (`spec_version` 20). |
+| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 24; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
+| XTASK-R015 | MUST | Every command except `help` first checks that the repository root (the parent of the `xtask/` manifest directory, fixed when xtask is compiled) is a directory that contains `architecture.toml`. If not (for example, the checkout was moved or renamed after xtask was built, and cargo did not rebuild it), the command runs nothing else: it prints exactly one line, internal error LIM-XTASK-0007 naming that root and the fix, to stderr, nothing to stdout, and exits with code 1 (`spec_version` 26). |
 
 ### `check-docs` (R020–R029)
 
@@ -171,7 +173,8 @@ Summary details (added in `spec_version` 2):
   such as `superseeded_by`. Values have these forms: ADR IDs `^ADR-\d{4}$`; `title` non-empty; dates
   as above; `layer` and `spec_version` integers (`spec_version` ≥ 1); `req_prefix` `^[A-Z]+$`; task
   `milestone` `^M\d+$`, equal to the milestone part of `id`. A spec's `crate` equals its file name
-  without `.md`. A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
+  without `.md`, so `crate` is unique across specs: a second spec for one crate has another file
+  name and is reported (`spec_version` 20). A file whose frontmatter fails R020 is excluded from R021–R023 and from the status
   and maturity comparisons of R025 and R027. For the `depends_on` existence check (R023), a task
   file without a valid `id` (including one that fails R020) exists under the task ID its file name
   starts with (`^M\d+-T\d{3}` before the next `-` or `.md`), if any. This avoids a second, false
@@ -218,6 +221,32 @@ In `ci`, a native check step (one that runs inside xtask, without spawning a pro
 findings in the step's `findings`. An internal error makes the step `fail`, with the error message
 as `output_tail` in both output modes.
 
+`test-features-off` details (R014; added in `spec_version` 24):
+
+- Packages and their features come from `cargo metadata --format-version 1 --no-deps --offline`
+  run in the repository root (the `check-arch` loader). A package "has a feature" if its
+  `features` object in that output is not empty. Cargo lists there every key of `[features]`
+  (`default` included) and the implicit feature of each optional dependency that no feature names
+  with `dep:`. Packages are tested in ascending name order.
+- One command per package, selected with `--package`, not one `--workspace` command: Cargo
+  unifies features over the packages of one command, so with `--workspace` another member that
+  depends on the package with a feature enabled would turn that feature on again.
+- The step stops at the first command that fails; later packages are not tested. In `--json`
+  mode `output_tail` is `cargo test --package <name> --no-default-features --locked` on its own
+  line, followed by the last 50 lines of that command's output. In human mode the progress line
+  is `==> test-features-off: cargo test --package <crate> --no-default-features --locked (once
+  per workspace crate with features)`.
+- If `cargo` cannot be started, the step is `skipped` (R006). If `cargo metadata` fails or its
+  output cannot be parsed (LIM-XTASK-0005, LIM-XTASK-0002), the step fails with the error message
+  as `output_tail` in both output modes.
+- Not covered: building each feature alone (`--no-default-features --features x`, CODE_STYLE.md
+  "Every feature must build alone") and combinations of features. No command checks them yet.
+- Tests: the step's logic over a package list with a fake command function; the real step
+  (real `cargo metadata` and `cargo test`) on a two-package workspace that the test writes to a
+  temporary directory, where a package without features has a test that always fails, and the
+  package with a default-on feature has one always-failing test that exists only with the
+  feature and one test that exists only without it.
+
 ### `check-arch` (R030–R039)
 
 | ID | Level | Requirement |
@@ -231,6 +260,7 @@ as `output_tail` in both output modes.
 | XTASK-R036 | MUST | No crate in layers 0–4 depends, with any dependency kind, on a layer 5 crate. |
 | XTASK-R037 | MUST | Each violation is reported with the crate, the dependency (if any), the rule ID, and a `help` text saying how to fix it. |
 | XTASK-R038 | SHOULD | From M2: `liminal_engine` and crates under `games/` depend only on crates whose spec maturity is `usable` or higher (ADR-0011). |
+| XTASK-R039 | MUST | For every workspace crate registered with `deterministic = true`, the clippy configuration clippy applies to it (the nearest `.clippy.toml` or `clippy.toml`, see details) has a `disallowed-methods` list that contains every path of the banned list in `docs/process/CODE_STYLE.md` §Lints: `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln`, the same six for `f64`, `std::collections::HashMap::new` and `std::time::Instant::now` (ADR-0009 item 7; `spec_version` 23). |
 
 `check-arch` details (added in `spec_version` 8):
 
@@ -276,8 +306,22 @@ as `output_tail` in both output modes.
   order mark and a shebang line are skipped) is `forbid(…)` with `unsafe_code` as one of its
   comma-separated items. `#![cfg_attr(…, forbid(unsafe_code))]`, an inner attribute inside an
   inline module, and text in comments or string literals do not count.
+- R039. The effective configuration of a crate is found as clippy finds it: in the crate's
+  manifest directory, then in each parent directory up to and including the repository root,
+  the first directory containing `.clippy.toml` or `clippy.toml`; `.clippy.toml` wins within
+  a directory. Clippy does not merge files (verified with clippy 0.1.99, M1-T011 journal), so
+  the root `clippy.toml` counts only for a crate without a nearer file. Directories above the
+  repository root and `CLIPPY_CONF_DIR` are not considered. A `disallowed-methods` entry is a
+  string or a table whose string `path` is the banned path; paths are compared as exact strings,
+  and extra entries are allowed. A missing `disallowed-methods` key is an empty list. A file
+  that is not valid TOML, a `disallowed-methods` that is not an array, or an entry of another
+  shape is LIM-XTASK-0004. Only crates registered as deterministic (the first `[[crate]]` entry
+  of the name) are judged; the layer does not matter. One finding per crate: at
+  `<manifest directory>/Cargo.toml` if no file applies, else at the effective file, naming every
+  missing path in the list's order. The help names `<manifest directory>/clippy.toml`, the
+  crate's own file (CODE_STYLE.md §Lints).
 - R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034 and R036, the
-  crate root file for R035. Messages name the crate and, for R032–R034 and R036, the
+  crate root file for R035, R039 as above. Messages name the crate and, for R032–R034 and R036, the
   dependency and its kind. Identical findings (a dependency declared under two `cfg` targets)
   are reported once.
 
@@ -309,6 +353,12 @@ as `output_tail` in both output modes.
   literals of every form, other literals, line and nested block comments). It is not a parser.
   Comments, string contents and code are told apart exactly, so patterns inside string literals
   are never findings, and `trace` and `hygiene` need no exclusion for xtask's own source.
+  A numeric literal (`spec_version` 22) is its digits, letters and `_`; a `+` or `-` directly
+  after a decimal exponent `e`/`E` (before any other letter) and followed by a digit; and one `.`
+  in a decimal literal before any letter, unless that `.` is followed by `.`, `_` or a letter, or
+  the literal directly follows a `.` that is not part of `..` (a tuple field index). So `1.5e3`,
+  `1_000u32`, `0x1F` and `1e-3` are one literal each; `0..n`, `1.max(2)`, `x.0.1` and `0x1E-3`
+  split.
 - Requirements (R040). Section 6 is the text from the level-2 heading that starts with `6.` or
   `6 ` up to the next level-1 or level-2 heading, outside fenced code. A row whose first cell is a
   requirement ID but whose second cell is not MUST, SHOULD or MAY, or whose third cell is empty,
@@ -322,7 +372,8 @@ as `output_tail` in both output modes.
   not match `\s*ID(\s*,\s*ID)*\s*`, the line is an R041 finding (malformed). It is attached to the
   item that follows, after comments and outer attributes (`#[…]`, any number of lines): that item
   must start with qualifiers (`pub`, `pub(…)`, `const`, `async`, `unsafe`, `safe`, `extern` with an
-  optional ABI string, `default`) and `fn <name>`, otherwise the annotation is an R041 finding (not
+  optional ABI string, `default`) and `fn <name>`; a string literal anywhere but directly after
+  `extern` (comments between are allowed) ends the header (`spec_version` 22), otherwise the annotation is an R041 finding (not
   attached). This replaces the M0-T005 note's "within 10 lines" heuristic: the token rule is exact.
   A test is reported at the line of its function name. A function that names an ID twice is listed
   once.
@@ -348,7 +399,9 @@ as `output_tail` in both output modes.
   `done` if that file's frontmatter says `status: done`. A task file with unreadable frontmatter
   exists and is not `done`.
 - Ignore attributes (R050, R051): `ignore` as a meta item inside an outer or inner attribute
-  (directly after `[`, `(` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). Without
+  (directly after `[` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). `(` was removed in
+  `spec_version` 22: no test-ignore attribute puts `ignore` directly after `(` (the first argument
+  of `cfg_attr` is its predicate), so it matched only non-test attributes such as `#[foo(ignore)]`. Without
   `= "reason"`, or with a reason that contains no task ID, it is R050. Every task ID in the reason
   must exist (R051); its status does not matter.
 - Locations: `path:line`. For R040, R044 and R045 the spec row; for R041 and R043 the annotation
@@ -418,8 +471,9 @@ as `output_tail` in both output modes.
 - Unreadable input: a task file whose frontmatter does not parse (R020), or whose `id`, `title`,
   `milestone`, `status` or `depends_on` is missing or not of the R023 form, a task ID used twice,
   and a spec file whose frontmatter does not parse or whose `crate` or `maturity` is missing or
-  not of the R022 form, each give one XTASK-R070 error finding at the file (with the line where
-  known). Then `status` writes nothing and exits 1, and `status --check` fails with those
+  not of the R022 form, and a spec file whose `crate` an earlier spec file (by path) already
+  names (at the `crate` line; `spec_version` 20), each give one XTASK-R070 error finding at the
+  file (with the line where known). Then `status` writes nothing and exits 1, and `status --check` fails with those
   findings. `check-docs` reports the same files in detail. A spec whose `crate` is not in
   `architecture.toml` is ignored here (R022 reports it).
 - Order: milestones by number (`M2` before `M10`); tasks by milestone number, then task number;
@@ -441,9 +495,12 @@ as `output_tail` in both output modes.
   5. `## Milestones`: `| Milestone | Tasks | todo | in-progress | blocked | review | done |`, one
      row per milestone that has tasks, labelled `<id> (<name>)` or `<id>`.
   6. `## Crates`: `| Crate | Layer | Maturity | Spec |`, one row per `[[crate]]`; maturity from
-     the spec whose `crate` is that name, else `planned`; spec cell
-     `[<crate>.md](specs/<crate>.md)` if a spec exists, else `—`.
-- `status` writes `docs/STATUS.md` only if its content differs, then prints
+     the spec whose `crate` is that name, else `planned`; spec cell `[<file>](specs/<file>)` if
+     a spec exists, `<file>` being that spec's file name, else `—`. R022 makes `<file>` equal
+     `<crate>.md`; for a spec that breaks that rule the link still names an existing file
+     (`spec_version` 20).
+- `status` writes `docs/STATUS.md` only if its content differs (an up-to-date file is not
+  opened for writing, so its modification time stays; `spec_version` 20), then prints
   `status: wrote docs/STATUS.md` or `status: docs/STATUS.md is up to date` and exits 0.
 - `status --check` never writes (R010). If the file is missing, or differs, it reports one
   XTASK-R072 error at `docs/STATUS.md:<first differing line>` (`docs/STATUS.md` if missing),
@@ -460,6 +517,7 @@ as `output_tail` in both output modes.
 | XTASK-R082 | MUST | `deny.toml` rejects every dependency whose licence is not in the allow list of `docs/process/DEPENDENCIES.md` ("Licence policy"), in particular every GPL, LGPL and AGPL licence. MPL-2.0 is accepted only through a per-crate `exceptions` entry. |
 | XTASK-R083 | MUST | `deny.toml` rejects every dependency whose source is not crates.io: any git dependency (`allow-git` is empty) and any other registry. |
 | XTASK-R084 | MUST | `deny.toml` rejects every dependency that has a RustSec vulnerability advisory or an `unmaintained` advisory, unless the advisory is in `[advisories] ignore`. |
+| XTASK-R085 | MUST | `hygiene` reports every `[advisories] ignore` entry of `deny.toml` that has no `reason` ending with `expires YYYY-MM-DD (<task ID>)`, whose date is not a valid date or is today or earlier (UTC), or whose task does not exist or is `done`. |
 
 `doctor` and `deny` details (added in `spec_version` 13):
 
@@ -468,11 +526,19 @@ as `output_tail` in both output modes.
   is `$CARGO`, else `cargo` from `PATH`, as in `ci`. A tool is present if its probe starts and
   exits with status 0. Its version is the first non-empty line of the probe's stdout, trimmed
   (`null` if there is none).
+- Probe stdin and stderr (`spec_version` 25). "stdin closed" is tested: a probe of a program
+  that reads stdin to its end returns at once, having read nothing, and its stderr is not in the
+  probe's stdout (`a_probe_that_reads_stdin_sees_it_closed` in `xtask/src/doctor/tests.rs`,
+  whose probe program is the test binary itself). The test fails (timeout) if stdin is inherited
+  and the parent's stdin stays open. Removing `.stdin(Stdio::null())` from `RealProber::command`
+  passes it: `Command::output` already gives the child a closed stdin, so that call states the
+  rule rather than changes it. `.stderr(Stdio::null())` discards stderr instead of capturing it;
+  nothing reads it, so removing it is not observable either.
 
   | Tool | Probe | Needed by `ci` steps |
   |---|---|---|
-  | `rustc` | `rustc --version` | fmt, clippy, test, doc, coverage, deny |
-  | `cargo` | `cargo --version` | fmt, clippy, test, doc, coverage, deny |
+  | `rustc` | `rustc --version` | fmt, clippy, test, test-features-off, doc, coverage, deny |
+  | `cargo` | `cargo --version` | fmt, clippy, test, test-features-off, doc, coverage, deny |
   | `rustfmt` | `cargo fmt --version` | fmt |
   | `clippy` | `cargo clippy --version` | clippy |
   | `cargo-llvm-cov` | `cargo llvm-cov --version` | coverage |
@@ -514,6 +580,27 @@ as `output_tail` in both output modes.
   that directory name from cargo-deny's own error output on an empty `db-path`, so it does not
   depend on the hash function. Both tests need `cargo-deny` (and R083 needs `git`), so they are
   ignored in the `test` step and run by the `deny` CI job like R082.
+- `confidence-threshold` (R082, `spec_version` 25). It applies only to a crate that declares its
+  licence through a `license-file`, not to an SPDX `license` expression. The policy value 0.93 is
+  verified by `a_licence_file_below_the_confidence_threshold_is_rejected`: the fixture's
+  dependency gets a `license-file` with the exact MIT text (accepted), then with the MIT text
+  whose last two lines are replaced (cargo-deny 0.20.2 scores it 0.88: rejected). The test
+  asserts the reported score lies strictly between cargo-deny's default threshold 0.8 and the
+  policy's, so a threshold of 0.88 or less, or the key removed, fails it. A threshold between
+  0.88 and 0.93 is not distinguished.
+- Ignored advisories (R085, `spec_version` 25). `hygiene` reads `[advisories] ignore` of
+  `deny.toml` (no file: nothing to check; invalid TOML or `ignore` not an array:
+  LIM-XTASK-0004; other keys are not read). Each entry must be a table with a string `reason`
+  (a bare advisory ID string has none). The reason, with trailing whitespace removed, must end
+  with `expires <date> (<task ID>)`, with `expires` at the start or after whitespace and the
+  task ID as in R050. `<date>` must be `YYYY-MM-DD` naming an existing day; the entry is expired
+  on that date and after it (today is the UTC date of the system clock). The task must exist and
+  must not be `done`, as for R051. Each violation is an `error` at `deny.toml:<line of the
+  entry>`, named by its `id` (else `crate`). R085 depends on the date, so the same repository
+  can pass today and fail on a later day; that is its purpose (INV-1 holds for one day).
+- `doctor` in CI (`spec_version` 25). Each `checks` job runs `cargo xtask doctor --json` after
+  `ci`, prints the report and uploads it with the CI summary. Exit 1 is accepted there (the job
+  installs neither cargo-llvm-cov nor cargo-deny); exit 2 fails the job.
 
 ## 7. Invariants
 
@@ -533,12 +620,12 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039), `deny.toml` for R085) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
-| LIM-XTASK-0007 | The repository root compiled into xtask does not exist or has no `architecture.toml` (R014) | The checkout was moved or renamed after xtask was built: run `cargo clean -p xtask`, then the command again |
+| LIM-XTASK-0007 | The repository root compiled into xtask does not exist or has no `architecture.toml` (R015) | The checkout was moved or renamed after xtask was built: run `cargo clean -p xtask`, then the command again |
 
-An internal error names the file concerned relative to the repository root; when that is the root itself, it names the root's absolute path (never an empty path). A child process (`cargo`, a probe) that cannot be spawned because its working directory does not exist is reported as `working directory <path> does not exist`, not as `could not start <program>` (`spec_version` 20).
+An internal error names the file concerned relative to the repository root; when that is the root itself, it names the root's absolute path (never an empty path). A child process (`cargo`, a probe) that cannot be spawned because its working directory does not exist is reported as `working directory <path> does not exist`, not as `could not start <program>` (`spec_version` 26).
 
 ## 9. Performance budgets
 
@@ -550,14 +637,16 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 |---|---|---|
 | Frontmatter parser | unit, property (round-trip of generated valid frontmatter; random invalid lines are rejected, never accepted) | Subset definition in DOCUMENTATION.md |
 | Each check rule | integration tests on fixture repositories in `xtask/tests/fixtures/<case>/` | One passing fixture plus one fixture per rule that must fail with exactly that rule ID |
-| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 (R038 from M2) |
+| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 and R039 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
+| `test-features-off` (R014) | unit tests with a fake command function; the real step on a workspace written to a temporary directory | Expected command lines; tests that exist only with a feature on or off |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
 | `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency; `check advisories` on a fixture advisory database, with a passing control | cargo-deny's sources and advisories checks |
+| `deny.toml` ignores (R085) | unit tests of the entry rules with a fixed date; `hygiene` fixture `r085_advisory_ignore` | Rules above |
 | Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
-| Moved checkout (R014) | unit tests of the command dispatcher with a root that does not exist, and one without `architecture.toml` (the binary's compiled-in root cannot be changed without rebuilding it, so no real-binary test) | R014 |
+| Moved checkout (R015) | unit tests of the command dispatcher with a root that does not exist, and one without `architecture.toml` (the binary's compiled-in root cannot be changed without rebuilding it, so no real-binary test) | R015 |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -570,7 +659,8 @@ repository state (R071, INV-1).
 
 ## 12. Open questions
 
-- None blocking. Benchmark and perf-baseline commands are added after OQ-004 is resolved (M1).
+- None blocking. OQ-004 is resolved by ADR-0023; M1-T017 adds and specifies `cargo xtask bench`
+  and the perf-baseline files.
 
 ## 13. Maturity
 
@@ -619,4 +709,10 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 17 | 2026-11-09 | Maturity `planned` → `usable` (promotion review, §13) | M0-T010 |
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
-| 20 | 2026-11-09 | New R014 (moved checkout: the compiled-in root is checked first, one LIM-XTASK-0007 error); §8: LIM-XTASK-0007, the root is named by its absolute path, a missing working directory is not reported as "could not start" | M1-T010 |
+| 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
+| 21 | 2026-11-10 | §2 and §12: OQ-004 is resolved by ADR-0023; benchmark commands come with M1-T017 (text only, no requirement change) | M1-T054 |
+| 22 | 2026-11-09 | Lexing: numeric literals end at `..`, `.` + identifier and after a tuple-field `.`; R041: a string literal counts only directly after `extern`; R050: `ignore` counts only directly after `[` or `,` (not `(`) | M1-T004 |
+| 23 | 2026-11-09 | New R039 (deterministic crates' clippy `disallowed-methods` configuration) with its details; LIM-XTASK-0004 covers that configuration; ADR-0009 in `adrs` | M1-T011 |
+| 24 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
+| 25 | 2026-11-10 | `doctor` and `deny` details: probe stdin/stderr test and why the `Stdio::null()` calls are not observable; `confidence-threshold` test; new R085 (expiry of ignored advisories, checked by `hygiene`); `doctor` in the `checks` CI jobs; LIM-XTASK-0004 covers `deny.toml` | M1-T008 |
+| 26 | 2026-11-10 | New R015 (moved checkout: the compiled-in root is checked first, one LIM-XTASK-0007 error); §8: LIM-XTASK-0007, the root is named by its absolute path, a missing working directory is not reported as "could not start" (written as R014 in branch version 20; renumbered on merge because main's version 24 took R014) | M1-T010 |

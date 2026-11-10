@@ -152,7 +152,7 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         name: "check-arch",
-        summary: "Check the crate graph against architecture.toml (XTASK-R030 … R037).",
+        summary: "Check the crate graph against architecture.toml (XTASK-R030 … R039).",
         run: crate::check_arch::command,
     },
     Command {
@@ -210,7 +210,7 @@ pub fn run(args: &[String], stdout: &mut dyn Write, stderr: &mut dyn Write) -> E
 }
 
 /// [`run`] with the repository root `root` checked before any command except `help` runs
-/// (XTASK-R014). Commands themselves use the compiled-in root; tests pass a root that does not
+/// (XTASK-R015). Commands themselves use the compiled-in root; tests pass a root that does not
 /// exist to exercise the check.
 pub(crate) fn run_in(
     root: &Path,
@@ -394,7 +394,7 @@ mod tests {
         );
     }
 
-    /// Verifies: XTASK-R014
+    /// Verifies: XTASK-R015
     #[test]
     fn every_command_but_help_reports_one_error_for_a_missing_root() {
         let missing = crate::repo::root().join("target/xtask-test-no-such-root");
@@ -427,7 +427,7 @@ mod tests {
         }
     }
 
-    /// Verifies: XTASK-R014
+    /// Verifies: XTASK-R015
     #[test]
     fn a_root_without_architecture_toml_is_rejected_and_help_still_works() {
         let not_a_root = crate::repo::root().join("xtask");
