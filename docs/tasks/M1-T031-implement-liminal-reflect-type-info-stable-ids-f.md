@@ -2,7 +2,7 @@
 id: M1-T031
 title: Implement liminal_reflect — type info, stable IDs, field access
 milestone: M1
-status: todo
+status: in-progress
 crates: [liminal_reflect]
 depends_on: [M1-T030, M1-T014]
 requirements: [REFL-R001, REFL-R002, REFL-R003, REFL-R004, REFL-R005, REFL-R020, REFL-R021, REFL-R040, REFL-R041, REFL-R042, REFL-R043, REFL-R044, REFL-R045, REFL-R060, REFL-R061, REFL-R062, REFL-R063, REFL-R064, REFL-R065, REFL-R080, REFL-R100, REFL-R101, REFL-R102, REFL-R103, REFL-R104, REFL-R140]

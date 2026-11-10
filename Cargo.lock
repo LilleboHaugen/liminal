@@ -177,6 +177,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "liminal_reflect"
+version = "0.0.0"
+dependencies = [
+ "liminal_core",
+ "proptest",
+]
+
+[[package]]
 name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
