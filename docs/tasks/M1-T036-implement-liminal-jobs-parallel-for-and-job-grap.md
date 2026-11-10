@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_jobs]
 depends_on: [M1-T035, M1-T017]
-requirements: []
+requirements: [JOBS-R045, JOBS-R060, JOBS-R061, JOBS-R062, JOBS-R063, JOBS-R064, JOBS-R065, JOBS-R080, JOBS-R081, JOBS-R082, JOBS-R083, JOBS-R084, JOBS-R085, JOBS-R086, JOBS-R100, JOBS-R103, JOBS-R104, JOBS-R110, JOBS-R111, JOBS-R120, JOBS-R121, JOBS-R122, JOBS-R141]
 ---
 
 # M1-T036: Implement `liminal_jobs`: parallel-for and job graphs; reach `usable`
@@ -47,7 +47,7 @@ Requirements in frontmatter; property and loom tests.
 
 ## Notes
 
-_None._
+Requirements written by M1-T034 (spec §6 "Assignment"). Scope changes made by M1-T034, with reasons: (1) panic propagation of `scope` and `join` (JOBS-R101, JOBS-R102) moved to M1-T035 (soundness); this task has the panic rules of the loop functions and graphs and the test over all six pool calls (JOBS-R100). (2) This task adds the `jobs.scope` span to M1-T035's `scope` (JOBS-R120). (3) Benchmarks are the cases of spec §9, including the `deque` / `reference` pair that ADR-0018 requires, and the queue-capacity comparison of spec open question 3. (4) JOBS-R087 (SHOULD, no allocation in `run_graph` from the second run): implement it, or report in the handoff why not. `parallel`, `graph`, `reference` and `error` declare `#![forbid(unsafe_code)]` (spec §3); the allocation test of JOBS-R064 is a test binary of its own.
 
 ## Handoff
 

@@ -18,6 +18,7 @@ Rules:
 | Spec | Crate | Prefix | Maturity |
 |---|---|---|---|
 | [liminal_core.md](liminal_core.md) | `liminal_core` | CORE | planned |
+| [liminal_jobs.md](liminal_jobs.md) | `liminal_jobs` | JOBS | planned |
 | [liminal_telemetry.md](liminal_telemetry.md) | `liminal_telemetry` | TELE | planned |
 | [xtask.md](xtask.md) | `xtask` | XTASK | usable |
 
