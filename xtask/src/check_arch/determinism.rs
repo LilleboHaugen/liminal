@@ -134,6 +134,7 @@ dev_external = []
             manifest_dir: format!("crates/{name}"),
             targets: Vec::new(),
             dependencies: Vec::new(),
+            features: Vec::new(),
         }
     }
 
