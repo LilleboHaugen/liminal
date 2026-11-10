@@ -2,7 +2,7 @@
 id: M1-T057
 title: liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review
 milestone: M1
-status: todo
+status: review
 crates: [liminal_reflect, liminal_reflect_derive]
 depends_on: [M1-T030]
 requirements: []
@@ -98,12 +98,12 @@ those tasks is already done and an item changes its contract. `docs/specs/limina
 
 ## Acceptance criteria
 
-- [ ] Items 1 to 9 are done, or a declined item is written into this task with the reason.
-- [ ] The §5.2 example, as changed by item 1, was compiled against a reduced copy of the §5 API
+- [x] Items 1 to 9 are done, or a declined item is written into this task with the reason.
+- [x] The §5.2 example, as changed by item 1, was compiled against a reduced copy of the §5 API
       (or against the crate, if M1-T031 exists), and the handoff says how.
-- [ ] Spec changes bump `spec_version` in each changed spec with a history row; requirement IDs
+- [x] Spec changes bump `spec_version` in each changed spec with a history row; requirement IDs
       added or moved are in exactly one task's `requirements` frontmatter.
-- [ ] `cargo xtask ci` passes.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -111,7 +111,68 @@ None (documentation task). The requirements it touches are tested by M1-T031 and
 
 ## Handoff
 
-_Empty._
+2026-11-10, implementation sub-agent (ADR-0026/0027) of parent session
+`session/2026-11-10-m1-reviews` (journal `2026-11-10-session-m1-reviews.md`). Journal:
+`docs/journal/2026-11-10-M1-T057.md`. No code exists for either crate (M1-T031 and M1-T032 are
+`todo`), so every item is a spec change only.
+
+**Done.** `docs/specs/liminal_reflect.md` and `docs/specs/liminal_reflect_derive.md` are at
+`spec_version` 2, each with a history row. No item is declined.
+
+| Item | Change |
+|---|---|
+| 1 | §5.2 example: wrapped in `fn main() -> Result<(), ReflectError>`; the last assertion is `assert!(matches!(r.field("z"), Err(ReflectError::NoSuchField { .. })))`. No `Debug` impl for `dyn Reflect` was added (the example was changed instead). A paragraph says which calls do not compile on `Result<&dyn Reflect, _>` |
+| 2 | §5.3: `Debug` removed from the derive list of `TypeRegistry`, hand-written impl; new REFL-R065 fixes its output (`TypeRegistry { types: [...] }`, descriptors in `iter()` order) with a test. §11 reworded: a `TypeId` is kept in memory by the registry, never persisted, hashed, ordered or printed |
+| 3 | REFL-R043: lookup order; `field_at(i)` `None` for a matching name gives LIM-REFL-0010. REFL-R100: nothing is written for a missing field or element, the rest is written. REFL-R080: `get(i)` must be `Some` below `len()`; `expected` / `actual` of the missing-value case. Each with a test using a deliberately wrong impl. INV-4 limited to values that pass `validate_reflect` |
+| 4 | REFL-R060, REFL-R062: the collision check runs after all REFL-R061 checks. REFL-R061: one walk in declaration order, variant by variant (name, then that variant's fields). `enum E { A { x, x }, B, A }` reports `x`; `enum F { A, A { x, x } }` reports `A` |
+| 5 | REFL-R062: the test covers the same-path case; the equal-hash case takes the same code path and cannot be built |
+| 6 | REFL-R120 and REFLD-R003 reworded (the test file names no crate other than `liminal_reflect`; what that does and does not show). REFLD-R003 gains a token-walk unit test on the expansion |
+| 7 | REFLD-R033: the hand-written twin returns the derived type's path; descriptors are equal without exception; twins are never in one registry with the derived type |
+| 8 | Derive spec §3, REFLD-R050: `proc-macro2` feature `span-locations` on the normal dependency; why not a dev-dependency (XTASK-R034, scope `build`); no `architecture.toml` change, no ADR |
+| 9a | §4 example defines `Boid` and `Mode` (`Fleeing` is variant 1), `bits(v)`, total 33 bytes |
+| 9b | §12 item 7: the sentence is deleted; no requirement fixes a depth |
+| 9c | Link to `liminal_core.md` in §3 (the `spec_version` 1 text had no path reference to the core spec, only CORE IDs). CORE-R050, R053, R054, R056, R098 compared with core `spec_version` 1 (`main`) and 2 (branch `task/M1-T055-…`, in `review`): identical text. References between the two reflect specs in prose are links now |
+| 9d | REFL-R080, §8: `at` is `(root)` for the root value; `at` is stated to be the location of the value in violation |
+| 9e | §4 "Visibility" (reflect), §4 and REFLD-R004 (derive) |
+| 9f | §9: the three rows are dropped with a note (same form as M1-T055 and M1-T056); cost of `validate_reflect` stated |
+
+**Scope additions** (same findings, other place): the derive spec's §9 had one "Not scheduled"
+row, removed like item 9f. `requirements` of M1-T031 gained REFL-R065; M1-T031 and M1-T032
+each got a "Notes" entry that points at the `spec_version` 2 changes. No requirement ID was
+moved or withdrawn.
+
+**How the claims were checked** (session scratch directory, nothing committed):
+- Item 1: `rustc --edition 2024` 1.99.1 on a single file holding a reduced copy of the §5 API
+  (`Reflect: Any`, `Typed`, `ReflectFields`, `ReflectRef`, `ReflectMut`, the four inherent
+  methods on `dyn Reflect`, `ReflectError` with three variants, impls for `f32`) under
+  `#![forbid(unsafe_code)]` and `#![deny(warnings)]`, a hand-written impl for `Velocity` in
+  place of the derive, and the example's `main` verbatim. It compiles and runs (exit 0). The same
+  file with `r.field("z").unwrap_err()` fails with E0277 as the review found. Not checked: the
+  example with the real derive and as a doc test (neither crate exists).
+- Item 1, found on the way: `code()` is a method of the trait `liminal_core::error::EngineError`,
+  so the `spec_version` 1 example would also have needed that trait in scope. The new example
+  does not call it.
+- Item 8: read `proc-macro2` 1.0.107 (the version in `Cargo.lock`) in the local Cargo registry:
+  `Span::start()` is `#[cfg(span_locations)]`; the fallback `Span`'s `Debug` prints `Span`
+  without the feature. A probe crate built with `cargo run --offline` (`proc-macro2` 1.0.107,
+  `syn` 3.0.9, `quote` 1.0.47, all from the local registry, nothing installed) parsed
+  `"#[derive(Reflect)]\nunion U { … }"`, made a `syn::Error` at the `union` token and printed the
+  tokens of `to_compile_error()`: without the feature every span prints `Span`; with it every
+  token up to the group reports line 2, column 0. Not measured: the compile-time cost of the
+  feature. Not checked: `syn` features (M1-T032 fixes them).
+- XTASK-R034 read in `xtask/src/check_arch/rules.rs`: a dev-dependency must have scope `dev`.
+- `cargo xtask ci`: pass, 11 of 11 steps, none skipped, macOS 27.2, Rust 1.99.1.
+
+**Traps.**
+- `docs/specs/liminal_core.md` is at `spec_version` 1 on this branch and 2 on the M1-T055
+  branch. This task does not touch that file, so there is no conflict; the §3 sentence names
+  both versions.
+- §9 of both specs has a table header without rows (the template asks for the table);
+  `check-docs` accepts it.
+- `StableTypeId(…)` contains the text `TypeId(`: a test of REFL-R065 must compare the whole
+  `Debug` string, not search for `TypeId(`.
+
+**Next.** Review of this task. Then M1-T031 (needs M1-T014 `done`).
 
 ## Review
 

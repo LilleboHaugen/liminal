@@ -48,7 +48,11 @@ Requirements in frontmatter; differential and compile-fail tests.
 
 ## Notes
 
-_None._
+- 2026-11-10 (M1-T057): both specs are at `spec_version` 2. The derive crate enables the
+  `proc-macro2` feature `span-locations` on its normal dependency (derive spec §3, REFLD-R050).
+  REFLD-R003 has two tests (token walk over the expansion; shadowing integration test).
+  REFLD-R033: the hand-written twins return the derived types' paths and are never registered
+  in the same `TypeRegistry` as the derived type. REFL-R120 is reworded.
 
 ## Handoff
 

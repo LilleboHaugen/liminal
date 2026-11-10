@@ -69,7 +69,7 @@
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | done | M1-T001 |
 | [M1-T055](tasks/M1-T055-liminal-core-spec-follow-ups.md) | liminal_core spec follow-ups from the M1-T012 review | todo | M1-T012 |
 | [M1-T056](tasks/M1-T056-liminal-telemetry-spec-follow-ups.md) | liminal_telemetry spec follow-ups from the M1-T027 review | todo | M1-T027 |
-| [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | todo | M1-T030 |
+| [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | review | M1-T030 |
 
 ## Blocked tasks
 
@@ -80,7 +80,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 57 | 46 | 0 | 0 | 0 | 11 |
+| M1 (Headless core) | 57 | 45 | 0 | 0 | 1 | 11 |
 | M2 (Agent interface v0) | 6 | 6 | 0 | 0 | 0 | 0 |
 
 ## Crates
