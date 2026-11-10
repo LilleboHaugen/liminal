@@ -1,5 +1,5 @@
 [workspace]
-members = ["xtask"]
+members = ["crates/liminal_core", "xtask"]
 # Edition 2024 implies resolver 3; stated explicitly for readers (ADR-0005).
 resolver = "3"
 

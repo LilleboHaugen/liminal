@@ -2,7 +2,7 @@
 id: M1-T055
 title: liminal_core spec follow-ups from the M1-T012 review
 milestone: M1
-status: review
+status: done
 crates: [liminal_core]
 depends_on: [M1-T012]
 requirements: []
@@ -97,4 +97,77 @@ Next step: review (REVIEW.md §1 and §2, spec change) by a session that did not
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T055-review.md`). This agent wrote no part of M1-T055. The author was an
+implementation sub-agent of the same parent; ADR-0029 Decision 1 allows that (see "Session
+boundaries"). macOS 27.2 (arm64), Rust 1.99.1, worktree `liminal-worktrees/M1-T055-review`,
+branch at `6328305` before the review commits. Rules read from `main` at `047574b` (ADR-0029
+wording of `AGENTS.md` and `REVIEW.md`); the branch itself predates them.
+
+Outcome: **done**, no blocking finding. Backlog entries: 2 (`docs/BACKLOG.md`, heading
+"M1-T055 — review 2026-11-10"). Follow-up task: **M1-T059** (contract-changing, 2 items), added
+to `depends_on` of M1-T014.
+
+Checked (REVIEW.md §1; the changed spec text also against §2):
+1. Acceptance criteria, each item read in the diff `b3feded..6328305`:
+   - Item 1: §5.2 `HandleAllocator` derives `Clone, Debug` only and has a hand-written
+     `impl Default`. M1-T013 became `done` on `main` after the author's session, so I did the
+     code check the task context asks for: `crates/liminal_core/src/handle/allocator.rs` and
+     `map.rs` implement `Default` by hand as `new()`; `tests/handles.rs` compares the `Debug`
+     form of `HandleAllocator::default()` with `with_slot_limit(u32::MAX)`. Code and spec v2
+     agree.
+   - Item 2: CORE-R041, CORE-R057, CORE-R076 exist, are MUST, are in the §6 table, the §10
+     ranges and the `requirements` of M1-T013 / M1-T014. `0v1` agrees with CORE-R033; the
+     `impl` headers in §5.2 to §5.4 carry no bounds, as the requirements say. See follow-up
+     items 1 and 2.
+   - Item 3: CORE-R060 and the §10 row allow recorded literals only for `Hasher` call sequences
+     made on a `DetHasher`; `hash_one` is compared in-process. No other requirement relies on a
+     `hash_one` value across processes (CORE-R073 makes iteration order independent of hash
+     values; CORE-R130 to R133 hash through `StateHasher`).
+   - Item 4: no "Not scheduled" row is left; the paragraph under the §9 table and open question
+     6 name who adds the rows. M1-T016's scope ("hasher and RNG") matches the claim.
+   - Item 5: M1-T047 (`todo`) says `TKIT-Rnnn` / `LIM-TKIT-NNNN`; no `TK`/`TEL` area is left
+     outside M1-T027's criteria text, M1-T012's history and this task. The declined half is
+     justified: M1-T027 is `done` on `main` with `req_prefix: TELE`, `LIM-TELE-0001` and a scope
+     note, as the handoff says. §12 item 4 is marked resolved.
+   - `spec_version` 2 with a history row. `cargo xtask ci`: below.
+2. `cargo xtask ci` on `6328305`: pass, 11 steps, none skipped. On the merge of `main`
+   (`047574b`, which brings `crates/liminal_core`) with the review edits: pass, 11 steps, none
+   skipped. Branch CI run 42860367806 on `6328305`: success.
+3. Tests: the task adds none and needs none (documentation only). The new requirements are
+   testable as written, except the point in follow-up item 2.
+4. No fake progress: no scope cut beyond the declined half of item 5, which is recorded with
+   its reason; dropping the two §9 rows is an option the task names. No oracle changed.
+5. Spec agreement: the only code for this spec is M1-T013's; checked for item 1 and CORE-R041
+   (behaviour agrees).
+6. Unsafe, 7. determinism, 9. architecture: no code, no dependency change.
+8. Docs: `docs/STATUS.md` regenerated on the merge. No stale reference found.
+10. Session boundaries: below. 11. Public repository: no workflow change, no issue or pull
+    request acted on.
+
+Findings (none is B1 to B5):
+- Follow-up task M1-T059 item 1: CORE-R041 has no `Verifies:` test and no pending task that
+  writes one. M1-T055 assigned it to M1-T013 while that task was `todo` (allowed by item 2);
+  M1-T013 was implemented in parallel against spec v1 and is `done`. Its code meets CORE-R041
+  and its tests cover part of it under CORE-R037 / CORE-R039, so this is not B5. Without the
+  tag, the trace gate of M1-T014's `usable` evidence fails.
+- Follow-up task M1-T059 item 2: CORE-R076 says "same state as `new()`" and "`len()` 0" also
+  for `K` / `T` without `Hash`, but `new`, `len` and `iter` exist only for `K: Hash + Eq`
+  (§5.4). For such types only "`Default::default()` compiles" can be observed.
+- Backlog: `ErrorContext`, `Tick`, `TickDuration` derive `Default` with no requirement for the
+  value (the point the handoff left to the reviewer); `last_reviewed` has no defined meaning.
+
+Session boundaries (item 10), stated as facts:
+- The author's journal names its parent `2026-11-10-session-m1-reviews.md`. That entry (on
+  branch `session/2026-11-10-m1-reviews`, "in progress") lists M1-T055 among the tasks its
+  implementation sub-agents wrote; its sub-agent table is not filled in yet, so "listed in its
+  parent's journal" can be checked fully only when the parent completes it.
+- This review has the same parent. My prompt was the ADR-0026 review template verbatim, with
+  nothing added. The worktree's `AGENTS.md` (ADR-0026 Decision 5.1) forbids a review by a
+  sibling; `main` carries ADR-0029, which allows it, and the text on `main` is in force. I read
+  that from the repository, not from a message.
+- ADR-0029 was written and merged by this parent session on an owner instruction that the ADR
+  quotes. I cannot check the quote. If the owner did not give it, this review is void under
+  ADR-0026 Decision 5.1 and the task needs a review by another session.
+- M1-T055 had one implementation sub-agent and this one review sub-agent. Neither ran an
+  install; I spawned no agent.

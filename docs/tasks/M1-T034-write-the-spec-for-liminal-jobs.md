@@ -20,6 +20,7 @@ requirements: []
 - `docs/specs/_TEMPLATE.md`; `docs/specs/xtask.md` as the quality bar.
 - `architecture.toml` entry for `liminal_jobs` (layer, `unsafe`, `deterministic`, allowed deps).
 - ADR-0009 item 4; ADR-0018; `docs/specs/liminal_telemetry.md`.
+- PERFORMANCE.md "Reference implementations reachable from benchmarks" (M1-T054): the spec's API section lists the crate's `reference` items for each optimized path.
 - Written by the M1 kickoff (M1-T001, 2026-11-09).
 
 ## Scope

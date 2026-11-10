@@ -40,14 +40,7 @@ pub(crate) struct CrateEntry {
     /// `forbid` or `allow`.
     #[serde(rename = "unsafe")]
     pub unsafe_policy: String,
-    /// Whether ADR-0009 determinism rules apply.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "XTASK-R030 checks only its TOML type (bool), at load; no rule reads the value yet"
-        )
-    )]
+    /// Whether ADR-0009 determinism rules apply (XTASK-R039).
     pub deterministic: bool,
     /// Same-layer crates this crate may depend on.
     pub same_layer_deps: Vec<String>,
