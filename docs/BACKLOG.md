@@ -184,3 +184,12 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
   would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
   changes.
+
+## M1-T058 — review 2026-11-10
+
+- `docs/specs/liminal_memory.md` §5 intro and Q1 cite `docs/specs/liminal_core.md`
+  `spec_version` 1; `main` has v4 with the same names. Update the citation when M1-T025 next
+  touches the spec.
+- `docs/specs/liminal_memory.md` INV-2 ("live arena allocations lie within `[base, base +
+  used())`") holds for zero-size allocations only vacuously (§4: their address may lie outside
+  the base). Say so in INV-2 so the `debug_assert!`/property test does not check their address.
