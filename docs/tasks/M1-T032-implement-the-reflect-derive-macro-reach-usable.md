@@ -2,7 +2,7 @@
 id: M1-T032
 title: Implement the Reflect derive macro; reach usable for both reflect crates
 milestone: M1
-status: review
+status: in-progress
 crates: [liminal_reflect, liminal_reflect_derive]
 depends_on: [M1-T031, M1-T061]
 requirements: [REFL-R120, REFL-R130, REFL-R131, REFL-R132, REFLD-R001, REFLD-R002, REFLD-R003, REFLD-R004, REFLD-R005, REFLD-R020, REFLD-R021, REFLD-R030, REFLD-R031, REFLD-R032, REFLD-R033, REFLD-R034, REFLD-R035, REFLD-R050, REFLD-R051, REFLD-R052, REFLD-R053, REFLD-R070]
@@ -124,4 +124,56 @@ line (`6:5`, the field name) for the struct, and at `#[derive(Reflect)]` for the
 
 ## Review
 
-_Empty._
+**2026-11-10, review sub-agent of the session on branch `session/2026-11-10-m1-t020-t031-review`
+(ADR-0026, ADR-0030; did not work on this task). Outcome: changes required (round 1 of at most
+2). `maturity` of both specs unchanged; the promotion review (REVIEW.md §3) is not done.**
+
+Rules read from `origin/main` (`483f277`), which is an ancestor of the reviewed head `5580675`
+(the reviewed tree is the final tree).
+
+**Required changes**
+
+1. **B1: `cargo xtask ci` fails on Windows because of this change.** GitHub run 42913316674 on
+   `5580675`: `checks (windows-latest)` fails in step `test`
+   (`cargo test --workspace --all-features --locked`) with
+   `failed to remove file D:\a\liminal\liminal\target\debug\xtask.exe: Access is denied (os error 5)`;
+   macOS, Linux, coverage and deny pass. Cause: `cargo xtask` (`run --package xtask`) resolves
+   features for `xtask` alone, while `--workspace` unifies the `syn` features `full`, `visit`
+   and the `proc-macro2` feature `span-locations` of `liminal_reflect_derive` (derive spec §3)
+   into the `syn`/`proc-macro2` that `serde_derive` (a dependency of `xtask`) uses. The
+   workspace build therefore makes a second `xtask` binary with another hash and uplifts it to
+   `target/debug/xtask`, which Windows cannot replace while that file runs `ci`. Reproduced on
+   macOS: alternating `cargo build -p xtask` and `cargo build --workspace` gives
+   `target/debug/xtask` a new inode each time, and `target/debug/deps` holds two
+   `serde_derive` dylibs. Merged as is, `main` turns red on Windows, and the reflect §13
+   determinism gate (three CI operating systems) cannot be met, so the acceptance criterion on
+   the `usable` evidence is not met either. The fix is the implementer's choice (examples:
+   nested cargo calls of `xtask ci` use their own target directory; the alias runs a copied
+   binary; the features stop reaching `serde_derive`'s dependencies); a change of an
+   `xtask` requirement or of the CI workflow needs the matching spec/ADR-0028 rules. Done
+   when a GitHub run on the task branch is green on all three operating systems, which also
+   gives the evidence for the open reflect §13 determinism item (the literals already pass on
+   `macos-latest` and `ubuntu-latest` in run 42913316674).
+
+**Checked without a blocking finding**
+- Acceptance criteria 1 to 3, 5 to 7 by reading and running: crate at the registered path,
+  workspace member, `#![forbid(unsafe_code)]`, floor 99.7; every requirement of the
+  frontmatter has a `Verifies:` test that checks it; docs and `# Examples` on the re-export and
+  `Reflect`; differential tests (`derive_differential.rs`, twins return the derived paths,
+  separate registries, ignored-field twin with different ignored values).
+- `cargo xtask ci` on macOS 27.2 arm64, Rust 1.99.1: pass, 12 of 12 steps, none skipped.
+  `cargo xtask coverage`: `liminal_reflect` 98.84 %, `liminal_reflect_derive` 99.78 %.
+  `cargo run -p liminal_reflect --example inspect` runs.
+- Code against the derive spec: §5 bounds and absolute paths, §8 messages and spans (unit
+  tests compare line and column per code), REFLD-R004 tuple positions with ignored fields,
+  REFLD-R031 declaration positions with explicit discriminants, INV-2/INV-3; REFLD-R070: no
+  hash map, environment, file system or clock in `src/`. REFLD-R003 checker matches rules (a)
+  to (d) and is shown non-vacuous. REFLD-R053 manual compile recorded in the handoff.
+- Dependencies: `syn`, `quote`, `proc-macro2` are scope `build` under ADR-0003 in
+  `architecture.toml`; the same-layer edge `liminal_reflect` → `liminal_reflect_derive` is
+  registered; `check-arch` passes.
+- Session boundaries: implementation sub-agent 4 and this review sub-agent are listed in the
+  parent journal; spawn times before the cutoff; no install; no `.github/workflows/` change.
+
+**Backlog entries:** 2 (`docs/BACKLOG.md`, "M1-T032 — review 2026-11-10"). **Follow-up task:**
+none.

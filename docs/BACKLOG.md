@@ -257,3 +257,11 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   `kat.py` in the spec.
 - `crates/liminal_reflect/src/value/access.rs`: `field_mut` builds a full `TypeInfo` on every
   successful call (heap allocations per write). Measure before ECS field writes use it per tick.
+
+## M1-T032 — review 2026-11-10
+
+- `crates/liminal_reflect/tests/derive_differential.rs` `derived_impls_meet_the_impl_requirements`
+  (REFLD-R035) runs `validate_reflect` on `Sample`, `Mode` and `Node` only; `Pair`, `Marker`, `Gen`
+  and `Ignored` are validated only by the REFLD-R033 test. Call it on every derived type there.
+- `docs/specs/liminal_reflect_derive.md` §13: the first item (spec review, evidence M1-T030) is
+  unticked although M1-T030 is `done`; tick it with that evidence before the promotion review.
