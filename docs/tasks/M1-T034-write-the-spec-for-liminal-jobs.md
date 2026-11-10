@@ -2,7 +2,7 @@
 id: M1-T034
 title: Write the spec for liminal_jobs
 milestone: M1
-status: review
+status: done
 crates: [liminal_jobs]
 depends_on: [M1-T027]
 requirements: []
@@ -102,4 +102,73 @@ expectation. The default 2 MiB worker stack size is unverified on Windows (open 
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0029) of parent session
+`session/2026-11-10-m1-reviews` (journal `2026-11-10-session-m1-reviews.md`), fresh context,
+prompt: the ADR-0026 review template with worktree and task ID filled in. The author was an
+implementation sub-agent of the same parent; ADR-0029 Decision 1.2 (on `main` since `c75a54e`,
+merged into this branch before the review commit) allows that. This agent did no implementation
+work on M1-T034. macOS 27.2 (Darwin, arm64), worktree `liminal-worktrees/M1-T034-review`,
+reviewed commit `1a06db9`. Task review (REVIEW.md §1) plus spec review (REVIEW.md §2).
+
+Outcome: **done**, no blocking finding (B1–B5). No contract-changing follow-up, so no follow-up
+task. Backlog: 9 entries in `docs/BACKLOG.md` under "M1-T034 — review 2026-11-10".
+
+Checked:
+- AC 1: 14 template sections in order; `maturity: planned`, `spec_version: 1`,
+  `adrs: [ADR-0009, ADR-0010, ADR-0016, ADR-0017, ADR-0018, ADR-0023]` (ADR-0024: backlog).
+- AC 2: 52 requirement rows, IDs unique, 50 MUST and 2 SHOULD, no reference to an undefined ID
+  (script). A word search for "fast", "robust", "efficient" and similar finds only "faster"
+  (§3, a condition on a measurement) and "not the fast path" (§5.2). JOBS-R011 is checked in
+  review only (backlog).
+- AC 3: §5 covers every item of the task scope. Consistent with `docs/ARCHITECTURE.md` §2,
+  `architecture.toml` (layer 1, `same_layer_deps = []`, `external = []`, dev `proptest` and
+  `loom`, `unsafe = "allow"`, `deterministic = false`), `docs/specs/liminal_core.md`
+  `spec_version` 3 (`EngineError`, `write_display`, `validate_error`, `ContextValue::UInt` and
+  `Text`, context keys match `^[a-z][a-z0-9_]*$`, `help()` returns `Option<String>` so help
+  text may contain context values, `hash::StateHasher`, `rng`) and
+  `docs/specs/liminal_telemetry.md` `spec_version` 1 (`span!` takes any `&'static str`
+  expression, so node names work; inactive macros do not allocate, so JOBS-R064 holds with the
+  `telemetry` feature on and no `Collector`; `SpanGuard` is not `Send` and JOBS-R120 keeps each
+  span on one thread). None of the ten items of M1-T056 (`todo`) changes what this spec uses.
+- AC 3, signatures: a scratch `rustc` program (not committed) with the items of §5.1 to §5.4 as
+  written and stub bodies compiles. In it: the `split_at_mut` example of JOBS-R042 and the
+  nested spawn of JOBS-R041 compile and run; a job that borrows a local of `f` is rejected
+  (E0373) when `Scope<'scope>` is invariant in `'scope`; the three loop functions written on
+  `join` in safe code give the chunks of §4, including `usize::MAX − 5 .. usize::MAX` with
+  chunk sizes 4 and `usize::MAX`; `run_graph` written on `scope` in safe code runs `FnMut`
+  nodes that borrow locals three times. This shows that the signatures type-check and that
+  `parallel` and `graph` can be written without `unsafe` (§3). It shows nothing about the
+  real pool.
+- AC 4: 5 codes with variant, message, help and context; groups and free numbers stated.
+- AC 5: test kinds per area use the names of TESTING.md; the three optimized paths name their
+  reference (`liminal_jobs::reference`, sequential mode, the sequential fold). PERFORMANCE.md
+  "Reference implementations reachable from benchmarks" items 1 to 4 hold for `reference`.
+- AC 6: §9 has scenarios on the reference machine (PERFORMANCE.md: Apple M5 Pro, 6P + 12E), no
+  numbers, measuring tasks M1-T036 and M1-T051 (both exist); the `deque` / `reference` pair
+  answers the ADR-0018 benchmark clause; ADR-0023 Decision 4 excludes multithreaded cases
+  from the instruction gate as the spec says.
+- AC 7: the 50 MUST IDs equal the union of the `requirements` frontmatter of M1-T035 (27) and
+  M1-T036 (23), no ID twice (script); the §6 table expands to the same sets. The scope changes
+  are in both tasks' "Notes".
+- AC 8: 12 open questions. Four name "the `stable` promotion" as resolver (backlog).
+- AC 9: `docs/specs/README.md` row; `cargo xtask ci` on `1a06db9`: pass, 11 of 11 steps, none
+  skipped; branch CI run 42864759822 on `1a06db9` green. `cargo xtask ci` on the review
+  commit's tree (after the merge of `main`): pass, 11 of 11 steps, none skipped.
+- By derivation: the sums 2,147,450,880 (JOBS-R007, R044) and 11,000 (JOBS-R041); the order
+  2, 1, 3, 0 of JOBS-R085; the quoted clauses of ADR-0009 item 4 and ADR-0018; `steal` reads
+  the slot before its compare-exchange on `top`, and a slot is overwritten only after `top`
+  has moved past it, so INV-6 and the order clause of JOBS-R023 hold for a fixed ring with
+  position counters that do not wrap in practice; JOBS-R103 follows from JOBS-R102 when the
+  left half of a split is `a`; `'scope` outlives the `scope` call, so INV-1 is enough for the
+  borrows of JOBS-R042.
+- No fake progress, oracle changes: none (documentation only). Docs: STATUS.md regenerated.
+- Session boundaries: the journal entry names its parent; that parent's journal lists M1-T034
+  among the tasks its implementation sub-agents wrote, but its sub-agent table is not written
+  yet ("in progress" on the session branch), so the listing is not verifiable here. The task
+  file and the journals show no earlier review of M1-T034 and no install or spawn by the
+  author. The owner's instruction behind ADR-0029 is known to this review only from the ADR
+  text on `main` and the parent's journal.
+- ADR-0028: no workflow change in the task's commit; no credentials or personal data.
+
+Not verified: anything about code that does not exist yet, in particular that JOBS-R064 can be
+met on Linux and Windows, and every performance expectation.

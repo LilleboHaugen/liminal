@@ -1,5 +1,7 @@
 # Workspace clippy configuration (docs/process/CODE_STYLE.md §Lints).
 # Tests may unwrap, expect and print; library code may not.
+# Clippy reads only the nearest clippy.toml: a deterministic crate has its own file that repeats
+# these settings and adds the ADR-0009 `disallowed-methods` list (XTASK-R039).
 allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-print-in-tests = true
