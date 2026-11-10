@@ -2,8 +2,8 @@
 crate: liminal_core
 req_prefix: CORE
 layer: 0
-maturity: planned
-spec_version: 3
+maturity: usable
+spec_version: 4
 last_reviewed: 2026-11-09
 adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0024]
 ---
@@ -318,8 +318,10 @@ impl core::hash::Hasher for DetHasher { /* … */ }
 
 ```rust
 /// Hash map whose iteration order is the insertion order of its keys.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DetHashMap<K, V> { /* … */ }
+/// Writes `{key: value, …}` in iteration order (not derived: no internals in the output).
+impl<K: Debug, V: Debug> Debug for DetHashMap<K, V> { /* … */ }
 
 /// No bounds on `K` or `V`: what `Default` needs, and what every `K`, `V` can observe (CORE-R076).
 impl<K, V> DetHashMap<K, V> {
@@ -346,8 +348,10 @@ impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
 impl<K, V> Default for DetHashMap<K, V> { /* new() */ }
 
 /// Hash set whose iteration order is the insertion order.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DetHashSet<T> { /* … */ }
+/// Writes `{value, …}` in iteration order.
+impl<T: Debug> Debug for DetHashSet<T> { /* … */ }
 
 /// No bounds on `T` (CORE-R076).
 impl<T> DetHashSet<T> {
@@ -369,7 +373,9 @@ impl<T: core::hash::Hash + Eq> DetHashSet<T> {
 impl<T> Default for DetHashSet<T> { /* new() */ }
 ```
 
-`Borrow` is `core::borrow::Borrow`; `Hash` is `core::hash::Hash`.
+`Borrow` is `core::borrow::Borrow`; `Hash` is `core::hash::Hash`; `Debug` is `core::fmt::Debug`.
+The `Debug` impls are hand-written (`spec_version` 4): they have the bounds a derive would have
+and write only the entries, as `std` collections do.
 
 `new`, `len` and `is_empty` of both collections have no trait bounds (`spec_version` 3), so they
 and `Default::default()` exist for every `K`, `V` and `T`. Every other method requires
@@ -549,7 +555,7 @@ impl TickDuration {
 | CORE-R111 | MUST | `dt_secs_f32` returns `1.0_f32 / n as f32` and `dt_secs_f64` returns `1.0_f64 / n as f64`, each one IEEE 754 division (correctly rounded), for tick rate `n`. |
 | CORE-R112 | MUST | `ticks_to_secs_f64(d)` returns `d.count() as f64 / n as f64` (Rust `as` conversion, round-to-nearest-even for counts above 2^53, then one IEEE 754 division). |
 | CORE-R113 | MUST | `ticks_from_millis(ms)` returns `(ms × n + 500) / 1000` computed in `u128` integer arithmetic (rounding to nearest, ties up). It does not overflow or panic for any `u64` input. |
-| CORE-R114 | MUST | `Tick::next` returns the tick with index + 1 and panics if the index is `u64::MAX`. `Tick::checked_add(d)` returns `None` on overflow. `t.since(e)` returns `Some(TickDuration::new(t.index() − e.index()))` if `t >= e`, else `None`. `Tick` and `TickDuration` order and compare by their counts. `TickDuration::checked_add` returns `None` on overflow. `Tick::ZERO` and `TickDuration::ZERO` have count 0. |
+| CORE-R114 | MUST | `Tick::next` returns the tick with index + 1 and panics if the index is `u64::MAX`. `Tick::checked_add(d)` returns `None` on overflow. `t.since(e)` returns `Some(TickDuration::new(t.index() − e.index()))` if `t >= e`, else `None`. `Tick` and `TickDuration` order and compare by their counts. `TickDuration::checked_add` returns `None` on overflow. `Tick::ZERO` and `TickDuration::ZERO` have count 0, and so have `Tick::default()` and `TickDuration::default()`. |
 
 ### Determinism (R130–R139)
 
@@ -622,7 +628,7 @@ number in their group.
 ## 9. Performance budgets
 
 None yet: set at `stable` from baselines. `liminal_core` has no optimized paths in `spec_version`
-3. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
+4. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
 exists; no number is set before that measurement.
 
 | Scenario | Budget | Machine | Source of number |
@@ -638,7 +644,7 @@ yet) adds their scenarios and rows by a `spec_version` bump (open question 6).
 
 ## 10. Test plan
 
-No path in `spec_version` 3 is an optimized variant of another; each algorithm has one
+No path in `spec_version` 4 is an optimized variant of another; each algorithm has one
 implementation, checked against an external reference. If a later version adds an optimized path
 (SIMD XXH64, a faster map), the current implementation stays as its reference and a differential
 test is added (AGENTS.md rule 4).
@@ -649,12 +655,17 @@ test is added (AGENTS.md rule 4).
 | `write_display`, `render_json` (R005–R011) | unit, snapshot (`crates/liminal_core/tests/snapshots/core_errors.txt`: Display and JSON of one value of every `CoreError` variant), property (string escaping round trip over generated strings including all of U+0000–U+001F) | Approved snapshot; test-local JSON string decoder in `tests/common/` |
 | `validate_error`, `CoreError` (R012, R013) | unit (one test error type per violation), integration | Hand-written expected codes |
 | Handles (R030–R041) | unit, property (random operation sequences), integration, doc test | Model in `tests/common/`: list of every issued handle plus the set of live handles, checked by linear search. Generation wrap (R035) is tested in a unit test inside the module that sets a slot's generation to `u32::MAX - 1` directly, since 2^32 frees are too slow for a test |
-| `StateHasher` (R050–R057) | unit known-answer, property (R051 splits) | XXH64 reference vectors from the xxHash repository (sanity-test values or `xxhsum -H64` output, source named in the test); for R053/R054, the expected byte sequence written by hand and hashed with `write_bytes` |
+| `StateHasher` (R050–R057) | unit known-answer, property (R051 splits) | XXH64 reference vectors from the xxHash repository: the seed-0 rows of `XSUM_XXH64_testdata` (`tests/sanity_test_vectors.h`, tag v0.8.3) for 121 lengths from 0 to 4160, copied into `tests/common/xxh64_vectors.rs`; for R053/R054, the expected byte sequence written by hand and hashed with `write_bytes`; for the R056 literals, XXH64 of those byte sequences computed by the independent Python implementation `tests/reference/kat.py` |
 | `FixedState`, `DetHasher` (R060, R061) | unit, integration | XXH64 of hand-built little-endian byte sequences, as recorded literals, for fixed sequences of `Hasher` calls made directly on a `DetHasher` from `FixedState::build_hasher` (a literal recorded in an earlier process covers "in every process"; the first sequence is empty). `hash_one(&v)` of two `FixedState` instances is compared in-process only, never with a recorded literal, because the calls a std `Hash` impl makes may change with the Rust toolchain |
 | `DetHashMap`, `DetHashSet` (R070–R076) | property (differential), unit | `Vec<(K, V)>` / `Vec<T>` linear-search reference model. CORE-R076 case (a): a unit test with a key, value and element type that implements no trait (it fails to compile if `Default`, `new`, `len` or `is_empty` gains a bound); case (b): the same operation sequence applied to `default()` and `new()` |
-| `Rng`, `StreamKey` (R090–R098) | unit known-answer, property (range of `below_*`, `[0, 1)` of floats) | Values from the reference C implementations `xoshiro256starstar.c` and `splitmix64.c` (prng.di.unimi.it), recorded in the test with the command that produced them; for power-of-two bounds `below_u32(2^k)` must equal `next_u32() >> (32 − k)` (no rejection occurs) |
-| Time (R110–R114) | unit, property (`ticks_from_millis` monotone; exact for multiples of 1000 / n) | Hand-computed values |
-| Determinism (R130–R133) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals |
+| `Rng`, `StreamKey` (R090–R098) | unit known-answer, property (range of `below_*`, `[0, 1)` of floats, seeding against a test-local `SplitMix64`) | `next_u64` and `SplitMix64`: the published outputs of the reference C implementations `xoshiro256starstar.c` and `splitmix64.c` (prng.di.unimi.it) as recorded in the `reference` tests of `rand_xoshiro` (github.com/rust-random/rngs, commit 84683fca). Seeding (R091), `below_*` (R095), floats (R096) and the R098 literals: values computed by `tests/reference/kat.py`, an independent Python implementation of XXH64, `SplitMix64`, xoshiro256\*\* and Lemire's method that checks itself against the published vectors; the command is recorded at each literal. For power-of-two bounds `below_u32(2^k)` must equal `next_u32() >> (32 − k)` (no rejection occurs) |
+| Time (R110–R114) | unit, property (`ticks_from_millis` monotone; exact for whole seconds) | Hand-computed values; float bit patterns and the `u64::MAX` cases computed with Python (`kat.py time`) |
+| Determinism (R130–R133) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals (the `rng_streams` literal is also reproduced by `kat.py rng-streams`) |
+
+`tests/reference/kat.py` is not run by any test or by CI; it documents how the literals were
+produced and lets a reviewer reproduce them (`python3`, standard library only). The reference C
+files were not compiled for `spec_version` 4: the implementing session was not permitted to
+run downloaded code, so their outputs are taken from the published `rand_xoshiro` tests.
 
 Every requirement's verifying test carries `/// Verifies: CORE-Rnnn`. Primary entry points with
 `# Examples`: `ErrorCode`, `EngineError` (a complete small error enum), `render_json`,
@@ -682,13 +693,17 @@ operation mix) are fixed in the test; changing them changes the literal and is a
 
 | Workload | What it does | Cross-platform bit-identity claimed |
 |---|---|---|
-| `rng_streams` (CORE-R130) | For 3 world seeds × 3 stream keys (including one from `StreamKey::from_name`), 1,000 rounds of every `Rng` output method, each result hashed (floats by bits) | Yes (integer arithmetic; exact float conversions) |
-| `handle_churn` (CORE-R131) | 10,000 seeded insert/remove operations on a `HandleMap<u64>` with a small slot limit (exhaustion and stale removes included); every returned handle, value and error code hashed, then the final map | Yes (integer arithmetic) |
-| `det_map_churn` (CORE-R132) | 10,000 seeded insert/remove/get operations on `DetHashMap<u64, u64>` over a key space of a few hundred keys; the map's `StateHash` hashed every 100 operations | Yes (iteration order does not depend on hash values, CORE-R073) |
-| `time_conversions` (CORE-R133) | `dt_secs_f32`, `dt_secs_f64` for every tick rate 1..=1000; `ticks_to_secs_f64` and `ticks_from_millis` for fixed counts including 0, 2^53 + 1 and `u64::MAX`; results hashed by bits | Yes (one correctly rounded IEEE 754 division per value) |
+| `rng_streams` (CORE-R130) | For 3 world seeds × 3 stream keys (including one from `StreamKey::from_name`), 1,000 rounds of every `Rng` output method, each result hashed (floats by bits), then the generator's state | Yes (integer arithmetic; exact float conversions) |
+| `handle_churn` (CORE-R131) | 10,000 seeded insert/remove operations on a `HandleMap<u64>` with a slot limit of 48 (exhaustion and stale removes included; the workload asserts that each occurs more than 100 times); every returned handle, value and error code hashed, then the final map | Yes (integer arithmetic) |
+| `det_map_churn` (CORE-R132) | 10,000 seeded insert/remove/get operations on `DetHashMap<u64, u64>` over a key space of 300 keys; every result hashed, and the map's `StateHash` every 100 operations | Yes (iteration order does not depend on hash values, CORE-R073) |
+| `time_conversions` (CORE-R133) | `dt_secs_f32`, `dt_secs_f64` for every tick rate 1..=1000; `ticks_to_secs_f64` and `ticks_from_millis` for 10 fixed counts including 0, 2^53 + 1 and `u64::MAX`; results hashed by bits | Yes (one correctly rounded IEEE 754 division per value) |
 
-Cross-platform bit-identity has **not been verified yet**: it is claimed for all four workloads and
-verified when M1-T014's tests pass on the three CI operating systems.
+Cross-platform bit-identity is claimed for all four workloads and **verified** for the recorded
+literals on the three CI operating systems: GitHub Actions run 42882724790 (commit `9760608`,
+2026-11-10) passed `cargo xtask ci`, which runs `tests/determinism.rs` and the known-answer tests
+of CORE-R056 and CORE-R098, on `macos-latest` (arm64), `windows-latest` (x86_64) and
+`ubuntu-latest` (x86_64). Every later CI run repeats the check. Not verified: any other target
+(x86_64 macOS, aarch64 Linux or Windows).
 
 ## 12. Open questions
 
@@ -720,25 +735,41 @@ verified when M1-T014's tests pass on the three CI operating systems.
 
 ## 13. Maturity
 
-Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T014 and
-checked by the session that reviews it.
+Current: `usable` (promoted from `planned` via `experimental` by the M1-T014 review,
+2026-11-10: every gate below re-checked by the reviewer, see the "Review" note in
+`docs/tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md`). Next target: `stable`.
+Evidence for `usable` prepared by M1-T014 (2026-11-10, measured on macOS 27.2 arm64, Rust 1.99.1).
 
-- [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
-      review of M1-T012).
+- [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
+      review of M1-T012, 2026-11-09, "Review" note in
+      `docs/tasks/M1-T012-write-the-spec-for-liminal-core.md`; versions 2 and 3 reviewed with
+      M1-T055 and M1-T059; version 4 is reviewed with M1-T014).
 - [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T013, 2026-11-10: `cargo xtask ci` passes
-      with `crates/liminal_core/clippy.toml` and the floor `liminal_core = 98.9`; modules `error`
-      and `handle` only, to be checked by the reviewer of M1-T013).
-- [ ] All MUST requirements traced: `cargo xtask trace --crate liminal_core` with
-      `maturity: usable` applied on a scratch copy reports every MUST tested (evidence: M1-T014).
-- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T014).
-- [ ] Every public item documented; the primary entry points of §10 have runnable `# Examples`.
-- [ ] Integration tests in `crates/liminal_core/tests/` use only the public API.
-- [ ] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
-      three CI operating systems.
-- [ ] At least one example or dependent crate uses it. Open item: no dependent crate exists when
-      M1-T014 finishes; `liminal_math` (M1-T020) is the first. M1-T014 either adds a runnable
-      example under `crates/liminal_core/examples/` or the promotion waits for M1-T020.
+      registered in `ci/coverage.toml` (evidence: `cargo xtask ci` passes, 11 steps, none skipped;
+      `crates/liminal_core/clippy.toml`; floor `liminal_core = 99.3`).
+- [x] All MUST requirements traced (evidence: `cargo xtask trace --crate liminal_core` on a
+      scratch copy of the repository with `maturity: usable` in this file: `tested: MUST 58/58,
+      SHOULD 1/2`, `trace: ok`. The untested SHOULD is CORE-R075, checked by review).
+- [x] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: `cargo xtask coverage`:
+      99.37 %, 1753 of 1764 lines. The 11 uncovered lines are in `error` and `handle` (panic
+      arms of test helpers and assertion messages); `hash`, `collections`, `rng` and `time` have
+      no uncovered line).
+- [x] Every public item documented; the primary entry points of §10 have runnable `# Examples`
+      (evidence: `missing_docs = "deny"` passes; `cargo test --doc -p liminal_core` runs 24 doc
+      tests, among them `StateHasher`, `state_hash_of`, `StateHash`, `FixedState`, `DetHasher`,
+      `DetHashMap`, `DetHashSet`, `Rng`, `StreamKey`, `TickRate`, `Tick`, `TickDuration`).
+- [x] Integration tests in `crates/liminal_core/tests/` use only the public API (evidence:
+      `error_model.rs`, `handles.rs`, `hashing.rs`, `collections.rs`, `rng.rs`, `time.rs`,
+      `determinism.rs`; 99 tests. Three behaviours need private access and are unit tests inside
+      the crate: the generation wrap, the private `splitmix64`, the lookup table).
+- [x] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
+      three CI operating systems (evidence: GitHub Actions run 42882724790 on `9760608`, §11).
+- [x] At least one example or dependent crate uses it (evidence:
+      `crates/liminal_core/examples/seeded_world.rs`, run with
+      `cargo run -p liminal_core --example seeded_world`; it uses `handle`, `hash`,
+      `collections`, `rng`, `time` and `error` and fails if two runs with one seed differ.
+      `cargo test` compiles it; no CI step runs it. `liminal_math` (M1-T020) will be the first
+      dependent crate).
 
 ## 14. History
 
@@ -747,3 +778,4 @@ checked by the session that reviews it.
 | 1 | 2026-11-09 | Initial spec | M1-T012 |
 | 2 | 2026-11-10 | §5.2: `HandleAllocator` `Default` is a hand-written impl equal to `new()`, no longer derived (a derived one has slot limit 0). New CORE-R041, CORE-R057, CORE-R076: `Default::default()` equals `new()` for `HandleAllocator`, `HandleMap`, `StateHasher`, `DetHashMap`, `DetHashSet`. CORE-R060 and §10: recorded literals only for `Hasher` call sequences made on a `DetHasher` directly; `hash_one` values are not fixed across Rust releases. §9: the two scenario rows without a measuring task removed. §12 item 4 resolved; item 6 updated | M1-T055 |
 | 3 | 2026-11-10 | §5.4: `new`, `len` and `is_empty` of `DetHashMap` and `DetHashSet` moved into `impl` blocks without trait bounds (were `K: Hash + Eq` / `T: Hash + Eq`). CORE-R076 reworded into two cases, each naming what a test observes: every `K`, `V`, `T` (`default()` and `new()` compile, `len()` 0, `is_empty()`), and `Hash + Eq` types (iteration, same results after the same operations). §6 assignment: CORE-R041 moves from M1-T013 to M1-T059, which writes its `Verifies:` tests. §10: oracle for CORE-R076 | M1-T059 |
+| 4 | 2026-11-10 | §5.4: `Debug` of `DetHashMap` and `DetHashSet` is a hand-written impl that writes the entries in iteration order (was derived). CORE-R114: `Tick::default()` and `TickDuration::default()` have count 0. §10: oracles as implemented (xxHash sanity vectors; published xoshiro256\*\* and `SplitMix64` outputs; the independent Python implementation `tests/reference/kat.py` instead of compiled reference C). §11: workload parameters and verification state. §13: evidence for the `usable` gates | M1-T014 |

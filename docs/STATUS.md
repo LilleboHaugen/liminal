@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 21 of 61 tasks done.
+**M1** (Headless core): 23 of 62 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -26,7 +26,7 @@
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | done | M1-T001 |
 | [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | done | M1-T001 |
 | [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | done | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
-| [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | todo | M1-T013, M1-T059 |
+| [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | done | M1-T013, M1-T059 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | todo | M1-T014 |
 | [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | todo | M1-T015 |
 | [M1-T017](tasks/M1-T017-cargo-xtask-bench-and-the-first-wall-clock-basel.md) | cargo xtask bench and the first wall-clock baselines | todo | M1-T016 |
@@ -49,7 +49,7 @@
 | [M1-T034](tasks/M1-T034-write-the-spec-for-liminal-jobs.md) | Write the spec for liminal_jobs | done | M1-T027 |
 | [M1-T035](tasks/M1-T035-implement-liminal-jobs-pool-work-stealing-deques.md) | Implement liminal_jobs — pool, work-stealing deques, scoped tasks | todo | M1-T034, M1-T028, M1-T018 |
 | [M1-T036](tasks/M1-T036-implement-liminal-jobs-parallel-for-and-job-grap.md) | Implement liminal_jobs — parallel-for and job graphs; reach usable | todo | M1-T035, M1-T017 |
-| [M1-T037](tasks/M1-T037-write-the-spec-for-liminal-ecs.md) | Write the spec for liminal_ecs | todo | M1-T030, M1-T034 |
+| [M1-T037](tasks/M1-T037-write-the-spec-for-liminal-ecs.md) | Write the spec for liminal_ecs | done | M1-T030, M1-T034 |
 | [M1-T038](tasks/M1-T038-implement-liminal-ecs-entities-archetype-storage.md) | Implement liminal_ecs — entities, archetype storage, reference world | todo | M1-T037, M1-T032 |
 | [M1-T039](tasks/M1-T039-implement-liminal-ecs-queries-and-archetype-move.md) | Implement liminal_ecs — queries and archetype moves | todo | M1-T038 |
 | [M1-T040](tasks/M1-T040-implement-liminal-ecs-resources-events-commands.md) | Implement liminal_ecs — resources, events, commands, change detection | todo | M1-T039 |
@@ -62,10 +62,10 @@
 | [M1-T047](tasks/M1-T047-write-the-spec-for-liminal-testkit.md) | Write the spec for liminal_testkit | todo | M1-T044 |
 | [M1-T048](tasks/M1-T048-implement-liminal-testkit-harness-and-assert-det.md) | Implement liminal_testkit — harness and assert_deterministic | todo | M1-T047, M1-T046 |
 | [M1-T049](tasks/M1-T049-implement-liminal-testkit-replay-reach-usable.md) | Implement liminal_testkit replay; reach usable | todo | M1-T048 |
-| [M1-T050](tasks/M1-T050-headless-boids-example-100k-deterministic-agents.md) | headless_boids example — 100k deterministic agents | todo | M1-T049, M1-T023 |
+| [M1-T050](tasks/M1-T050-headless-boids-example-100k-deterministic-agents.md) | headless_boids example — 100k deterministic agents | todo | M1-T049, M1-T023, M1-T062 |
 | [M1-T051](tasks/M1-T051-competitive-benchmarks-workspace-math-vs-glam-jo.md) | Competitive benchmarks — workspace, math vs glam, jobs vs rayon | todo | M1-T017, M1-T023, M1-T036, M1-T008, M1-T009 |
 | [M1-T052](tasks/M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks — ECS vs bevy_ecs and hecs | todo | M1-T051, M1-T043 |
-| [M1-T053](tasks/M1-T053-m1-exit-review.md) | M1 exit review | todo | M1-T002, M1-T003, M1-T004, M1-T005, M1-T006, M1-T007, M1-T008, M1-T009, M1-T010, M1-T011, M1-T012, M1-T013, M1-T014, M1-T015, M1-T016, M1-T017, M1-T018, M1-T019, M1-T020, M1-T021, M1-T022, M1-T023, M1-T024, M1-T025, M1-T026, M1-T027, M1-T028, M1-T029, M1-T030, M1-T031, M1-T032, M1-T033, M1-T034, M1-T035, M1-T036, M1-T037, M1-T038, M1-T039, M1-T040, M1-T041, M1-T042, M1-T043, M1-T044, M1-T045, M1-T046, M1-T047, M1-T048, M1-T049, M1-T050, M1-T051, M1-T052, M1-T054 |
+| [M1-T053](tasks/M1-T053-m1-exit-review.md) | M1 exit review | todo | M1-T002, M1-T003, M1-T004, M1-T005, M1-T006, M1-T007, M1-T008, M1-T009, M1-T010, M1-T011, M1-T012, M1-T013, M1-T014, M1-T015, M1-T016, M1-T017, M1-T018, M1-T019, M1-T020, M1-T021, M1-T022, M1-T023, M1-T024, M1-T025, M1-T026, M1-T027, M1-T028, M1-T029, M1-T030, M1-T031, M1-T032, M1-T033, M1-T034, M1-T035, M1-T036, M1-T037, M1-T038, M1-T039, M1-T040, M1-T041, M1-T042, M1-T043, M1-T044, M1-T045, M1-T046, M1-T047, M1-T048, M1-T049, M1-T050, M1-T051, M1-T052, M1-T054, M1-T062 |
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | done | M1-T001 |
 | [M1-T055](tasks/M1-T055-liminal-core-spec-follow-ups.md) | liminal_core spec follow-ups from the M1-T012 review | done | M1-T012 |
 | [M1-T056](tasks/M1-T056-liminal-telemetry-spec-follow-ups.md) | liminal_telemetry spec follow-ups from the M1-T027 review | done | M1-T027 |
@@ -74,6 +74,7 @@
 | [M1-T059](tasks/M1-T059-liminal-core-default-requirement-follow-ups.md) | liminal_core Default requirement follow-ups from the M1-T055 review | done | M1-T055, M1-T013 |
 | [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | done | M1-T019 |
 | [M1-T061](tasks/M1-T061-reflect-derive-path-check-definition.md) | Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review) | review | M1-T057 |
+| [M1-T062](tasks/M1-T062-reflect-impls-for-liminal-math-and-liminal-core-types.md) | Reflect impls for liminal_math and liminal_core types | todo | M1-T032, M1-T020 |
 
 ## Blocked tasks
 
@@ -84,14 +85,14 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 61 | 39 | 0 | 0 | 1 | 21 |
+| M1 (Headless core) | 62 | 38 | 0 | 0 | 1 | 23 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates
 
 | Crate | Layer | Maturity | Spec |
 |---|---|---|---|
-| liminal_core | 0 | planned | [liminal_core.md](specs/liminal_core.md) |
+| liminal_core | 0 | usable | [liminal_core.md](specs/liminal_core.md) |
 | liminal_math | 0 | planned | [liminal_math.md](specs/liminal_math.md) |
 | liminal_memory | 0 | planned | [liminal_memory.md](specs/liminal_memory.md) |
 | liminal_reflect | 0 | planned | [liminal_reflect.md](specs/liminal_reflect.md) |
@@ -99,7 +100,7 @@ None.
 | liminal_telemetry | 0 | planned | [liminal_telemetry.md](specs/liminal_telemetry.md) |
 | liminal_app | 1 | planned | — |
 | liminal_assets | 1 | planned | — |
-| liminal_ecs | 1 | planned | — |
+| liminal_ecs | 1 | planned | [liminal_ecs.md](specs/liminal_ecs.md) |
 | liminal_input | 1 | planned | — |
 | liminal_jobs | 1 | planned | [liminal_jobs.md](specs/liminal_jobs.md) |
 | liminal_procgen | 1 | planned | — |

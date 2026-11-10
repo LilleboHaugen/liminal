@@ -36,10 +36,10 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 
 ## M1-T055 — review 2026-11-10
 
-- `docs/specs/liminal_core.md` §5.1, §5.6: `ErrorContext`, `Tick` and `TickDuration` derive
-  `Default`, and no requirement states the value (empty context; count 0). The derived values
-  are the only reasonable ones and `ErrorContext::default()` is already tested as empty; add
-  the statement to CORE-R007 / CORE-R111 when those rows are next edited, or leave it.
+- `docs/specs/liminal_core.md` §5.1: `ErrorContext` derives `Default`, and no requirement
+  states the value (the empty context). `ErrorContext::default()` is already tested as empty;
+  add the statement to CORE-R007 when that row is next edited, or leave it. (The `Tick` and
+  `TickDuration` part of this entry was fixed by M1-T014: CORE-R114, `spec_version` 4.)
 - `docs/process/DOCUMENTATION.md`, `docs/specs/_TEMPLATE.md`: the spec frontmatter field
   `last_reviewed` has no stated meaning (date of the last spec review, or of the last change?).
   `docs/specs/liminal_core.md` v2 keeps 2026-11-09, the review date of v1. Define the field.
@@ -173,3 +173,35 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   missing-value case; for the other checks (field count, name, kind, variant index, array
   length, field ID) the strings are examples, while §10 asks for hand-written expected values.
   M1-T031 fixes the strings in the requirement when it writes the tests.
+
+## M1-T014 — review 2026-11-10
+
+- `crates/liminal_core/src/collections/set.rs`: `DetHashSet::insert` hashes and probes the
+  value twice (`contains_key`, then `DetHashMap::insert`). Still expected constant time
+  (CORE-R075); one probe would halve the cost. Revisit with the `liminal_benches` tasks.
+- `crates/liminal_core/examples/seeded_world.rs`: `cargo test` compiles it, but no CI step runs
+  it, so its own check (two runs with one seed give one hash) runs only by hand.
+- `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
+  would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
+  changes.
+
+## M1-T037 — review 2026-11-10
+
+- `docs/specs/liminal_ecs.md` ECS-R210 and `docs/specs/liminal_jobs.md` JOBS-R121: if
+  `run_parallel` names each `JobGraph` node with the system name, `run_graph` already records a
+  span of that name, and an ECS span of its own makes two. M1-T042 picks distinct node names or
+  relies on the node span; say which in the spec.
+- `docs/specs/liminal_ecs.md` ECS-R210: schedule and system span names (`"fixed_update"`,
+  `"integrate"`) do not follow the telemetry name convention (SHOULD, `liminal_telemetry.md`
+  §5.1: lowercase, dot-separated, crate area first). Decide whether callers or the ECS prefix them.
+- `docs/specs/liminal_ecs.md` §11 rule 3 and ECS-R221: an `Rng` in a registered resource needs
+  `Rng: Typed`, which is M1-T062's decision; M1-T043 (`schedule_ticks`) does not depend on
+  M1-T062, so its `Rng` resource stays unregistered (not hashed) unless the order changes.
+- `docs/specs/liminal_ecs.md` §10 "loom" and §11: the world identity of ECS-R155 most likely
+  needs a process-global counter (an atomic of the crate's own); §10 says the crate has no
+  shared mutable state of its own. State the exception or the mechanism.
+- `docs/specs/liminal_ecs.md` ECS-R191: "equal event buffers" does not say that the sets of
+  registered event types must be equal too; one extra registered event type with empty buffers
+  changes the hash by ECS-R190 (4). Name it among the conditions.
+- `docs/tasks/README.md` has no row for M1-T059, and `depends_on` of
+  `docs/tasks/M1-T053-m1-exit-review.md` lists none of M1-T055 to M1-T061 (only M1-T062).
