@@ -82,6 +82,7 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T054](M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review |
 | [M1-T055](M1-T055-liminal-core-spec-follow-ups.md) | `liminal_core` spec follow-ups from the M1-T012 review |
 | [M1-T056](M1-T056-liminal-telemetry-spec-follow-ups.md) | `liminal_telemetry` spec follow-ups from the M1-T027 review |
+| [M1-T057](M1-T057-liminal-reflect-spec-follow-ups.md) | `liminal_reflect` and `liminal_reflect_derive` spec follow-ups from the M1-T030 review |
 | [M2-T001](M2-T001-check-docs-markdown-follow-ups.md) | `check-docs` Markdown follow-ups from the M1-T002 review |
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
 | [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |

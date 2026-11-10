@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 10 of 56 tasks done.
+**M1** (Headless core): 11 of 57 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -42,7 +42,7 @@
 | [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | done | M1-T001 |
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
-| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | todo | M1-T001 |
+| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | done | M1-T001 |
 | [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | todo | M1-T030, M1-T014 |
 | [M1-T032](tasks/M1-T032-implement-the-reflect-derive-macro-reach-usable.md) | Implement the Reflect derive macro; reach usable for both reflect crates | todo | M1-T031 |
 | [M1-T033](tasks/M1-T033-instruction-count-regression-gate-in-ci.md) | Instruction-count regression gate in CI | todo | M1-T017, M1-T022, M1-T006 |
@@ -69,6 +69,7 @@
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | done | M1-T001 |
 | [M1-T055](tasks/M1-T055-liminal-core-spec-follow-ups.md) | liminal_core spec follow-ups from the M1-T012 review | todo | M1-T012 |
 | [M1-T056](tasks/M1-T056-liminal-telemetry-spec-follow-ups.md) | liminal_telemetry spec follow-ups from the M1-T027 review | todo | M1-T027 |
+| [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | todo | M1-T030 |
 
 ## Blocked tasks
 
@@ -79,7 +80,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 56 | 46 | 0 | 0 | 0 | 10 |
+| M1 (Headless core) | 57 | 46 | 0 | 0 | 0 | 11 |
 | M2 (Agent interface v0) | 6 | 6 | 0 | 0 | 0 | 0 |
 
 ## Crates
@@ -89,8 +90,8 @@ None.
 | liminal_core | 0 | planned | [liminal_core.md](specs/liminal_core.md) |
 | liminal_math | 0 | planned | — |
 | liminal_memory | 0 | planned | — |
-| liminal_reflect | 0 | planned | — |
-| liminal_reflect_derive | 0 | planned | — |
+| liminal_reflect | 0 | planned | [liminal_reflect.md](specs/liminal_reflect.md) |
+| liminal_reflect_derive | 0 | planned | [liminal_reflect_derive.md](specs/liminal_reflect_derive.md) |
 | liminal_telemetry | 0 | planned | [liminal_telemetry.md](specs/liminal_telemetry.md) |
 | liminal_app | 1 | planned | — |
 | liminal_assets | 1 | planned | — |
