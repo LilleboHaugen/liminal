@@ -2,7 +2,7 @@
 id: M1-T031
 title: Implement liminal_reflect — type info, stable IDs, field access
 milestone: M1
-status: review
+status: done
 crates: [liminal_reflect]
 depends_on: [M1-T030, M1-T014]
 requirements: [REFL-R001, REFL-R002, REFL-R003, REFL-R004, REFL-R005, REFL-R020, REFL-R021, REFL-R040, REFL-R041, REFL-R042, REFL-R043, REFL-R044, REFL-R045, REFL-R060, REFL-R061, REFL-R062, REFL-R063, REFL-R064, REFL-R065, REFL-R080, REFL-R100, REFL-R101, REFL-R102, REFL-R103, REFL-R104, REFL-R140]
@@ -106,4 +106,47 @@ stays `planned` (promotion is the reviewer's call, MATURITY.md).
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of the parent session on `session/2026-11-10-m1-t020-t031-review`
+(ADR-0026, ADR-0029, ADR-0030; fresh context, did no work on this task). Rules as on
+`origin/main` `115b556`. Outcome: **done**, no blocking finding.
+
+Checked:
+- Acceptance criteria: crate at `crates/liminal_reflect`, workspace member,
+  `#![forbid(unsafe_code)]`, floor `liminal_reflect = 98.8` in `ci/coverage.toml`;
+  `clippy.toml` equals `liminal_core`'s apart from the crate name in the comment; every
+  requirement of the frontmatter except REFL-R064 has a `Verifies:` test that checks it (REFL-R064
+  is "checked by review" in the spec: `register`, `get`, `get_by_path` use `BTreeMap` lookups only,
+  confirmed in `src/registry.rs`); public items documented, `# Examples` on the §10 entry points
+  (the `Reflect` example is hand-written until M1-T032 adds the derive).
+- `cargo xtask ci` on the task branch with `origin/main` `115b556` merged in: pass, 12 of 12
+  steps, none skipped, macOS 27.2 arm64. GitHub CI on the task branch (run 42909152699): success.
+- REFL-R005 literals re-computed independently with
+  `python3 crates/liminal_core/tests/reference/kat.py xxh64 …`: all eight match. `xxhsum` is not
+  installed here either.
+- Code against spec §5 and §6 line by line: `info`, `value` (access, impls, validate),
+  `registry`, `hash`, `error`; snapshot `tests/snapshots/reflect_errors.txt` against §8 (codes,
+  messages, help, context names). Lookup order and the wrong-impl paths of REFL-R043, the check
+  order of REFL-R061/R062, the walk order and `at` of REFL-R080, the byte layout of REFL-R100.
+- Mutations considered (each caught by a named test): variant index written as `u8`
+  (`struct_enum_list_and_primitive_bytes`); highest instead of lowest matching index
+  (`field_by_name_on_a_wrong_impl_returns_no_such_field`); empty `at` instead of `(root)` and
+  child before parent ID check (`tests/validate.rs`); collision check before descriptor checks
+  (`two_rust_types_with_one_path_collide_in_both_orders`); `TypeId` in `Debug`
+  (`debug_prints_the_descriptors_only`); `downcast` by stable ID
+  (`downcasts_check_the_concrete_type`).
+- Determinism: no clock, environment, OS randomness, `HashMap`; `TypeId` used only for equality.
+  No `unsafe`. No new dependency (`liminal_core`; dev `proptest`, both in `architecture.toml`).
+- Session boundaries: the implementation sub-agent is row 11 of
+  `docs/journal/2026-11-10-session-m1-t014-review.md` (spawned 22:36, cutoff 22:40); it did not
+  review the task.
+
+Decisions of the handoff: `register` returning the stored descriptor's `id` differs from the
+REFL-R060 wording `Ok(T::stable_type_id())` only for an impl that breaks REFL-R002
+(`type_path()` and `type_info().type_path` disagree); there the spec's value would name an ID
+under which nothing is stored. Treated as a follow-up (spec wording), not B5. The other
+decisions (`field_mut` builds a `TypeInfo` on success, `downcast_mut` with
+`expect("invariant: …")`, the chosen `expected`/`actual` texts) match the spec.
+
+Backlog entries: 4 in `docs/BACKLOG.md` under "M1-T031 — review 2026-11-10". Follow-up task:
+none (no `todo` or `in-progress` task implements the affected requirements). Maturity stays
+`planned`.
