@@ -296,7 +296,9 @@ fn modes((variant, n, f, g): (u8, u32, f32, f32)) -> (derived::Mode, types::Mode
 }
 
 fn nodes(values: &[u32]) -> (Node, NodeTwin) {
-    let root = values.iter().fold(0_u32, |sum, value| sum.wrapping_add(*value));
+    let root = values
+        .iter()
+        .fold(0_u32, |sum, value| sum.wrapping_add(*value));
     let children = values
         .iter()
         .map(|value| Node {
