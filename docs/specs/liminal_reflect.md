@@ -63,7 +63,7 @@ requires procedural macros to be in a crate of their own.
 - Engine crates: `liminal_core` (for `hash::StateHasher` and `error::EngineError`; spec:
   [`docs/specs/liminal_core.md`](liminal_core.md)) and `liminal_reflect_derive` (re-exported),
   both allowed by `same_layer_deps` in `architecture.toml`. The dependency on
-  `liminal_reflect_derive` is added by M1-T032; M1-T031 builds the crate without it.
+  `liminal_reflect_derive` was added by M1-T032; M1-T031 built the crate without it.
   This spec cites CORE-R050, CORE-R053, CORE-R054, CORE-R056 and CORE-R098. Their text was
   compared with the core spec at `spec_version` 1 and at `spec_version` 2 (M1-T055); it is the
   same in both. A later core `spec_version` that changes one of them needs a bump here.
@@ -640,16 +640,19 @@ checked by the session that reviews it.
 - [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
       registered in `ci/coverage.toml` (evidence: M1-T031; `cargo xtask ci` pass on macOS arm64,
       floor 98.8 %).
-- [ ] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied on a
-      scratch copy reports every REFL MUST tested (evidence: M1-T032).
-- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T032).
-- [ ] Every public item documented; the primary entry points of §10 have runnable `# Examples`.
-- [ ] Integration tests in `crates/liminal_reflect/tests/` use only the public API.
-- [ ] `tests/determinism.rs` with the three workloads of §11 and recorded literals, passing on the
-      three CI operating systems.
-- [ ] At least one example or dependent crate uses it. Open item: `liminal_ecs` (M1-T038 onward)
-      is the first dependent crate; M1-T032 either adds a runnable example under
-      `crates/liminal_reflect/examples/` or the promotion waits for `liminal_ecs`.
+- [x] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied (to both
+      reflect specs, in the working tree, reverted afterwards) reports every REFL MUST tested and
+      exits 0; untested: REFL-R064 (SHOULD, checked by review) (evidence: M1-T032).
+- [x] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md): 98.84 % (682 of 690 lines),
+      floor 98.8 (evidence: M1-T032, `cargo xtask coverage`).
+- [x] Every public item documented; the primary entry points of §10 have runnable `# Examples`
+      (`Reflect` now shows the derive, §5.2; the derive re-export has its own example).
+- [x] Integration tests in `crates/liminal_reflect/tests/` use only the public API.
+- [ ] `tests/determinism.rs` with the three workloads of §11 and recorded literals (M1-T032,
+      recorded on macOS arm64), passing on the three CI operating systems: open until the GitHub
+      CI run on the merged change is green on Windows and Linux.
+- [x] At least one example or dependent crate uses it: `crates/liminal_reflect/examples/inspect.rs`
+      (runs with `cargo run -p liminal_reflect --example inspect`; M1-T032).
 
 ## 14. History
 

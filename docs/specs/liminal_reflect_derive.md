@@ -3,7 +3,7 @@ crate: liminal_reflect_derive
 req_prefix: REFLD
 layer: 0
 maturity: planned
-spec_version: 3
+spec_version: 4
 last_reviewed: 2026-11-10
 adrs: [ADR-0003, ADR-0017, ADR-0018]
 ---
@@ -45,9 +45,12 @@ this crate directly: `liminal_reflect::value::Reflect` re-exports the macro (REF
   It cannot have `liminal_reflect` as a dev-dependency (XTASK-R032, no same-layer edge), so tests
   that compile derived types live in `liminal_reflect` (§10).
 - External crates: `syn`, `quote`, `proc-macro2`, scope `build` (ADR-0003, `architecture.toml`
-  `external`). `syn` features: `derive`, `parsing`, `printing`, `proc-macro`, and `full` and `visit`
-  (`spec_version` 3), all on the crate's normal dependency.
-  M1-T032 records any further feature here by a spec update.
+  `external`). `syn` features: `derive`, `parsing`, `printing`, `proc-macro`, `clone-impls`
+  (`spec_version` 4), and `full` and `visit` (`spec_version` 3), all on the crate's normal
+  dependency; default features are off (workspace `Cargo.toml`).
+- `syn` feature `clone-impls` (M1-T032): the derive clones parts of the parsed input (`Generics`,
+  field types, `LitStr`) into its model and adds the `Typed` bounds to a copy of the generics.
+  It is one of `syn`'s default features; no registry change and no ADR, as for `span-locations`.
 - `syn` features `full` and `visit`: the unit test of REFLD-R003 test (1) parses the expansion as
   a `syn::File` (needs `full`: items, expressions, statements, patterns) and walks it with
   `syn::visit::Visit` (needs `visit`). The derive's own parsing of `syn::DeriveInput` needs only
@@ -275,10 +278,10 @@ behaviour.
 2. **Renamed dependency.** Generated code names `::liminal_reflect`; a crate that renames the
    dependency cannot use the derive. Add `#[reflect(crate = "…")]` if a consumer (for example the
    `liminal_engine` facade re-exporting reflection) needs it; resolve in the facade's spec.
-3. **Coverage measurement.** The `usable` gate needs 85 % line coverage. This spec assumes that
-   unit tests of `expand` in the derive crate are measured by `cargo llvm-cov` like any library
-   code. M1-T032 confirms it; if the proc-macro crate type prevents measurement, it records the
-   finding and the resolution (a floor on the measured part, or an ADR) before the promotion.
+3. **Coverage measurement** (resolved by M1-T032). The unit tests of `expand` in the derive
+   crate are measured by `cargo llvm-cov` like any library code: `cargo xtask coverage` reports
+   99.78 % (468 of 469 lines) for `liminal_reflect_derive`; the entry point `derive_reflect`
+   runs only inside the compiler and is the line not counted as covered.
 
 ## 13. Maturity
 
@@ -287,14 +290,22 @@ checked by the session that reviews it.
 
 - [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
       review of M1-T030).
-- [ ] Compiles, all lints pass, registered in `ci/coverage.toml` (evidence: M1-T032).
-- [ ] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied on a
-      scratch copy reports every REFLD MUST tested (evidence: M1-T032).
-- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T032; §12 item 3).
-- [ ] Every public item documented; the derive has runnable `# Examples` (on the re-export).
-- [ ] Integration tests (in `crates/liminal_reflect/tests/`) use only the public API.
-- [ ] Determinism: not a `deterministic = true` crate; REFLD-R070 covers the expansion.
-- [ ] At least one example or dependent crate uses it: `liminal_reflect` re-exports and tests it.
+- [x] Compiles, all lints pass, registered in `ci/coverage.toml` (evidence: M1-T032; floor
+      `liminal_reflect_derive = 99.7`; `cargo xtask ci` pass on macOS arm64).
+- [x] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied (to both
+      reflect specs, in the working tree, reverted afterwards) reports every REFLD MUST tested and
+      exits 0; untested: REFLD-R053 (SHOULD, checked by review and one manual compile, M1-T032
+      handoff) (evidence: M1-T032).
+- [x] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md): 99.78 % (evidence: M1-T032; §12
+      item 3).
+- [x] Every public item documented; the derive has runnable `# Examples` (on the re-export
+      `liminal_reflect::value::Reflect`, with one `compile_fail` doc test per code).
+- [x] Integration tests (in `crates/liminal_reflect/tests/`: `derive.rs`,
+      `derive_differential.rs`, `derive_shadowing.rs`, `reexport.rs`, `determinism.rs`) use only
+      the public API.
+- [x] Determinism: not a `deterministic = true` crate; REFLD-R070 covers the expansion.
+- [x] At least one example or dependent crate uses it: `liminal_reflect` re-exports and tests it;
+      `crates/liminal_reflect/examples/inspect.rs` derives two types.
 
 ## 14. History
 
@@ -303,3 +314,4 @@ checked by the session that reviews it.
 | 1 | 2026-11-10 | Initial spec | M1-T030 |
 | 2 | 2026-11-10 | Follow-ups of the M1-T030 review. REFLD-R003: split into a token check on the expansion (paths start with `::liminal_reflect`, `::core` or `::std`) and a shadowing integration test, worded as what each can show. REFLD-R033: twins return the derived type's path, descriptors are equal without exception, twins are never registered in one registry. REFLD-R050, §3: span assertions use the `proc-macro2` feature `span-locations`, enabled on the normal dependency. §4, REFLD-R004: private fields are reflected. §9: the row without a measuring task removed. References to the `liminal_reflect` spec are links | M1-T057 |
 | 3 | 2026-11-10 | Follow-up of the M1-T057 review. REFLD-R003 test (1) redefined: the spec_version 2 token rule (a path starts with `::` when its first `::` follows neither an identifier nor `>`) did not count the leading `::` after `impl`, `as`, `dyn`, `->`, `=>` or the end of `impl<…>`, so no expansion could pass. The test now parses the expansion with `syn` and checks every `syn::Path`, `syn::Macro` and `syn::QSelf`, forbids `use` and `extern crate` items, and is run on two failing streams. `String` is excluded from the field types of its inputs. §3: `syn` features `full` and `visit`. §10 row updated | M1-T061 |
+| 4 | 2026-11-10 | §3: `syn` feature `clone-impls` (default features of `syn` are off in the workspace). §12 item 3 resolved: coverage of the proc-macro crate is measured. §13 evidence | M1-T032 |
