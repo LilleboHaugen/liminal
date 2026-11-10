@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_ecs]
 depends_on: [M1-T038]
-requirements: []
+requirements: [ECS-R040, ECS-R041, ECS-R042, ECS-R043, ECS-R044, ECS-R060, ECS-R061, ECS-R062, ECS-R063, ECS-R064, ECS-R065, ECS-R066, ECS-R067, ECS-R068, ECS-R073, ECS-R202]
 ---
 
 # M1-T039: Implement `liminal_ecs`: queries and archetype moves
@@ -40,7 +40,7 @@ Requirements in frontmatter; differential tests; Miri for any `unsafe`.
 
 ## Notes
 
-_None._
+Requirements written by M1-T037 (spec §6 "Assignment"). Points set by the spec: (1) Query iteration order is normative (ECS-R043, ECS-R062): archetype number, then row, with append on entry and swap-remove on exit. (2) The aliasing rule is ECS-R065 (LIM-ECS-0020) plus the `&self`/`&mut self` split of ECS-R066. (3) `Added` and `Changed` exist here with baseline 0 (ECS-R067); their behaviour in systems is M1-T041's. (4) Tick comparisons are not part of this task (M1-T040 adds them, ECS-R122). (5) `reference::World::insert` and `remove` (ECS-R202) belong here. ECS-R045 (SHOULD, cache of archetype moves) is implemented here. ECS-R068 (no allocation in iteration) needs its own test binary `tests/no_alloc.rs`.
 
 ## Handoff
 

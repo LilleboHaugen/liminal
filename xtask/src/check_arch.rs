@@ -1,10 +1,11 @@
-//! The `check-arch` command and `ci` step (`docs/specs/xtask.md` XTASK-R030 … R037 and the
+//! The `check-arch` command and `ci` step (`docs/specs/xtask.md` XTASK-R030 … R037, R039 and the
 //! "`check-arch` details").
 //!
 //! [`check`] is a pure function of the [`ArchModel`]. Only [`run_check`] touches the file system and
 //! spawns `cargo metadata`, through the shared loader in [`crate::repo`].
 
 mod attributes;
+mod determinism;
 mod rules;
 
 use std::io::Write;
@@ -42,6 +43,7 @@ pub(crate) fn check(model: &ArchModel) -> Vec<Finding> {
     rules::members(model, &mut findings);
     rules::dependencies(model, &mut findings);
     rules::forbid_unsafe(model, &mut findings);
+    determinism::clippy_bans(model, &mut findings);
     check::sort(&mut findings);
     findings.dedup();
     findings

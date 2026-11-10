@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_telemetry]
 depends_on: [M1-T027, M1-T014, M1-T018]
-requirements: []
+requirements: [TELE-R001, TELE-R002, TELE-R003, TELE-R004, TELE-R005, TELE-R006, TELE-R010, TELE-R011, TELE-R012, TELE-R020, TELE-R021, TELE-R022, TELE-R023, TELE-R030, TELE-R031, TELE-R040, TELE-R041, TELE-R042, TELE-R043, TELE-R050, TELE-R051, TELE-R052, TELE-R053, TELE-R054, TELE-R055, TELE-R056, TELE-R057, TELE-R060, TELE-R061, TELE-R062, TELE-R063, TELE-R064, TELE-R065, TELE-R100]
 ---
 
 # M1-T028: Implement `liminal_telemetry`: logs, spans, counters, per-thread buffers
@@ -23,7 +23,7 @@ Code can emit logs, spans and counters through `liminal_telemetry`, collected fr
 
 **In:** Crate, recording API, compile-out feature, per-thread buffers with loom tests, Miri.
 
-**Out:** Frame records and exporters: next task.
+**Out:** Exporters, benchmark and the `usable` evidence: next task.
 
 ## Acceptance criteria
 
@@ -42,7 +42,7 @@ Requirements in frontmatter; loom; Miri.
 
 ## Notes
 
-_None._
+Requirements written by M1-T027 (spec §6 "Assignment"). This task implements `Collector::end_frame` completely: record contents (TELE-R062), frame index and timing (TELE-R063) and the `FrameInfo` fields (TELE-R064), each with tests, because its tests read records only through it (moved here from M1-T029 by M1-T056, spec `spec_version` 2; no frame-record field is provisional). Tests that install a `Collector` serialize on one lock per test binary (spec §10 table). The `test-features-off` step of `cargo xtask ci` (XTASK-R014, M1-T056) runs `cargo test --package liminal_telemetry --no-default-features --locked`, which runs the test of TELE-R004; no run by hand is needed.
 
 ## Handoff
 

@@ -73,6 +73,7 @@ fn package(name: &str, kinds: &[&str], dependencies: Vec<Dependency>) -> Package
             })
             .collect(),
         dependencies,
+        features: Vec::new(),
     }
 }
 
@@ -106,6 +107,7 @@ fn model(architecture: &str, packages: Vec<Package>) -> ArchModel {
         architecture: architecture::parse(architecture).unwrap(),
         packages,
         sources,
+        clippy: BTreeMap::new(),
     }
 }
 
@@ -425,65 +427,122 @@ fn r032_workspace_dependencies_go_to_lower_layers_or_listed_same_layer_crates() 
     );
 }
 
-/// The R033/R034 scope table, written from the spec text (not from the implementation):
-/// `(layer group, crate kind, dependency kind, scope) → allowed`.
-///
-/// R033, normal and build dependencies: layers 0–4 may use `runtime` and `build` (`build` only as
-/// a build-dependency or from a proc-macro crate); layer 5 may use `runtime`, `build` and `tool`.
-/// R034, dev-dependencies: scope `dev` (layer 5 crates may also use `tool`).
-const SCOPE_TABLE: &[(&str, &str, &str, &str, bool)] = &[
-    // layers 0–4, lib crate
-    ("0-4", "lib", "normal", "runtime", true),
-    ("0-4", "lib", "normal", "build", false),
-    ("0-4", "lib", "normal", "dev", false),
-    ("0-4", "lib", "normal", "tool", false),
-    ("0-4", "lib", "build", "runtime", true),
-    ("0-4", "lib", "build", "build", true),
-    ("0-4", "lib", "build", "dev", false),
-    ("0-4", "lib", "build", "tool", false),
-    ("0-4", "lib", "dev", "runtime", false),
-    ("0-4", "lib", "dev", "build", false),
-    ("0-4", "lib", "dev", "dev", true),
-    ("0-4", "lib", "dev", "tool", false),
-    // layers 0–4, proc-macro crate
-    ("0-4", "proc-macro", "normal", "runtime", true),
-    ("0-4", "proc-macro", "normal", "build", true),
-    ("0-4", "proc-macro", "normal", "dev", false),
-    ("0-4", "proc-macro", "normal", "tool", false),
-    ("0-4", "proc-macro", "build", "runtime", true),
-    ("0-4", "proc-macro", "build", "build", true),
-    ("0-4", "proc-macro", "build", "dev", false),
-    ("0-4", "proc-macro", "build", "tool", false),
-    ("0-4", "proc-macro", "dev", "runtime", false),
-    ("0-4", "proc-macro", "dev", "build", false),
-    ("0-4", "proc-macro", "dev", "dev", true),
-    ("0-4", "proc-macro", "dev", "tool", false),
-    // layers 0–4, bin crate (same as lib)
-    ("0-4", "bin", "normal", "runtime", true),
-    ("0-4", "bin", "normal", "build", false),
-    ("0-4", "bin", "normal", "dev", false),
-    ("0-4", "bin", "normal", "tool", false),
-    ("0-4", "bin", "build", "build", true),
-    ("0-4", "bin", "dev", "dev", true),
-    ("0-4", "bin", "dev", "tool", false),
-    // layer 5, lib and bin crates
-    ("5", "lib", "normal", "runtime", true),
-    ("5", "lib", "normal", "build", true),
-    ("5", "lib", "normal", "dev", false),
-    ("5", "lib", "normal", "tool", true),
-    ("5", "lib", "build", "runtime", true),
-    ("5", "lib", "build", "build", true),
-    ("5", "lib", "build", "dev", false),
-    ("5", "lib", "build", "tool", true),
-    ("5", "lib", "dev", "runtime", false),
-    ("5", "lib", "dev", "build", false),
-    ("5", "lib", "dev", "dev", true),
-    ("5", "lib", "dev", "tool", true),
-    ("5", "bin", "normal", "tool", true),
-    ("5", "bin", "normal", "dev", false),
-    ("5", "bin", "dev", "tool", true),
-    ("5", "bin", "dev", "runtime", false),
+/// Verifies: XTASK-R032
+#[test]
+fn r032_a_path_dependency_on_a_root_package_is_a_workspace_dependency() {
+    // `cargo metadata` output: the root package `high` (layer 2, manifest `/w/Cargo.toml`) and
+    // `mid` (layer 1) with a path dependency on the workspace root `/w`.
+    let json = r#"{
+  "packages": [
+    { "name": "high", "id": "high-id", "manifest_path": "/w/Cargo.toml",
+      "targets": [ { "kind": ["lib"], "src_path": "/w/src/lib.rs" } ], "dependencies": [],
+      "features": {} },
+    { "name": "mid", "id": "mid-id", "manifest_path": "/w/crates/mid/Cargo.toml",
+      "targets": [ { "kind": ["lib"], "src_path": "/w/crates/mid/src/lib.rs" } ],
+      "dependencies": [ { "name": "high", "kind": null, "path": "/w" } ], "features": {} }
+  ],
+  "workspace_members": ["high-id", "mid-id"],
+  "workspace_root": "/w"
+}"#;
+    let packages = crate::repo::metadata::parse(json).unwrap();
+    let text = format!(
+        "{HEADER}{}{}",
+        entry("high", 2, "lib", NONE).replace("path = \"crates/high\"", "path = \"\""),
+        entry("mid", 1, "lib", NONE)
+    );
+    let findings = check(&model(&text, packages));
+    one(
+        &findings,
+        "XTASK-R032",
+        "crate `mid` (layer 1) has a normal dependency on `high` (layer 2)",
+    );
+    assert_eq!(findings[0].location, "crates/mid/Cargo.toml");
+}
+
+/// The R033/R034 scope table of `docs/specs/xtask.md` §6 "`check-arch` details", copied row
+/// by row from the spec text (not from the implementation): `(layer group, crate kinds,
+/// dependency kinds, [runtime, build, dev, tool])`.
+type SpecScopeRow = (
+    &'static str,
+    &'static [&'static str],
+    &'static [&'static str],
+    [bool; 4],
+);
+
+const SPEC_SCOPE_ROWS: &[SpecScopeRow] = &[
+    (
+        "0-4",
+        &["lib", "bin"],
+        &["normal"],
+        [true, false, false, false],
+    ),
+    (
+        "0-4",
+        &["proc-macro"],
+        &["normal"],
+        [true, true, false, false],
+    ),
+    (
+        "0-4",
+        &["lib", "bin", "proc-macro"],
+        &["build"],
+        [true, true, false, false],
+    ),
+    (
+        "5",
+        &["lib", "bin", "proc-macro"],
+        &["normal", "build"],
+        [true, true, false, true],
+    ),
+    (
+        "0-4",
+        &["lib", "bin", "proc-macro"],
+        &["dev"],
+        [false, false, true, false],
+    ),
+    (
+        "5",
+        &["lib", "bin", "proc-macro"],
+        &["dev"],
+        [false, false, true, true],
+    ),
 ];
+
+const SCOPES: [&str; 4] = ["runtime", "build", "dev", "tool"];
+
+/// The full product layer group × crate kind × dependency kind × scope (2 × 3 × 3 × 4 = 72
+/// rows), each with the value of the one spec row that covers it.
+fn scope_table() -> Vec<(&'static str, &'static str, &'static str, &'static str, bool)> {
+    let mut table = Vec::new();
+    for layers in ["0-4", "5"] {
+        for crate_kind in ["lib", "bin", "proc-macro"] {
+            for dep_kind in ["normal", "build", "dev"] {
+                let rows: Vec<_> = SPEC_SCOPE_ROWS
+                    .iter()
+                    .filter(|(group, kinds, deps, _)| {
+                        *group == layers && kinds.contains(&crate_kind) && deps.contains(&dep_kind)
+                    })
+                    .collect();
+                assert_eq!(rows.len(), 1, "{layers} {crate_kind} {dep_kind}: {rows:?}");
+                for (scope, allowed) in SCOPES.iter().zip(rows[0].3) {
+                    table.push((layers, crate_kind, dep_kind, *scope, allowed));
+                }
+            }
+        }
+    }
+    table
+}
+
+#[test]
+fn the_scope_table_has_every_combination_once() {
+    let table = scope_table();
+    assert_eq!(table.len(), 72);
+    let keys: std::collections::BTreeSet<_> = table
+        .iter()
+        .map(|(l, c, d, s, _)| (*l, *c, *d, *s))
+        .collect();
+    assert_eq!(keys.len(), 72);
+}
 
 /// Verifies: XTASK-R033, XTASK-R034
 #[test]
@@ -494,18 +553,20 @@ fn r033_r034_scope_rules_for_every_layer_group_crate_kind_dependency_kind_and_sc
         "dev" => "dv",
         _ => "tl",
     };
-    for (layers, crate_kind, dep_kind, scope, allowed) in SCOPE_TABLE {
+    let mut runs = 0;
+    for (layers, crate_kind, dep_kind, scope, allowed) in scope_table() {
         let external = scope_crate(scope);
-        let kind = match *dep_kind {
+        let kind = match dep_kind {
             "normal" => Normal,
             "build" => Build,
             _ => Dev,
         };
         // Listed in both lists, so only the scope decides.
         let lists: [&[&str]; 3] = [&[], &[external], &[external]];
-        for layer in if *layers == "5" { vec![5] } else { vec![0, 4] } {
+        for layer in if layers == "5" { vec![5] } else { vec![0, 4] } {
+            runs += 1;
             let text = format!("{HEADER}{}", entry("c", layer, crate_kind, lists));
-            let targets: &[&str] = match *crate_kind {
+            let targets: &[&str] = match crate_kind {
                 "bin" => &["bin"],
                 "proc-macro" => &["proc-macro"],
                 _ => &["lib"],
@@ -513,7 +574,7 @@ fn r033_r034_scope_rules_for_every_layer_group_crate_kind_dependency_kind_and_sc
             let packages = vec![package("c", targets, vec![on_external(external, kind)])];
             let findings = check(&model(&text, packages));
             let case = format!("layer {layer} {crate_kind}, {dep_kind} dependency, scope {scope}");
-            if *allowed {
+            if allowed {
                 assert!(findings.is_empty(), "{case}: {:#?}", summary(&findings));
             } else {
                 let rule = if kind == Dev {
@@ -525,6 +586,8 @@ fn r033_r034_scope_rules_for_every_layer_group_crate_kind_dependency_kind_and_sc
             }
         }
     }
+    // 36 combinations of layers 0–4 at layers 0 and 4, 36 of layer 5 at layer 5.
+    assert_eq!(runs, 36 * 2 + 36);
 }
 
 /// Verifies: XTASK-R033, XTASK-R034

@@ -138,8 +138,8 @@ fn missing_rustc_names_every_cargo_step() {
     assert!(matches!(result, Ok(Exit::Failure)));
     assert!(
         out.contains(
-            "rustc is not installed; `ci` skips `fmt`, `clippy`, `test`, `doc`, `coverage`, \
-             `deny` without it"
+            "rustc is not installed; `ci` skips `fmt`, `clippy`, `test`, `test-features-off`, \
+             `doc`, `coverage`, `deny` without it"
         ),
         "{out}"
     );
@@ -201,7 +201,8 @@ fn json_lists_every_tool_and_the_findings() {
         tools[0],
         serde_json::json!({
             "tool": "rustc", "present": true, "version": "rustc 1.0.0",
-            "needed_by": ["fmt", "clippy", "test", "doc", "coverage", "deny"], "help": null
+            "needed_by": ["fmt", "clippy", "test", "test-features-off", "doc", "coverage", "deny"],
+            "help": null
         })
     );
     assert_eq!(

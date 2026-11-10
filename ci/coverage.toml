@@ -11,4 +11,5 @@
 # the result when coverage improves. Lowering a floor by hand requires a journal entry saying why.
 
 [floors]
+liminal_core = 99.3
 xtask = 97.6

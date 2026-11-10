@@ -6,6 +6,7 @@
 //! saved JSON instead of running cargo. Only the fields `check-arch` needs are read; serde ignores
 //! the rest.
 
+use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -25,6 +26,10 @@ pub(crate) struct Package {
     pub targets: Vec<Target>,
     /// Declared dependencies of every kind, in metadata order.
     pub dependencies: Vec<Dependency>,
+    /// Names of the package's Cargo features, ascending: the keys of `[features]` (`default`
+    /// included) and the implicit feature of every optional dependency that no feature names
+    /// with `dep:`.
+    pub features: Vec<String>,
 }
 
 /// One build target of a package.
@@ -85,6 +90,7 @@ struct RawPackage {
     manifest_path: String,
     targets: Vec<RawTarget>,
     dependencies: Vec<RawDependency>,
+    features: BTreeMap<String, Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -117,9 +123,13 @@ fn slashes(path: &str) -> String {
     path.replace('\\', "/")
 }
 
-/// `path` relative to `root` (both already `/`-separated), or `None` if it is not below `root`.
+/// `path` relative to `root` (both already `/`-separated): `Some("")` for `root` itself,
+/// `Some(rest)` for a path below it, `None` otherwise.
 fn relative(root: &str, path: &str) -> Option<String> {
     let rest = path.strip_prefix(root.trim_end_matches('/'))?;
+    if rest.is_empty() {
+        return Some(String::new());
+    }
     let rest = rest.strip_prefix('/')?;
     Some(rest.to_string())
 }
@@ -191,11 +201,22 @@ pub(crate) fn parse(json: &str) -> Result<Vec<Package>, LoadError> {
             manifest_dir,
             targets,
             dependencies,
+            features: package.features.into_keys().collect(),
         });
     }
     packages.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(packages)
 }
+
+/// Arguments after `cargo` that list the workspace members ([`run_cargo`], and the
+/// `test-features-off` step of `ci`).
+pub(crate) const METADATA_ARGS: &[&str] = &[
+    "metadata",
+    "--format-version",
+    "1",
+    "--no-deps",
+    "--offline",
+];
 
 /// Runs `<cargo> metadata --format-version 1 --no-deps --offline` in `root` and returns its JSON.
 ///
@@ -215,13 +236,7 @@ pub(crate) fn run_cargo(root: &Path, cargo: &OsStr) -> Result<String, LoadError>
                the Cargo.toml it names",
     };
     let output = Command::new(cargo)
-        .args([
-            "metadata",
-            "--format-version",
-            "1",
-            "--no-deps",
-            "--offline",
-        ])
+        .args(METADATA_ARGS)
         .current_dir(root)
         .stdin(Stdio::null())
         .output()
@@ -277,9 +292,11 @@ mod tests {
             "source": "registry+https://github.com/rust-lang/crates.io-index", "req": "^1" }},
          {{ "name": "outside", "kind": null, "rename": null, "target": null,
             "path": "/elsewhere/outside", "source": null, "req": "*" }}
-       ] }},
+       ],
+       "features": {{ "serde": ["dep:serde"], "default": ["fast"], "fast": [] }} }},
     {{ "name": "other", "version": "0.0.0", "id": "registry+x#other@1.0.0",
-       "manifest_path": "/registry/other/Cargo.toml", "targets": [], "dependencies": [] }}
+       "manifest_path": "/registry/other/Cargo.toml", "targets": [], "dependencies": [],
+       "features": {{}} }}
   ],
   "workspace_members": ["path+file:///w/app#0.0.0"],
   "workspace_root": "{root_json}",
@@ -320,6 +337,11 @@ mod tests {
                 dep("proptest", DependencyKind::Dev, None),
                 dep("outside", DependencyKind::Normal, None),
             ],
+            features: vec![
+                "default".to_string(),
+                "fast".to_string(),
+                "serde".to_string(),
+            ],
         }]
     }
 
@@ -340,6 +362,35 @@ mod tests {
         assert_eq!(parse(&json).unwrap()[0].manifest_dir, "");
     }
 
+    /// Verifies: XTASK-R032
+    #[test]
+    fn a_path_dependency_on_the_workspace_root_is_inside_with_an_empty_path() {
+        for root in ["/w", "/w/"] {
+            assert_eq!(relative(root, "/w"), Some(String::new()), "{root}");
+            assert_eq!(
+                relative(root, "/w/src/lib.rs"),
+                Some("src/lib.rs".to_string())
+            );
+            assert_eq!(relative(root, "/w2"), None, "{root}");
+        }
+        let json = sample("/w", "/").replace("\"/w/crates/core\"", "\"/w\"");
+        assert_eq!(
+            parse(&json).unwrap()[0].dependencies[0].path,
+            Some(String::new())
+        );
+        // A root package's root-level target stays `src/lib.rs`.
+        let json = sample("/w", "/")
+            .replace("/w/crates/app/Cargo.toml", "/w/Cargo.toml")
+            .replace("/w/crates/app/src/lib.rs", "/w/src/lib.rs");
+        assert_eq!(parse(&json).unwrap()[0].targets[0].src_path, "src/lib.rs");
+        // Windows separators: `C:\w` itself is the root too.
+        let json = sample(r"C:\w", r"\").replace(r#""C:\\w\\crates\\core""#, r#""C:\\w""#);
+        assert_eq!(
+            parse(&json).unwrap()[0].dependencies[0].path,
+            Some(String::new())
+        );
+    }
+
     #[test]
     fn a_root_prefix_that_is_not_a_directory_boundary_is_outside() {
         // `/w2/...` must not count as inside `/w`.
@@ -353,6 +404,8 @@ mod tests {
         for json in [
             "not json".to_string(),
             "{}".to_string(),
+            // A package without `features` (every cargo writes it): never read as "no features".
+            good.replace(r#""features": {}"#, r#""no_features": {}"#),
             good.replace("\"kind\": \"dev\"", "\"kind\": \"weird\""),
             good.replace("/w/crates/app/src/lib.rs", "/x/lib.rs"),
             good.replace("/w/crates/app/Cargo.toml", "/elsewhere/Cargo.toml"),
@@ -369,6 +422,7 @@ mod tests {
         let packages = parse(&json).unwrap();
         let xtask = packages.iter().find(|p| p.name == "xtask").unwrap();
         assert_eq!(xtask.manifest_dir, "xtask");
+        assert_eq!(xtask.features, Vec::<String>::new());
         let roots: Vec<&str> = xtask.targets.iter().map(|t| t.src_path.as_str()).collect();
         assert!(roots.contains(&"xtask/src/lib.rs") && roots.contains(&"xtask/src/main.rs"));
         assert!(
