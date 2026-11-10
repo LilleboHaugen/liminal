@@ -140,8 +140,8 @@ Item 10 design (details in `docs/specs/xtask.md` "`test-features-off` details"):
 Verified: `cargo xtask ci` on the merge with `main` (02b19e7): pass, 12 steps, none skipped,
 macOS 27.2 arm64, Rust 1.99.1; `xtask` coverage 98.1 % (floor 97.6, unchanged). Two seeded
 mutants in `features_off.rs` (flag `--no-default-features` removed; filter "has features"
-removed) each failed three tests, then were reverted. Not verified locally: Windows and Linux
-(the branch CI run covers them; result in the journal entry `2026-11-10-M1-T056.md`).
+removed) each failed three tests, then were reverted. Windows and Linux: not run locally;
+branch CI run 42865804835 on `39189ec` passed all 5 jobs (journal entry `2026-11-10-M1-T056.md`).
 
 For the reviewer:
 
