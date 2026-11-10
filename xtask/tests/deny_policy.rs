@@ -252,6 +252,7 @@ fn check_licence_file(root: &Path, text: &str) -> (bool, String) {
         &root.join("app/Cargo.toml"),
         true,
         "licenses",
+        &[],
     )
 }
 
@@ -312,9 +313,17 @@ fn a_licence_file_below_the_confidence_threshold_is_rejected() {
 
 /// Runs `cargo deny [--offline] --config <config> --manifest-path <manifest> check <which>`.
 /// Returns whether it passed, and stdout followed by stderr.
-fn run_deny(config: &Path, manifest: &Path, offline: bool, which: &str) -> (bool, String) {
+/// `env` is set for `cargo-deny` and the `cargo` it runs.
+fn run_deny(
+    config: &Path,
+    manifest: &Path,
+    offline: bool,
+    which: &str,
+    env: &[(&str, String)],
+) -> (bool, String) {
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let mut command = Command::new(cargo);
+    command.envs(env.iter().map(|(key, value)| (key, value)));
     command.arg("deny");
     if offline {
         command.arg("--offline");
@@ -418,10 +427,125 @@ fn git_dependencies_are_rejected() {
         &app.join("Cargo.toml"),
         false,
         "sources",
+        &[],
     );
     assert!(!passed, "a git dependency was accepted:\n{output}");
     assert!(output.contains("sources FAILED"), "{output}");
     assert!(output.contains("fixture_git_dep"), "{output}");
+}
+
+/// The `checksum` of `name` in the repository `Cargo.lock` (the SHA-256 of its `.crate` file).
+fn locked_checksum(name: &str) -> String {
+    let lock = std::fs::read_to_string(repo_root().join("Cargo.lock"))
+        .expect("test setup: read Cargo.lock");
+    let header = format!("name = \"{name}\"\n");
+    let at = lock
+        .find(&header)
+        .unwrap_or_else(|| panic!("test setup: {name} is in Cargo.lock"));
+    lock[at..]
+        .lines()
+        .take_while(|line| !line.is_empty())
+        .find_map(|line| line.strip_prefix("checksum = \""))
+        .and_then(|rest| rest.strip_suffix('"'))
+        .unwrap_or_else(|| panic!("test setup: {name} has a checksum line in Cargo.lock"))
+        .to_string()
+}
+
+/// The `.crate` file of `name` at its locked version in the local crates.io cache
+/// (`$CARGO_HOME/registry/cache/index.crates.io-*/`), which building the repository filled.
+fn cached_crate(name: &str) -> PathBuf {
+    let cargo_home = std::env::var_os("CARGO_HOME").map_or_else(
+        || {
+            std::env::home_dir()
+                .expect("test setup: a home directory for the default CARGO_HOME")
+                .join(".cargo")
+        },
+        PathBuf::from,
+    );
+    let file = format!("{name}-{}.crate", locked_version(name));
+    let cache = cargo_home.join("registry/cache");
+    std::fs::read_dir(&cache)
+        .unwrap_or_else(|_| panic!("test setup: read {}", cache.display()))
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with("index.crates.io-")
+        })
+        .map(|entry| entry.path().join(&file))
+        .find(|path| path.is_file())
+        .unwrap_or_else(|| panic!("test setup: {file} is in {}", cache.display()))
+}
+
+/// Verifies: XTASK-R083
+#[test]
+#[ignore = "M0-T009: needs cargo-deny and git; the `deny` job of the CI workflow runs it"]
+fn other_registry_dependencies_are_rejected() {
+    // A registry other than crates.io: a git index at a `file://` URL whose `dl` is a `file://`
+    // directory holding the crates.io `.crate` file of `itoa` (its checksum is in Cargo.lock), so
+    // cargo resolves and downloads it without network access.
+    let root = TempRoot::new("deny-registry");
+    let dl = root.path().join("dl");
+    let file = format!("itoa-{}.crate", locked_version("itoa"));
+    std::fs::create_dir_all(&dl).expect("test setup: create the download directory");
+    std::fs::copy(cached_crate("itoa"), dl.join(&file)).expect("test setup: copy the .crate");
+    let index = root.path().join("index");
+    write(
+        &index.join("config.json"),
+        &format!(
+            "{{\"dl\": \"{}/{{crate}}-{{version}}.crate\"}}\n",
+            file_url(&dl)
+        ),
+    );
+    write(
+        &index.join("it/oa/itoa"),
+        &format!(
+            "{{\"name\":\"itoa\",\"vers\":\"{}\",\"deps\":[],\"cksum\":\"{}\",\
+             \"features\":{{}},\"yanked\":false}}\n",
+            locked_version("itoa"),
+            locked_checksum("itoa")
+        ),
+    );
+    commit_all(&index);
+
+    let app = root.path().join("app");
+    write(
+        &app.join("Cargo.toml"),
+        &format!(
+            "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+             license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
+             itoa = {{ version = \"={}\", registry = \"fixture\" }}\n\n[workspace]\n",
+            locked_version("itoa")
+        ),
+    );
+    write(&app.join("src/lib.rs"), "");
+
+    // Not `--offline`: cargo fetches the local index (no network involved). The registry is
+    // named through the environment, as cargo reads config files from the working directory,
+    // not the manifest's. A separate CARGO_HOME keeps the fixture registry out of the user's
+    // cache; nothing from crates.io is needed.
+    let env = [
+        ("CARGO_REGISTRIES_FIXTURE_INDEX", file_url(&index)),
+        (
+            "CARGO_HOME",
+            root.path()
+                .join("cargo-home")
+                .to_string_lossy()
+                .into_owned(),
+        ),
+    ];
+    let (passed, output) = run_deny(
+        &repo_root().join("deny.toml"),
+        &app.join("Cargo.toml"),
+        false,
+        "sources",
+        &env,
+    );
+    assert!(!passed, "another registry was accepted:\n{output}");
+    assert!(output.contains("sources FAILED"), "{output}");
+    assert!(output.contains("error[source-not-allowed]"), "{output}");
+    assert!(output.contains("itoa"), "{output}");
 }
 
 /// One fixture advisory: `(RUSTSEC id, crate, informational kind or None for a vulnerability)`.
@@ -449,14 +573,43 @@ fn locked_version(name: &str) -> String {
 /// Crates.io crates of the repository `Cargo.lock` that the advisory fixture depends on.
 const ADVISED: &[&str] = &["itoa", "memchr"];
 
+/// The advisory fixture's dependencies on [`ADVISED`] crates: which the app depends on directly,
+/// and which it depends on only through the path crate `fixture_middle`.
+struct Graph {
+    direct: &'static [&'static str],
+    transitive: &'static [&'static str],
+}
+
+/// Every [`ADVISED`] crate is a transitive dependency only (app → middle → advised).
+const TRANSITIVE: Graph = Graph {
+    direct: &[],
+    transitive: ADVISED,
+};
+
+/// `itoa` is a direct dependency of the app; `memchr` stays transitive.
+const DIRECT_ITOA: Graph = Graph {
+    direct: &["itoa"],
+    transitive: &["memchr"],
+};
+
+/// `name = "=<locked version>"` lines for `crates`, for a `[dependencies]` table.
+fn locked_dependencies(crates: &[&str]) -> String {
+    let mut dependencies = String::new();
+    for name in crates {
+        writeln!(dependencies, "{name} = \"={}\"", locked_version(name))
+            .expect("invariant: writing to a String cannot fail");
+    }
+    dependencies
+}
+
 /// The advisory URL in the fixture config. Never fetched (`--offline`); it only names the
 /// database directory under `db-path` (cargo-deny 0.20.2 rejects `file://` URLs here).
 const FIXTURE_DB_URL: &str = "https://liminal.invalid/advisory-db";
 
 /// Runs `cargo deny --offline check advisories` with the repository `deny.toml`, extended only by
-/// `db-path` and `db-urls`, on a crate depending on [`ADVISED`] through a path crate, with a
-/// fixture advisory database holding `advisories`. Returns whether it passed, and the output.
-fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
+/// `db-path` and `db-urls`, on a crate depending on [`ADVISED`] as `graph` says, with a fixture
+/// advisory database holding `advisories`. Returns whether it passed, and the output.
+fn check_advisories(name: &str, graph: &Graph, advisories: &[Advisory]) -> (bool, String) {
     let root = TempRoot::new(&format!("deny-advisories-{name}"));
     let db_path = root.path().join("db");
     std::fs::create_dir_all(&db_path).expect("test setup: create db-path");
@@ -480,15 +633,12 @@ fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
         ),
     );
 
-    // The advised crates are transitive (app → middle → advised), so the test also covers
-    // `unmaintained = "all"` (not only direct dependencies of workspace crates). `middle` is a
-    // path crate outside `app/`, so it is a dependency, not a workspace member.
+    // Transitive advised crates (app → middle → advised) and direct ones (app → advised)
+    // together distinguish `unmaintained = "all"` from `"workspace"` (direct dependencies of
+    // workspace crates only) and `"transitive"`. `middle` is a path crate outside `app/`, so it
+    // is a dependency, not a workspace member.
     let middle = root.path().join("middle");
-    let mut dependencies = String::new();
-    for name in ADVISED {
-        writeln!(dependencies, "{name} = \"={}\"", locked_version(name))
-            .expect("invariant: writing to a String cannot fail");
-    }
+    let dependencies = locked_dependencies(graph.transitive);
     write(
         &middle.join("Cargo.toml"),
         &format!(
@@ -500,9 +650,12 @@ fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
     let app = root.path().join("app");
     write(
         &app.join("Cargo.toml"),
-        "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
-         license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
-         fixture_middle = { path = \"../middle\" }\n\n[workspace]\n",
+        &format!(
+            "[package]\nname = \"fixture_app\"\nversion = \"0.1.0\"\nedition = \"2024\"\n\
+             license = \"MIT OR Apache-2.0\"\npublish = false\n\n[dependencies]\n\
+             fixture_middle = {{ path = \"../middle\" }}\n{}\n[workspace]\n",
+            locked_dependencies(graph.direct)
+        ),
     );
     write(&app.join("src/lib.rs"), "");
     let manifest = app.join("Cargo.toml");
@@ -510,7 +663,7 @@ fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
     // With an empty db-path, cargo-deny names the directory it expects
     // (`<db-path>/advisory-db-<hash of the URL>`); take the name from its output instead of
     // depending on its hash function.
-    let (passed, output) = run_deny(&config, &manifest, true, "advisories");
+    let (passed, output) = run_deny(&config, &manifest, true, "advisories", &[]);
     assert!(!passed, "advisories passed without a database:\n{output}");
     let start = output
         .find("advisory-db-")
@@ -543,27 +696,50 @@ fn check_advisories(name: &str, advisories: &[Advisory]) -> (bool, String) {
     }
     commit_all(&db);
 
-    run_deny(&config, &manifest, true, "advisories")
+    run_deny(&config, &manifest, true, "advisories", &[])
 }
 
 /// Verifies: XTASK-R084
 #[test]
 #[ignore = "M0-T009: needs cargo-deny and git; the `deny` job of the CI workflow runs it"]
 fn unmaintained_and_vulnerable_crates_are_rejected() {
-    let (passed, output) = check_advisories("none", &[]);
+    let (passed, output) = check_advisories("none", &TRANSITIVE, &[]);
     assert!(passed, "control without advisories failed:\n{output}");
     assert!(output.contains("advisories ok"), "{output}");
 
+    // Transitive only: kills `unmaintained = "workspace"`.
     let (passed, output) = check_advisories(
         "unmaintained",
+        &TRANSITIVE,
         &[("RUSTSEC-2026-9001", "itoa", Some("unmaintained"))],
     );
-    assert!(!passed, "an unmaintained crate was accepted:\n{output}");
+    assert!(
+        !passed,
+        "a transitive unmaintained crate was accepted:\n{output}"
+    );
     assert!(output.contains("RUSTSEC-2026-9001"), "{output}");
     assert!(output.contains("error[unmaintained]"), "{output}");
 
-    let (passed, output) =
-        check_advisories("vulnerability", &[("RUSTSEC-2026-9002", "memchr", None)]);
+    // Direct dependency of the workspace crate: kills `unmaintained = "transitive"`.
+    let (passed, output) = check_advisories("direct-control", &DIRECT_ITOA, &[]);
+    assert!(passed, "control with a direct dependency failed:\n{output}");
+    let (passed, output) = check_advisories(
+        "unmaintained-direct",
+        &DIRECT_ITOA,
+        &[("RUSTSEC-2026-9003", "itoa", Some("unmaintained"))],
+    );
+    assert!(
+        !passed,
+        "a direct unmaintained crate was accepted:\n{output}"
+    );
+    assert!(output.contains("RUSTSEC-2026-9003"), "{output}");
+    assert!(output.contains("error[unmaintained]"), "{output}");
+
+    let (passed, output) = check_advisories(
+        "vulnerability",
+        &TRANSITIVE,
+        &[("RUSTSEC-2026-9002", "memchr", None)],
+    );
     assert!(!passed, "a vulnerable crate was accepted:\n{output}");
     assert!(output.contains("RUSTSEC-2026-9002"), "{output}");
     assert!(output.contains("error[vulnerability]"), "{output}");

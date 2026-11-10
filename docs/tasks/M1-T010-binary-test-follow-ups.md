@@ -123,10 +123,10 @@ Checked:
   in `repo::walk`; spec text against code; the two cli tests iterate `COMMANDS` and compare the
   whole stderr line. Item 2: tag removed, reason in the doc comment. Item 3: mutant
   `tool_lines` printing `"present"` for a versioned tool (reverted): the binary `doctor` test fails.
-- Merge of `origin/main` (`70dac69`): main's `spec_version` 24 (M1-T056) took XTASK-R014, so this
+- Merge of `origin/main` (`70dac69`, then `e652b0c`): main's `spec_version` 24 (M1-T056) took XTASK-R014, so this
   task's requirement is renumbered **XTASK-R014 → XTASK-R015** (spec row, LIM-XTASK-0007 row,
   test-plan row, `Verifies:` tags in `xtask/src/cli.rs` and `xtask/src/repo.rs`, this file's
-  `requirements`); this task's spec change is history row 26 (main reached 25). LIM-XTASK-0007
+  `requirements`); this task's spec change is history row 27 (main reached 26). LIM-XTASK-0007
   was free. `docs/STATUS.md` regenerated. The handoff above keeps the old ID as written.
 - `cargo xtask ci` on the merged tree with the review edits: 12 steps pass, none skipped, macOS
   27.2 arm64.

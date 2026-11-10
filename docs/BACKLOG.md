@@ -231,6 +231,12 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   may extend the list or the shadowing test.
 - `docs/tasks/README.md`: no row for M1-T061 (task created by the M1-T057 review).
 
+## M1-T009 — review 2026-11-10
+
+- `xtask/tests/deny_policy.rs` `git_dependencies_are_rejected` writes a checkout of its fixture
+  repository into the user's `$CARGO_HOME/git/` on every run (the reviewer's machine holds 10+
+  `dep-*` entries). Run it with a temporary `CARGO_HOME`, as `other_registry_dependencies_are_rejected` does.
+
 ## M1-T010 — review 2026-11-10
 
 - `docs/specs/xtask.md` §8 says a probe whose working directory is missing is reported as

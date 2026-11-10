@@ -114,7 +114,8 @@ jobs:
       # binary matches.
       - run: cargo install cargo-deny --version 0.20.2 --locked
       - run: cargo xtask ci --only deny
-      # Licence policy tests (XTASK-R082); ignored in the `test` step because they need cargo-deny.
+      # deny.toml policy tests (XTASK-R082 to R084); ignored in the `test` step because they need
+      # cargo-deny.
       - run: cargo test --package xtask --all-features --locked --test deny_policy -- --ignored
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
