@@ -184,3 +184,24 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
   would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
   changes.
+
+## M1-T037 — review 2026-11-10
+
+- `docs/specs/liminal_ecs.md` ECS-R210 and `docs/specs/liminal_jobs.md` JOBS-R121: if
+  `run_parallel` names each `JobGraph` node with the system name, `run_graph` already records a
+  span of that name, and an ECS span of its own makes two. M1-T042 picks distinct node names or
+  relies on the node span; say which in the spec.
+- `docs/specs/liminal_ecs.md` ECS-R210: schedule and system span names (`"fixed_update"`,
+  `"integrate"`) do not follow the telemetry name convention (SHOULD, `liminal_telemetry.md`
+  §5.1: lowercase, dot-separated, crate area first). Decide whether callers or the ECS prefix them.
+- `docs/specs/liminal_ecs.md` §11 rule 3 and ECS-R221: an `Rng` in a registered resource needs
+  `Rng: Typed`, which is M1-T062's decision; M1-T043 (`schedule_ticks`) does not depend on
+  M1-T062, so its `Rng` resource stays unregistered (not hashed) unless the order changes.
+- `docs/specs/liminal_ecs.md` §10 "loom" and §11: the world identity of ECS-R155 most likely
+  needs a process-global counter (an atomic of the crate's own); §10 says the crate has no
+  shared mutable state of its own. State the exception or the mechanism.
+- `docs/specs/liminal_ecs.md` ECS-R191: "equal event buffers" does not say that the sets of
+  registered event types must be equal too; one extra registered event type with empty buffers
+  changes the hash by ECS-R190 (4). Name it among the conditions.
+- `docs/tasks/README.md` has no row for M1-T059, and `depends_on` of
+  `docs/tasks/M1-T053-m1-exit-review.md` lists none of M1-T055 to M1-T061 (only M1-T062).
