@@ -59,6 +59,11 @@ struct Lexer<'a> {
     position: usize,
     /// 1-based line of the next character.
     line: usize,
+    /// Whether the last token was the punctuation `.`.
+    after_dot: bool,
+    /// Whether the last token was a `.` that is not the second of `..`: a numeric literal after
+    /// it is a tuple field index (`x.0.1`) and has no fraction.
+    after_field_dot: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -68,6 +73,8 @@ impl<'a> Lexer<'a> {
             source,
             position: 0,
             line: 1,
+            after_dot: false,
+            after_field_dot: false,
         }
     }
 
@@ -105,6 +112,8 @@ impl<'a> Lexer<'a> {
             source: self.source,
             position: 2,
             line: 1,
+            after_dot: false,
+            after_field_dot: false,
         };
         let is_attribute = loop {
             match probe.next() {
@@ -120,6 +129,15 @@ impl<'a> Lexer<'a> {
 
     /// The next token and its line, or `None` at the end of input or on malformed input.
     fn next(&mut self) -> Option<(Kind, usize)> {
+        let (kind, line) = self.next_token()?;
+        let is_dot = kind == Kind::Punct('.');
+        self.after_field_dot = is_dot && !self.after_dot;
+        self.after_dot = is_dot;
+        Some((kind, line))
+    }
+
+    /// [`Self::next`] without updating the `.` state.
+    fn next_token(&mut self) -> Option<(Kind, usize)> {
         while self.peek().is_some_and(char::is_whitespace) {
             self.bump();
         }
@@ -150,12 +168,7 @@ impl<'a> Lexer<'a> {
                 _ => Kind::Ident(ident),
             }
         } else if c.is_ascii_digit() {
-            while self
-                .peek()
-                .is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '.')
-            {
-                self.bump();
-            }
+            self.number();
             Kind::Literal
         } else {
             self.bump();
@@ -166,6 +179,46 @@ impl<'a> Lexer<'a> {
             }
         };
         Some((kind, line))
+    }
+
+    /// A numeric literal at its first digit: digits, letters and `_` (radix prefix, hexadecimal
+    /// digits, exponent, suffix); a sign directly after a decimal exponent `e`/`E` that comes
+    /// before any other letter and is followed by a digit (`1e-3`); and one `.` (fraction) in a
+    /// decimal literal before any letter, unless the `.` is followed by `.`, `_` or a letter
+    /// (`0..n`, `1.max(2)`) or the literal is a tuple field index (`x.0.1`).
+    fn number(&mut self) {
+        let radix = matches!(self.rest().get(..2), Some("0x" | "0b" | "0o"));
+        let mut letter_seen = false;
+        let mut fraction_allowed = !radix && !self.after_field_dot;
+        loop {
+            let mut chars = self.rest().chars();
+            let Some(c) = chars.next() else {
+                return;
+            };
+            let next = chars.next();
+            if c == '_' || c.is_alphanumeric() {
+                self.bump();
+                let exponent = !radix && !letter_seen && matches!(c, 'e' | 'E');
+                if exponent
+                    && matches!(next, Some('+' | '-'))
+                    && chars.next().is_some_and(|d| d.is_ascii_digit())
+                {
+                    self.bump();
+                }
+                if c.is_alphabetic() {
+                    letter_seen = true;
+                    fraction_allowed = false;
+                }
+            } else if c == '.'
+                && fraction_allowed
+                && !next.is_some_and(|n| n == '.' || n == '_' || n.is_alphabetic())
+            {
+                self.bump();
+                fraction_allowed = false;
+            } else {
+                return;
+            }
+        }
     }
 
     /// A block comment at `/*`; block comments nest. `None` if unterminated.
@@ -338,6 +391,48 @@ mod tests {
                 (ident("end"), 3),
             ]
         );
+    }
+
+    /// Verifies: XTASK-R050
+    #[test]
+    fn numeric_literals_end_at_ranges_method_calls_and_tuple_fields() {
+        let only = |source: &str| -> Vec<Kind> {
+            tokens(source).into_iter().map(|token| token.kind).collect()
+        };
+        let dot = || Kind::Punct('.');
+        for whole in [
+            "1.5e3", "1_000u32", "0x1F", "1e-3", "2.5E+10", "1.", "1.0f64", "0b1010", "0o17", "7",
+        ] {
+            assert_eq!(only(whole), [Kind::Literal], "{whole}");
+        }
+        assert_eq!(only("0..n"), [Kind::Literal, dot(), dot(), ident("n")]);
+        assert_eq!(
+            only("0..=9"),
+            [Kind::Literal, dot(), dot(), Kind::Punct('='), Kind::Literal]
+        );
+        assert_eq!(only("1..2.5"), [Kind::Literal, dot(), dot(), Kind::Literal]);
+        assert_eq!(
+            only("1.max(2)"),
+            [
+                Kind::Literal,
+                dot(),
+                ident("max"),
+                Kind::Punct('('),
+                Kind::Literal,
+                Kind::Punct(')')
+            ]
+        );
+        assert_eq!(only("1._x"), [Kind::Literal, dot(), ident("_x")]);
+        assert_eq!(
+            only("x.0.1"),
+            [ident("x"), dot(), Kind::Literal, dot(), Kind::Literal]
+        );
+        // A hexadecimal `E` is a digit, not an exponent: `0x1E-3` is a subtraction.
+        assert_eq!(
+            only("0x1E-3"),
+            [Kind::Literal, Kind::Punct('-'), Kind::Literal]
+        );
+        assert_eq!(only("1e-x"), [Kind::Literal, Kind::Punct('-'), ident("x")]);
     }
 
     #[test]

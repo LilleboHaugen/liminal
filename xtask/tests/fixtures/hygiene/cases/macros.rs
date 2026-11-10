@@ -13,4 +13,5 @@ fn a() {
     unimplemented
         !
         ();
+    let r = 0..dbg!(x);
 }
