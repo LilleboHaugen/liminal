@@ -45,7 +45,7 @@ fn located(findings: &[Finding]) -> Vec<(&str, &str)> {
         .collect()
 }
 
-/// Verifies: XTASK-R030, XTASK-R031, XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036
+/// Verifies: XTASK-R030, XTASK-R031, XTASK-R032, XTASK-R033, XTASK-R034, XTASK-R035, XTASK-R036, XTASK-R039
 #[test]
 fn valid_fixture_passes() {
     let findings = run_fixture(None);
@@ -103,6 +103,8 @@ fn every_case_directory_is_tested() {
             "r034_dev_dependency",
             "r035_missing_forbid",
             "r036_tool_dependency",
+            "r039_incomplete_clippy_config",
+            "r039_missing_clippy_config",
         ]
     );
 }
@@ -199,6 +201,77 @@ fn r036_tool_dependency_fixture() {
             "crates/runtime/Cargo.toml",
             "crate `runtime` (layer 1) has a normal dependency on `cli`, a layer 5 tool crate"
         )]
+    );
+}
+
+/// Verifies: XTASK-R039
+#[test]
+fn r039_missing_clippy_config_fixture() {
+    // `peer` became deterministic and has no clippy.toml of its own: the root file applies, and it
+    // bans nothing. `runtime` (deterministic, complete file) and the other crates (not
+    // deterministic, no file) give no finding.
+    let findings = fails_with_exactly("r039_missing_clippy_config", "XTASK-R039");
+    assert_eq!(
+        located(&findings),
+        [(
+            "clippy.toml",
+            "deterministic crate `peer`: its clippy configuration `clippy.toml` does not ban \
+             `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln`, `f64::sin`, \
+             `f64::cos`, `f64::tan`, `f64::powf`, `f64::exp`, `f64::ln`, \
+             `std::collections::HashMap::new`, `std::time::Instant::now` in `disallowed-methods`"
+        )]
+    );
+    assert!(findings[0].help.contains("`crates/peer/clippy.toml`"));
+}
+
+/// Verifies: XTASK-R039
+#[test]
+fn r039_missing_clippy_config_without_a_root_file() {
+    let root = TempRoot::new("check-arch-r039-no-file");
+    copy_dir(&fixtures().join("valid"), root.path());
+    copy_dir(&fixtures().join("r039_missing_clippy_config"), root.path());
+    std::fs::remove_file(root.path().join("clippy.toml")).unwrap();
+    let json = std::fs::read_to_string(root.path().join("metadata.json")).unwrap();
+    let findings = check(&repo::load_arch(root.path(), &json).unwrap());
+    assert_eq!(
+        located(&findings),
+        [(
+            "crates/peer/Cargo.toml",
+            "deterministic crate `peer` has no clippy configuration (no `.clippy.toml` or \
+             `clippy.toml` in `crates/peer` or a parent directory), so clippy bans none of the \
+             methods CODE_STYLE.md lists"
+        )]
+    );
+}
+
+/// Verifies: XTASK-R039
+#[test]
+fn r039_incomplete_clippy_config_fixture() {
+    let findings = fails_with_exactly("r039_incomplete_clippy_config", "XTASK-R039");
+    assert_eq!(
+        located(&findings),
+        [(
+            "crates/runtime/clippy.toml",
+            "deterministic crate `runtime`: its clippy configuration `crates/runtime/clippy.toml` \
+             does not ban `f64::ln` in `disallowed-methods`"
+        )]
+    );
+}
+
+#[test]
+fn an_invalid_clippy_config_of_a_deterministic_crate_is_lim_xtask_0004() {
+    let root = TempRoot::new("check-arch-r039-invalid");
+    copy_dir(&fixtures().join("valid"), root.path());
+    std::fs::write(
+        root.path().join("crates/runtime/clippy.toml"),
+        "disallowed-methods = 1\n",
+    )
+    .unwrap();
+    let json = std::fs::read_to_string(root.path().join("metadata.json")).unwrap();
+    let error = repo::load_arch(root.path(), &json).unwrap_err();
+    assert_eq!(
+        (error.code, error.path.as_str()),
+        ("LIM-XTASK-0004", "crates/runtime/clippy.toml")
     );
 }
 

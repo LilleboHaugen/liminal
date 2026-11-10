@@ -19,6 +19,10 @@ Rules:
 |---|---|---|---|
 | [liminal_core.md](liminal_core.md) | `liminal_core` | CORE | planned |
 | [liminal_math.md](liminal_math.md) | `liminal_math` | MATH | planned |
+| [liminal_memory.md](liminal_memory.md) | `liminal_memory` | MEM | planned |
+| [liminal_telemetry.md](liminal_telemetry.md) | `liminal_telemetry` | TELE | planned |
+| [liminal_reflect.md](liminal_reflect.md) | `liminal_reflect` | REFL | planned |
+| [liminal_reflect_derive.md](liminal_reflect_derive.md) | `liminal_reflect_derive` | REFLD | planned |
 | [xtask.md](xtask.md) | `xtask` | XTASK | usable |
 
 Specs for M1 crates are written by dedicated M1 tasks, which the M1 kickoff task (M1-T001) creates.
@@ -31,7 +35,7 @@ Specs for M1 crates are written by dedicated M1 tasks, which the M1 kickoff task
 | MATH | liminal_math | SHDR | liminal_shader |
 | MEM | liminal_memory | REND | liminal_render |
 | TELE | liminal_telemetry | VOX | liminal_voxel |
-| REFL | liminal_reflect (+derive) | VOXR | liminal_voxel_render |
+| REFL | liminal_reflect | VOXR | liminal_voxel_render |
 | JOBS | liminal_jobs | PHYS | liminal_physics |
 | ECS | liminal_ecs | AUD | liminal_audio |
 | APP | liminal_app | TEXT | liminal_text |
@@ -42,6 +46,6 @@ Specs for M1 crates are written by dedicated M1 tasks, which the M1 kickoff task
 | PGEN | liminal_procgen | ENG | liminal_engine |
 | PLAT | liminal_platform | CLI | liminal_cli |
 | MCP | liminal_mcp | COOK | liminal_cook |
-| XTASK | xtask | | |
+| XTASK | xtask | REFLD | liminal_reflect_derive |
 
 These prefixes are also the `AREA` part of error codes (`LIM-ECS-0001`, ADR-0017).

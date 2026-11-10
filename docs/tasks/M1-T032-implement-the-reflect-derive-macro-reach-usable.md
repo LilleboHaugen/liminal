@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_reflect, liminal_reflect_derive]
 depends_on: [M1-T031]
-requirements: []
+requirements: [REFL-R120, REFL-R130, REFL-R131, REFL-R132, REFLD-R001, REFLD-R002, REFLD-R003, REFLD-R004, REFLD-R005, REFLD-R020, REFLD-R021, REFLD-R030, REFLD-R031, REFLD-R032, REFLD-R033, REFLD-R034, REFLD-R035, REFLD-R050, REFLD-R051, REFLD-R052, REFLD-R053, REFLD-R070]
 ---
 
 # M1-T032: Implement the `Reflect` derive macro; reach `usable` for both reflect crates

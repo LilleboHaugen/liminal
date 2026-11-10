@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_telemetry]
 depends_on: [M1-T028, M1-T017]
-requirements: []
+requirements: [TELE-R063, TELE-R064, TELE-R080, TELE-R081, TELE-R082, TELE-R083, TELE-R084, TELE-R090, TELE-R091, TELE-R092, TELE-R093, TELE-R094, TELE-R095]
 ---
 
 # M1-T029: Implement `liminal_telemetry`: frame stats and export; reach `usable`
@@ -47,7 +47,7 @@ Requirements in frontmatter; snapshot tests; benchmark.
 
 ## Notes
 
-_None._
+Requirements written by M1-T027 (spec §6 "Assignment"). TELE-R084 (SHOULD) is the Perfetto check of the acceptance criteria. Benchmark case IDs and scenarios: spec §9.
 
 ## Handoff
 

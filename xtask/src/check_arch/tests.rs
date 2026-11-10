@@ -106,6 +106,7 @@ fn model(architecture: &str, packages: Vec<Package>) -> ArchModel {
         architecture: architecture::parse(architecture).unwrap(),
         packages,
         sources,
+        clippy: BTreeMap::new(),
     }
 }
 

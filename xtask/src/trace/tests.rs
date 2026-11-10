@@ -53,7 +53,9 @@ fn annotations_are_attached_to_the_next_function() {
             verifies(26, &[r1], None),
             verifies(33, &[r3], Some(("f", 34))),
             verifies(35, &[r1], None),
-            verifies(37, &[r1], None),
+            verifies(37, &[r1], Some(("h", 38))),
+            verifies(39, &[r1], None),
+            verifies(41, &[r1], None),
         ]
     );
 }
@@ -82,11 +84,14 @@ fn malformed_and_unattached_annotations_are_r041_findings() {
         ("XTASK-R041", at(26)),
         ("XTASK-R043", at(33)),
         ("XTASK-R041", at(35)),
-        ("XTASK-R041", at(37)),
+        ("XTASK-R041", at(39)),
+        ("XTASK-R041", at(41)),
     ];
     let expected: Vec<(&str, &str)> = expected.iter().map(|(r, l)| (*r, l.as_str())).collect();
     assert_eq!(found, expected);
-    // Attached annotations count: `a`, `b` and `c` verify DEMO-R001; `b` and `c` DEMO-R002.
+    // Line 35: a string literal not directly after `extern` (`pub "x" fn g`) leaves the
+    // annotation unattached (M1-T004).
+    // Attached annotations count: `a`, `b`, `c` and `h` verify DEMO-R001; `b` and `c` DEMO-R002.
     let tests = |id: &str| -> Vec<String> {
         result
             .rows
@@ -106,7 +111,7 @@ fn malformed_and_unattached_annotations_are_r041_findings() {
         ]
     );
     // `c` names DEMO-R001 twice and is listed once.
-    assert_eq!(tests("DEMO-R001").len(), 5);
+    assert_eq!(tests("DEMO-R001").len(), 6);
 }
 
 /// Verifies: XTASK-R042
