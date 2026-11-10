@@ -2,7 +2,7 @@
 id: M1-T027
 title: Write the spec for liminal_telemetry
 milestone: M1
-status: todo
+status: review
 crates: [liminal_telemetry]
 depends_on: [M1-T001]
 requirements: []
@@ -30,23 +30,23 @@ requirements: []
 
 ## Acceptance criteria
 
-- [ ] `docs/specs/liminal_telemetry.md` exists, follows `docs/specs/_TEMPLATE.md` (all sections), with
+- [x] `docs/specs/liminal_telemetry.md` exists, follows `docs/specs/_TEMPLATE.md` (all sections), with
       `maturity: planned`, `spec_version: 1` and `adrs` listing every ADR it implements.
-- [ ] Every requirement has an ID `TEL-Rnnn`, an RFC 2119 level and a testable statement with
+- [x] Every requirement has an ID `TEL-Rnnn`, an RFC 2119 level and a testable statement with
       units, ranges and failure behaviour. No vague words ("fast", "robust", "efficient").
-- [ ] §5 Public API covers the scope below and is consistent with `docs/ARCHITECTURE.md` and the
+- [x] §5 Public API covers the scope below and is consistent with `docs/ARCHITECTURE.md` and the
       specs of the crates it depends on.
-- [ ] Error codes `LIM-TEL-NNNN` are listed with message and `help` (ADR-0017), or the spec says
+- [x] Error codes `LIM-TEL-NNNN` are listed with message and `help` (ADR-0017), or the spec says
       why the crate has no recoverable errors.
-- [ ] The test plan names the test kinds that apply (TESTING.md) and, for every optimized path, the
+- [x] The test plan names the test kinds that apply (TESTING.md) and, for every optimized path, the
       reference implementation it is checked against (AGENTS.md rule 4).
-- [ ] Performance budgets name scenarios and machines; numbers that need a measurement say which
+- [x] Performance budgets name scenarios and machines; numbers that need a measurement say which
       task measures them (PERFORMANCE.md: budgets are never invented).
-- [ ] Every MUST requirement is assigned to exactly one implementation task (M1-T028, M1-T029): the spec
+- [x] Every MUST requirement is assigned to exactly one implementation task (M1-T028, M1-T029): the spec
       lists the assignment, and this session writes the IDs into those tasks' `requirements`
       frontmatter (`check-docs` R028 validates them).
-- [ ] Open questions are listed in the spec instead of being decided silently.
-- [ ] `docs/specs/README.md` lists the spec (XTASK-R027); `cargo xtask ci` passes.
+- [x] Open questions are listed in the spec instead of being decided silently.
+- [x] `docs/specs/README.md` lists the spec (XTASK-R027); `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -54,11 +54,49 @@ None (documentation task). The review is a spec review (REVIEW.md §2).
 
 ## Notes
 
+**Prefix (scope note, 2026-11-10):** the acceptance criteria below say `TEL-Rnnn` and
+`LIM-TEL-NNNN`. The spec uses `TELE` instead: `docs/specs/README.md` reserves `TELE` for
+`liminal_telemetry`, and CORE-R012 (`docs/specs/liminal_core.md`) requires the error area to equal
+the spec's `req_prefix` (also `liminal_core` spec open question 4). The criteria are met with
+`TELE` in place of `TEL`.
+
 Requirement IDs leave gaps between groups (template §6). Keep the API small: every public item has to be documented, tested and later snapshotted.
 
 ## Handoff
 
-_Empty._
+**Done (2026-11-10, sub-agent session).**
+- `docs/specs/liminal_telemetry.md`, `spec_version` 1, `maturity: planned`, prefix `TELE`:
+  44 MUST + 1 SHOULD requirements (TELE-R001 … TELE-R100), one error code (LIM-TELE-0001),
+  10 open questions, §9 scenarios with no numbers (M1-T029 measures span overhead).
+- `requirements` frontmatter and Notes of M1-T028 (32 IDs) and M1-T029 (13 IDs). Every MUST is
+  in exactly one task.
+- `docs/specs/README.md` index row.
+- `xtask/src/repo.rs` test `loads_the_real_repository`: same change as on the M1-T012 branch
+  (byte-identical file, so the merge is clean). It asserted the real repository has exactly one
+  spec, which fails as soon as any spec is added.
+
+**Design decisions to check in review** (no ADR needed: no dependency, no layer or unsafe-policy
+change; ADR-0016 delegates these to the spec):
+- Feature `telemetry` off by default; it changes only the macro expansions and `SpanGuard`. The
+  disabled expansions live in `__private::off` and are compiled in every build, so the
+  compile-out test (TELE-R002) runs under `--all-features`. That is the "method chosen in the
+  spec" of M1-T028's acceptance criteria.
+- One `Collector` per process (LIM-TELE-0001); recording is active only while it exists.
+- Per-thread SPSC ring of 16,384 fixed-size records (≤ 48 bytes), drop-newest on overflow with a
+  count; `Mutex<VecDeque>` reference with a differential test; loom and Miri.
+- Log messages are `&'static str` (no format strings); data goes in `ContextValue` fields.
+- Exact Chrome-trace and summary JSON layouts (snapshot-testable), escaping and floats as in
+  CORE-R009/R010.
+
+**Not done / for others.**
+- Spec open question 2: `cargo xtask ci` never builds with the feature off. A task that adds a
+  feature-off build/test step to `cargo xtask ci` should be written (xtask crate) before M1-T029
+  is reviewed. Not written here (outside this task's scope; reported to the parent).
+- The spec references `docs/specs/liminal_core.md` (on branch `task/M1-T012-…`, reviewed `done`,
+  not yet merged to `main` when this was written) and `docs/specs/liminal_memory.md` (branch
+  `task/M1-T024-…`) in prose only, not as links, so `check-docs` passes before they merge.
+
+**Next step:** a different session reviews M1-T027 (spec review, REVIEW.md §2).
 
 ## Review
 

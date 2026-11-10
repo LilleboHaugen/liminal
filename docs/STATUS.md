@@ -39,7 +39,7 @@
 | [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | todo | M1-T001 |
 | [M1-T025](tasks/M1-T025-implement-liminal-memory-arena-and-frame-allocat.md) | Implement liminal_memory — arena and frame allocators | todo | M1-T024, M1-T014, M1-T018 |
 | [M1-T026](tasks/M1-T026-implement-liminal-memory-pool-aligned-tracking-r.md) | Implement liminal_memory — pool, aligned, tracking; reach usable | todo | M1-T025, M1-T017 |
-| [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | todo | M1-T001 |
+| [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | review | M1-T001 |
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
 | [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | todo | M1-T001 |
@@ -77,7 +77,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 49 | 0 | 0 | 0 | 5 |
+| M1 (Headless core) | 54 | 48 | 0 | 0 | 1 | 5 |
 | M2 (Agent interface v0) | 3 | 3 | 0 | 0 | 0 | 0 |
 
 ## Crates
@@ -89,7 +89,7 @@ None.
 | liminal_memory | 0 | planned | — |
 | liminal_reflect | 0 | planned | — |
 | liminal_reflect_derive | 0 | planned | — |
-| liminal_telemetry | 0 | planned | — |
+| liminal_telemetry | 0 | planned | [liminal_telemetry.md](specs/liminal_telemetry.md) |
 | liminal_app | 1 | planned | — |
 | liminal_assets | 1 | planned | — |
 | liminal_ecs | 1 | planned | — |
