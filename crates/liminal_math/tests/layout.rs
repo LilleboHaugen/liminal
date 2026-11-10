@@ -2,6 +2,12 @@
 //! MATH-R003, MATH-R020, MATH-R040. Oracles: `size_of`, `align_of`, `offset_of` and
 //! hand-written values.
 
+#![allow(
+    clippy::float_cmp,
+    clippy::many_single_char_names,
+    reason = "exact results are the contract (spec §4 \"Exact expression\"); the requirement formulas use one-letter names"
+)]
+
 use core::mem::{align_of, offset_of, size_of};
 
 use liminal_math::{Affine3, Mat3, Mat4, Quat, Vec2, Vec3, Vec4};
@@ -29,7 +35,11 @@ fn sizes_and_alignments() {
 fn fields_are_at_offsets_four_times_their_index() {
     assert_eq!([offset_of!(Vec2, x), offset_of!(Vec2, y)], [0, 4]);
     assert_eq!(
-        [offset_of!(Vec3, x), offset_of!(Vec3, y), offset_of!(Vec3, z)],
+        [
+            offset_of!(Vec3, x),
+            offset_of!(Vec3, y),
+            offset_of!(Vec3, z)
+        ],
         [0, 4, 8]
     );
     assert_eq!(
@@ -79,9 +89,18 @@ fn fields_are_at_offsets_four_times_their_index() {
 /// Verifies: MATH-R001
 #[test]
 fn vector_defaults_are_zero() {
-    assert_eq!(bits(Vec2::default().to_array()), bits(Vec2::ZERO.to_array()));
-    assert_eq!(bits(Vec3::default().to_array()), bits(Vec3::ZERO.to_array()));
-    assert_eq!(bits(Vec4::default().to_array()), bits(Vec4::ZERO.to_array()));
+    assert_eq!(
+        bits(Vec2::default().to_array()),
+        bits(Vec2::ZERO.to_array())
+    );
+    assert_eq!(
+        bits(Vec3::default().to_array()),
+        bits(Vec3::ZERO.to_array())
+    );
+    assert_eq!(
+        bits(Vec4::default().to_array()),
+        bits(Vec4::ZERO.to_array())
+    );
     assert_eq!(bits(Vec3::ZERO.to_array()), [0; 3]);
 }
 
@@ -150,7 +169,8 @@ proptest! {
 /// Verifies: MATH-R003
 #[test]
 fn cols_array_index_is_column_times_rows_plus_row() {
-    let e: [f32; 16] = core::array::from_fn(|i| i as f32);
+    let e: [f32; 16] =
+        core::array::from_fn(|i| f32::from(u8::try_from(i).expect("test setup: index below 16")));
     let m = Mat4::from_cols_array(&e);
     // Row r, column c is e[4c + r]: column 2 holds 8, 9, 10, 11.
     assert_eq!(m.z_axis, Vec4::new(8.0, 9.0, 10.0, 11.0));
@@ -159,7 +179,8 @@ fn cols_array_index_is_column_times_rows_plus_row() {
     let m = Mat4::from_cols_array(&e);
     assert_eq!(m, Mat4::from_cols_array(&m.to_cols_array()));
 
-    let e: [f32; 9] = core::array::from_fn(|i| i as f32);
+    let e: [f32; 9] =
+        core::array::from_fn(|i| f32::from(u8::try_from(i).expect("test setup: index below 16")));
     let m = Mat3::from_cols_array(&e);
     assert_eq!(m.x_axis, Vec3::new(0.0, 1.0, 2.0));
     assert_eq!(m.y_axis, Vec3::new(3.0, 4.0, 5.0));
@@ -198,7 +219,10 @@ fn identity_scale_and_translation_matrices() {
         [0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 1.0],
     ]);
-    assert_eq!(bits(Mat4::IDENTITY.to_cols_array()), bits(identity.to_cols_array()));
+    assert_eq!(
+        bits(Mat4::IDENTITY.to_cols_array()),
+        bits(identity.to_cols_array())
+    );
     assert_eq!(
         bits(Mat3::IDENTITY.to_cols_array()),
         bits([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])
@@ -214,7 +238,10 @@ fn identity_scale_and_translation_matrices() {
         [0.0, 0.0, 0.5, 0.0],
         [0.0, 0.0, 0.0, 1.0],
     ]);
-    assert_eq!(bits(Mat4::from_scale(s).to_cols_array()), bits(scaled.to_cols_array()));
+    assert_eq!(
+        bits(Mat4::from_scale(s).to_cols_array()),
+        bits(scaled.to_cols_array())
+    );
     let t = Vec3::new(-1.0, 2.0, 7.0);
     let translated = mat4_rows([
         [1.0, 0.0, 0.0, -1.0],

@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 72a037753abd2b41b8a3cc2e21e6920412bf2da811c9d389a70530033ffc4aa5 # shrinks to a = Affine3 { matrix3: Mat3 { x_axis: Vec3 { x: 0.0, y: 0.0, z: 0.0 }, y_axis: Vec3 { x: 0.0, y: 221102260.0, z: 0.0 }, z_axis: Vec3 { x: 1.5390271e30, y: 0.0, z: 0.0 } }, translation: Vec3 { x: 0.0, y: 0.0, z: 0.0 } }

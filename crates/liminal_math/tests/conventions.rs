@@ -1,5 +1,11 @@
 //! Engine-wide conventions of spec §4: MATH-R002.
 
+#![allow(
+    clippy::float_cmp,
+    clippy::many_single_char_names,
+    reason = "exact results are the contract (spec §4 \"Exact expression\"); the requirement formulas use one-letter names"
+)]
+
 use core::f32::consts::FRAC_1_SQRT_2;
 
 use liminal_math::{Mat3, Mat4, Quat, Vec3, Vec4};
@@ -12,18 +18,39 @@ use common::{approx_vec3, bits};
 /// Verifies: MATH-R002
 #[test]
 fn right_handed_cross_products_are_exact() {
-    assert_eq!(bits(Vec3::X.cross(Vec3::Y).to_array()), bits(Vec3::Z.to_array()));
-    assert_eq!(bits(Vec3::Y.cross(Vec3::Z).to_array()), bits(Vec3::X.to_array()));
-    assert_eq!(bits(Vec3::Z.cross(Vec3::X).to_array()), bits(Vec3::Y.to_array()));
+    assert_eq!(
+        bits(Vec3::X.cross(Vec3::Y).to_array()),
+        bits(Vec3::Z.to_array())
+    );
+    assert_eq!(
+        bits(Vec3::Y.cross(Vec3::Z).to_array()),
+        bits(Vec3::X.to_array())
+    );
+    assert_eq!(
+        bits(Vec3::Z.cross(Vec3::X).to_array()),
+        bits(Vec3::Y.to_array())
+    );
 }
 
 /// Verifies: MATH-R002
 #[test]
 fn positive_quarter_turns_follow_the_right_hand_rule() {
     let h = FRAC_1_SQRT_2;
-    assert!(approx_vec3(Quat::from_xyzw(0.0, 0.0, h, h) * Vec3::X, Vec3::Y, 1.0));
-    assert!(approx_vec3(Quat::from_xyzw(h, 0.0, 0.0, h) * Vec3::Y, Vec3::Z, 1.0));
-    assert!(approx_vec3(Quat::from_xyzw(0.0, h, 0.0, h) * Vec3::Z, Vec3::X, 1.0));
+    assert!(approx_vec3(
+        Quat::from_xyzw(0.0, 0.0, h, h) * Vec3::X,
+        Vec3::Y,
+        1.0
+    ));
+    assert!(approx_vec3(
+        Quat::from_xyzw(h, 0.0, 0.0, h) * Vec3::Y,
+        Vec3::Z,
+        1.0
+    ));
+    assert!(approx_vec3(
+        Quat::from_xyzw(0.0, h, 0.0, h) * Vec3::Z,
+        Vec3::X,
+        1.0
+    ));
     // The matrix form agrees.
     let about_z = Mat3::from_quat(Quat::from_xyzw(0.0, 0.0, h, h));
     assert!(approx_vec3(about_z * Vec3::X, Vec3::Y, 1.0));

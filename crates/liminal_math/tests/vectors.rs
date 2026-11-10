@@ -2,13 +2,22 @@
 //! inputs whose result changes under a different association order or a fused multiply-add,
 //! and with property tests against the expression written out with `f32` operations.
 
+#![allow(
+    clippy::float_cmp,
+    clippy::many_single_char_names,
+    reason = "exact results are the contract (spec §4 \"Exact expression\"); the requirement formulas use one-letter names"
+)]
+
 use liminal_math::{MathError, Vec2, Vec3, Vec4};
 use proptest::prelude::*;
 
 #[allow(dead_code, reason = "each test file uses a subset of the helpers")]
 #[path = "common/math.rs"]
 mod common;
-use common::{any_f32, any_vec2, any_vec3, any_vec4, approx, bits, d_vec3, d_vec4, edgy_vec3, same_bits, same_bits_all};
+use common::{
+    any_f32, any_vec2, any_vec3, any_vec4, approx, bits, d_vec3, d_vec4, edgy_vec3, same_bits,
+    same_bits_all,
+};
 
 /// `1 + 2^-12`: its square `1 + 2^-11 + 2^-24` rounds to `1 + 2^-11`, so `x × x − (1 + 2^-11)`
 /// is 0 without and `2^-24` with a fused multiply-add.
@@ -169,17 +178,32 @@ fn normalize_errors_and_fallback() {
     let self_non_finite = Err(MathError::NonFiniteInput { parameter: "self" });
     assert_eq!(Vec3::ZERO.normalize(), self_zero);
     assert_eq!(Vec2::ZERO.normalize(), self_zero.map(|_: Vec3| Vec2::ZERO));
-    assert_eq!(Vec4::new(-0.0, 0.0, -0.0, 0.0).normalize(), self_zero.map(|_: Vec3| Vec4::ZERO));
+    assert_eq!(
+        Vec4::new(-0.0, 0.0, -0.0, 0.0).normalize(),
+        self_zero.map(|_: Vec3| Vec4::ZERO)
+    );
     // Underflow to a zero length.
     assert_eq!(Vec3::new(1e-30, 0.0, 0.0).normalize(), self_zero);
     assert_eq!(Vec3::new(f32::NAN, 0.0, 0.0).normalize(), self_non_finite);
-    assert_eq!(Vec3::new(0.0, f32::INFINITY, 0.0).normalize(), self_non_finite);
+    assert_eq!(
+        Vec3::new(0.0, f32::INFINITY, 0.0).normalize(),
+        self_non_finite
+    );
     // Overflow of the squared length.
-    assert_eq!(Vec2::new(2e19, 0.0).normalize(), self_non_finite.map(|_: Vec3| Vec2::ZERO));
-    assert_eq!(Vec4::new(1.0, 2.0, 2.0, 4.0).normalize(), Ok(Vec4::new(0.2, 0.4, 0.4, 0.8)));
+    assert_eq!(
+        Vec2::new(2e19, 0.0).normalize(),
+        self_non_finite.map(|_: Vec3| Vec2::ZERO)
+    );
+    assert_eq!(
+        Vec4::new(1.0, 2.0, 2.0, 4.0).normalize(),
+        Ok(Vec4::new(0.2, 0.4, 0.4, 0.8))
+    );
 
     let fallback = Vec3::new(7.0, -0.0, 9.0);
-    assert_eq!(bits(Vec3::ZERO.normalize_or(fallback).to_array()), bits(fallback.to_array()));
+    assert_eq!(
+        bits(Vec3::ZERO.normalize_or(fallback).to_array()),
+        bits(fallback.to_array())
+    );
     assert_eq!(Vec3::new(0.0, 0.0, -2.0).normalize_or(fallback), -Vec3::Z);
     assert_eq!(Vec2::new(f32::NAN, 1.0).normalize_or(Vec2::X), Vec2::X);
     assert_eq!(Vec4::ZERO.normalize_or(Vec4::W), Vec4::W);
@@ -208,7 +232,7 @@ fn scaled_component() -> impl Strategy<Value = f32> {
     prop_oneof![
         1 => Just(0.0_f32),
         4 => (-33_i32..=33, 0_u32..(1 << 23), any::<bool>()).prop_map(|(exponent, mantissa, negative)| {
-            let biased = u32::try_from(exponent + 127).unwrap();
+            let biased = u32::try_from(exponent + 127).expect("test setup: exponent above -127");
             let magnitude = f32::from_bits((biased << 23) | mantissa);
             if negative { -magnitude } else { magnitude }
         }),

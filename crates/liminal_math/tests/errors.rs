@@ -50,9 +50,7 @@ fn math_errors_match_the_approved_snapshot() {
         "/tests/snapshots/math_errors.txt"
     );
     // `replace`: a Windows checkout may convert line endings.
-    let approved = std::fs::read_to_string(path)
-        .unwrap()
-        .replace("\r\n", "\n");
+    let approved = std::fs::read_to_string(path).unwrap().replace("\r\n", "\n");
     let mut actual = String::new();
     for error in math_errors() {
         actual += &error.to_string();
@@ -101,7 +99,10 @@ fn context_fields_have_the_specified_kinds() {
         max: f32::NAN,
     };
     let context = error.context();
-    assert_eq!(context.get("axis"), Some(&ContextValue::Text("x".to_string())));
+    assert_eq!(
+        context.get("axis"),
+        Some(&ContextValue::Text("x".to_string()))
+    );
     assert_eq!(context.get("min"), Some(&ContextValue::Float(0.5)));
     assert!(matches!(context.get("max"), Some(ContextValue::Float(v)) if v.is_nan()));
     // NaN and infinities render as `null` in JSON.

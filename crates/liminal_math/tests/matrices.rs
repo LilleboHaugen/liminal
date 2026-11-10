@@ -1,5 +1,11 @@
 //! Matrix operations (spec §5.2): MATH-R041 to MATH-R049, MATH-R051.
 
+#![allow(
+    clippy::float_cmp,
+    clippy::many_single_char_names,
+    reason = "exact results are the contract (spec §4 \"Exact expression\"); the requirement formulas use one-letter names"
+)]
+
 use liminal_math::{Mat3, Mat4, MathError, Quat, Vec3, Vec4};
 use proptest::prelude::*;
 
@@ -51,7 +57,9 @@ fn int_det(e: &[i64], n: usize) -> i64 {
 }
 
 fn to_f32(value: i64) -> f32 {
-    i16::try_from(value).map(f32::from).unwrap()
+    i16::try_from(value)
+        .map(f32::from)
+        .expect("test setup: small integers")
 }
 
 proptest! {
@@ -182,16 +190,26 @@ fn identity_determinant_inverse_and_singular_cases() {
     assert_eq!(Mat3::IDENTITY.inverse(), Ok(Mat3::IDENTITY));
 
     let flat = Mat4::from_scale(Vec3::new(1.0, 0.0, 1.0));
-    assert_eq!(flat.inverse(), Err(MathError::SingularMatrix { determinant: 0.0 }));
+    assert_eq!(
+        flat.inverse(),
+        Err(MathError::SingularMatrix { determinant: 0.0 })
+    );
     let flat3 = Mat3::from_scale(Vec3::new(1.0, 1.0, 0.0));
-    assert_eq!(flat3.inverse(), Err(MathError::SingularMatrix { determinant: 0.0 }));
+    assert_eq!(
+        flat3.inverse(),
+        Err(MathError::SingularMatrix { determinant: 0.0 })
+    );
     let huge = Mat4::from_scale(Vec3::splat(1e30));
     assert_eq!(
         huge.inverse(),
-        Err(MathError::SingularMatrix { determinant: f32::INFINITY })
+        Err(MathError::SingularMatrix {
+            determinant: f32::INFINITY
+        })
     );
     let nan = Mat3::from_scale(Vec3::new(f32::NAN, 1.0, 1.0));
-    assert!(matches!(nan.inverse(), Err(MathError::SingularMatrix { determinant }) if determinant.is_nan()));
+    assert!(
+        matches!(nan.inverse(), Err(MathError::SingularMatrix { determinant }) if determinant.is_nan())
+    );
 
     // A hand-computed integer case: rows (2 0 0 1), (0 1 0 0), (0 0 4 0), (0 0 0 1).
     let m = Mat4::from_cols_array(&[
@@ -221,7 +239,12 @@ fn products_use_the_specified_association_order() {
         Vec4::new(1.0, 0.0, 0.0, 0.0),
     );
     assert_eq!((m * Vec4::ONE).x, 2.0);
-    assert_eq!((m * Mat4::from_cols(Vec4::ONE, Vec4::ZERO, Vec4::ZERO, Vec4::ZERO)).x_axis.x, 2.0);
+    assert_eq!(
+        (m * Mat4::from_cols(Vec4::ONE, Vec4::ZERO, Vec4::ZERO, Vec4::ZERO))
+            .x_axis
+            .x,
+        2.0
+    );
     let m3 = Mat3::from_cols(Vec3::new(1e8, 0.0, 0.0), Vec3::new(-1e8, 0.0, 0.0), Vec3::X);
     assert_eq!((m3 * Vec3::ONE).x, 1.0);
 }
@@ -302,7 +325,9 @@ fn look_to_errors_in_signature_order() {
     assert_eq!(Mat4::look_to(Vec3::ZERO, forward, nan), non_finite("up"));
     assert_eq!(
         Mat4::look_to(Vec3::ZERO, Vec3::ZERO, Vec3::Y),
-        Err(MathError::ZeroLengthVector { parameter: "direction" })
+        Err(MathError::ZeroLengthVector {
+            parameter: "direction"
+        })
     );
     // A finite direction whose squared length overflows.
     assert_eq!(
@@ -341,7 +366,7 @@ fn view_inputs() -> impl Strategy<Value = (Vec3, Vec3, Vec3)> {
     let unit = [-1.0_f32..=1.0, -1.0_f32..=1.0, -1.0_f32..=1.0]
         .prop_map(Vec3::from_array)
         .prop_filter("length at least 0.1", |v| v.length() >= 0.1)
-        .prop_map(|v| v.normalize().unwrap());
+        .prop_map(|v| v.normalize().expect("test setup: length at least 0.1"));
     (d_vec3(), unit.clone(), unit).prop_filter("angle in 0.1 to π − 0.1", |(_, d, u)| {
         // cos(0.1) = 0.995004
         f64::from(d.dot(*u)).abs() <= 0.995_004
@@ -367,21 +392,56 @@ fn orthographic_errors_in_the_specified_order() {
     let invalid = |parameter, value| Err(MathError::InvalidProjection { parameter, value });
     let nan = f32::NAN;
     let inf = f32::INFINITY;
-    assert_eq!(Mat4::orthographic(-inf, 1.0, -1.0, 1.0, 0.1, 10.0), invalid("left", -inf));
-    assert_eq!(Mat4::orthographic(-1.0, inf, -1.0, 1.0, 0.1, 10.0), invalid("right", inf));
-    assert_eq!(Mat4::orthographic(-1.0, 1.0, -inf, inf, 0.1, 10.0), invalid("bottom", -inf));
-    assert_eq!(Mat4::orthographic(-1.0, 1.0, -1.0, inf, 0.1, 10.0), invalid("top", inf));
-    assert_eq!(Mat4::orthographic(-1.0, 1.0, -1.0, 1.0, inf, 10.0), invalid("z_near", inf));
-    assert_eq!(Mat4::orthographic(-1.0, 1.0, -1.0, 1.0, 0.1, -inf), invalid("z_far", -inf));
+    assert_eq!(
+        Mat4::orthographic(-inf, 1.0, -1.0, 1.0, 0.1, 10.0),
+        invalid("left", -inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(-1.0, inf, -1.0, 1.0, 0.1, 10.0),
+        invalid("right", inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(-1.0, 1.0, -inf, inf, 0.1, 10.0),
+        invalid("bottom", -inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(-1.0, 1.0, -1.0, inf, 0.1, 10.0),
+        invalid("top", inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(-1.0, 1.0, -1.0, 1.0, inf, 10.0),
+        invalid("z_near", inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(-1.0, 1.0, -1.0, 1.0, 0.1, -inf),
+        invalid("z_far", -inf)
+    );
     let result = Mat4::orthographic(-1.0, 1.0, -1.0, 1.0, 0.1, nan);
-    assert!(matches!(result, Err(MathError::InvalidProjection { parameter: "z_far", value }) if value.is_nan()));
+    assert!(
+        matches!(result, Err(MathError::InvalidProjection { parameter: "z_far", value }) if value.is_nan())
+    );
     // Non-finite values are reported before equal bounds.
-    assert_eq!(Mat4::orthographic(1.0, 1.0, -1.0, 1.0, 0.1, inf), invalid("z_far", inf));
-    assert_eq!(Mat4::orthographic(2.0, 2.0, 3.0, 3.0, 1.0, 1.0), invalid("right", 2.0));
-    assert_eq!(Mat4::orthographic(-2.0, 2.0, 3.0, 3.0, 1.0, 1.0), invalid("top", 3.0));
-    assert_eq!(Mat4::orthographic(-2.0, 2.0, -3.0, 3.0, 1.0, 1.0), invalid("z_far", 1.0));
+    assert_eq!(
+        Mat4::orthographic(1.0, 1.0, -1.0, 1.0, 0.1, inf),
+        invalid("z_far", inf)
+    );
+    assert_eq!(
+        Mat4::orthographic(2.0, 2.0, 3.0, 3.0, 1.0, 1.0),
+        invalid("right", 2.0)
+    );
+    assert_eq!(
+        Mat4::orthographic(-2.0, 2.0, 3.0, 3.0, 1.0, 1.0),
+        invalid("top", 3.0)
+    );
+    assert_eq!(
+        Mat4::orthographic(-2.0, 2.0, -3.0, 3.0, 1.0, 1.0),
+        invalid("z_far", 1.0)
+    );
     // −0.0 == 0.0: equal bounds.
-    assert_eq!(Mat4::orthographic(-0.0, 0.0, -1.0, 1.0, 0.1, 10.0), invalid("right", 0.0));
+    assert_eq!(
+        Mat4::orthographic(-0.0, 0.0, -1.0, 1.0, 0.1, 10.0),
+        invalid("right", 0.0)
+    );
     // Inverted bounds are valid (mirroring).
     assert!(Mat4::orthographic(1.0, -1.0, 1.0, -1.0, 10.0, 0.1).is_ok());
 }

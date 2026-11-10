@@ -6,13 +6,18 @@
 fn required_paths() -> Vec<String> {
     let float_functions = [
         // CODE_STYLE.md list.
-        "sin", "cos", "tan", "powf", "exp", "ln",
-        // Added by MATH-R004.
+        "sin", "cos", "tan", "powf", "exp", "ln", // Added by MATH-R004.
         "mul_add", "sin_cos", "asin", "acos", "atan", "atan2", "sinh", "cosh", "tanh", "asinh",
         "acosh", "atanh", "powi", "exp2", "exp_m1", "ln_1p", "log", "log2", "log10", "hypot",
         "cbrt",
     ];
-    let x86 = ["_mm_rsqrt_ps", "_mm_rsqrt_ss", "_mm_rcp_ps", "_mm_rcp_ss", "_mm_fmadd_ps"];
+    let x86 = [
+        "_mm_rsqrt_ps",
+        "_mm_rsqrt_ss",
+        "_mm_rcp_ps",
+        "_mm_rcp_ss",
+        "_mm_fmadd_ps",
+    ];
     let arm = [
         "vrsqrteq_f32",
         "vrecpeq_f32",
@@ -28,7 +33,10 @@ fn required_paths() -> Vec<String> {
         }
     }
     paths.extend(x86.iter().map(|name| format!("core::arch::x86_64::{name}")));
-    paths.extend(arm.iter().map(|name| format!("core::arch::aarch64::{name}")));
+    paths.extend(
+        arm.iter()
+            .map(|name| format!("core::arch::aarch64::{name}")),
+    );
     paths
 }
 

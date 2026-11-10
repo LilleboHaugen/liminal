@@ -98,17 +98,23 @@ pub fn d_vec4() -> impl Strategy<Value = Vec4> {
 
 /// D-unit: four components in −1 to 1 with length at least 0.1, normalized.
 pub fn d_unit() -> impl Strategy<Value = Quat> {
-    [-1.0_f32..=1.0, -1.0_f32..=1.0, -1.0_f32..=1.0, -1.0_f32..=1.0]
-        .prop_map(|[x, y, z, w]| Quat::from_xyzw(x, y, z, w))
-        .prop_filter("length at least 0.1", |q| q.length() >= 0.1)
-        .prop_map(|q| q.normalize().expect("test setup: length at least 0.1"))
+    [
+        -1.0_f32..=1.0,
+        -1.0_f32..=1.0,
+        -1.0_f32..=1.0,
+        -1.0_f32..=1.0,
+    ]
+    .prop_map(|[x, y, z, w]| Quat::from_xyzw(x, y, z, w))
+    .prop_filter("length at least 0.1", |q| q.length() >= 0.1)
+    .prop_map(|q| q.normalize().expect("test setup: length at least 0.1"))
 }
 
 /// D-trs: (scale, rotation, translation) with scale components in 0.5 to 2, rotation in
 /// D-unit and translation components in −10 to 10.
 pub fn d_trs() -> impl Strategy<Value = (Vec3, Quat, Vec3)> {
     let scale = [0.5_f32..=2.0, 0.5_f32..=2.0, 0.5_f32..=2.0].prop_map(Vec3::from_array);
-    let translation = [-10.0_f32..=10.0, -10.0_f32..=10.0, -10.0_f32..=10.0].prop_map(Vec3::from_array);
+    let translation =
+        [-10.0_f32..=10.0, -10.0_f32..=10.0, -10.0_f32..=10.0].prop_map(Vec3::from_array);
     (scale, d_unit(), translation)
 }
 
