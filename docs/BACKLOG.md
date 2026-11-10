@@ -236,3 +236,11 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `xtask/tests/deny_policy.rs` `git_dependencies_are_rejected` writes a checkout of its fixture
   repository into the user's `$CARGO_HOME/git/` on every run (the reviewer's machine holds 10+
   `dep-*` entries). Run it with a temporary `CARGO_HOME`, as `other_registry_dependencies_are_rejected` does.
+
+## M1-T010 — review 2026-11-10
+
+- `docs/specs/xtask.md` §8 says a probe whose working directory is missing is reported as
+  `working directory <path> does not exist`; `xtask/src/doctor.rs` `RealProber::probe` reports the
+  tool `missing`. Unreachable today (R015 checks the root first); align the spec sentence or the code.
+- `xtask/src/repo/metadata.rs`, `xtask/src/repo/coverage.rs`: no test shows the missing-working-
+  directory message reaches these two `start_error` call sites (only `RealRunner` is tested).

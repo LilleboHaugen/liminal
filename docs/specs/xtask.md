@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 26
+spec_version: 27
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -125,6 +125,7 @@ Summary details (added in `spec_version` 2):
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
 | XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 24; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
+| XTASK-R015 | MUST | Every command except `help` first checks that the repository root (the parent of the `xtask/` manifest directory, fixed when xtask is compiled) is a directory that contains `architecture.toml`. If not (for example, the checkout was moved or renamed after xtask was built, and cargo did not rebuild it), the command runs nothing else: it prints exactly one line, internal error LIM-XTASK-0007 naming that root and the fix, to stderr, nothing to stdout, and exits with code 1 (`spec_version` 27). |
 
 ### `check-docs` (R020–R029)
 
@@ -629,6 +630,9 @@ unparseable) use:
 | LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039), `deny.toml` for R085) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
+| LIM-XTASK-0007 | The repository root compiled into xtask does not exist or has no `architecture.toml` (R015) | The checkout was moved or renamed after xtask was built: run `cargo clean -p xtask`, then the command again |
+
+An internal error names the file concerned relative to the repository root; when that is the root itself, it names the root's absolute path (never an empty path). A child process (`cargo`, a probe) that cannot be spawned because its working directory does not exist is reported as `working directory <path> does not exist`, not as `could not start <program>` (`spec_version` 27).
 
 ## 9. Performance budgets
 
@@ -649,6 +653,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency and on a dependency from a local second registry; `check advisories` on a fixture advisory database with transitive and direct advised crates, with passing controls | cargo-deny's sources and advisories checks |
 | `deny.toml` ignores (R085) | unit tests of the entry rules with a fixed date; `hygiene` fixture `r085_advisory_ignore` | Rules above |
 | Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
+| Moved checkout (R015) | unit tests of the command dispatcher with a root that does not exist, and one without `architecture.toml` (the binary's compiled-in root cannot be changed without rebuilding it, so no real-binary test) | R015 |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
 The fake step runner is a test double for process spawning only, and is used solely to test
@@ -718,3 +723,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 24 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
 | 25 | 2026-11-10 | `doctor` and `deny` details: probe stdin/stderr test and why the `Stdio::null()` calls are not observable; `confidence-threshold` test; new R085 (expiry of ignored advisories, checked by `hygiene`); `doctor` in the `checks` CI jobs; LIM-XTASK-0004 covers `deny.toml` | M1-T008 |
 | 26 | 2026-11-10 | R083 test approach: a second (local git index) registry is now tested; R084: the `unmaintained` case also covers a direct dependency (review 2 of M0-T009) | M1-T009 |
+| 27 | 2026-11-10 | New R015 (moved checkout: the compiled-in root is checked first, one LIM-XTASK-0007 error); §8: LIM-XTASK-0007, the root is named by its absolute path, a missing working directory is not reported as "could not start" (written as R014 in branch version 20; renumbered to R015 and version 27 on merge because main's version 24 took R014 and M1-T009 took 26) | M1-T010 |

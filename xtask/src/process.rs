@@ -2,9 +2,9 @@
 //! spawns processes") and calls the check function for native check steps. Orchestration logic
 //! lives in `ci` and is tested with a fake runner.
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::io::{self, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 
 use crate::check::CheckFn;
@@ -16,6 +16,17 @@ pub(crate) const TAIL_LINES: usize = 50;
 /// Help text when `cargo` itself cannot be started.
 pub(crate) const CARGO_HELP: &str = "Install Rust through rustup (https://rustup.rs) and run from a shell \
                           where `cargo` works; `cargo xtask doctor` lists required tools.";
+
+/// The message for a child process that could not be spawned: `program` in working directory
+/// `cwd` failed with `error`. A missing working directory is named as such, because the OS error
+/// for it ("No such file or directory") would otherwise read as a missing program (spec §8).
+pub(crate) fn start_error(program: &OsStr, cwd: &Path, error: &io::Error) -> String {
+    if cwd.is_dir() {
+        format!("could not start `{}`: {error}", program.to_string_lossy())
+    } else {
+        format!("working directory `{}` does not exist", cwd.display())
+    }
+}
 
 /// Runs cargo steps as child processes in the repository root, and native check steps in-process.
 pub(crate) struct RealRunner {
@@ -52,10 +63,7 @@ impl RealRunner {
 
     fn cannot_start(&self, error: &io::Error) -> Outcome {
         Outcome::Skipped {
-            reason: format!(
-                "could not start `{}`: {error}",
-                self.cargo.to_string_lossy()
-            ),
+            reason: start_error(&self.cargo, &self.root, error),
             help: CARGO_HELP.to_string(),
         }
     }
@@ -221,6 +229,28 @@ mod tests {
         reason: "the test tool is not installed",
         help: "install the test tool",
     };
+
+    #[test]
+    fn a_missing_working_directory_is_not_reported_as_a_missing_program() {
+        let error = io::Error::from(io::ErrorKind::NotFound);
+        let missing = crate::repo::root().join("target/xtask-test-no-such-root");
+        assert_eq!(
+            start_error(OsStr::new("cargo"), &missing, &error),
+            format!("working directory `{}` does not exist", missing.display())
+        );
+        let message = start_error(OsStr::new("cargo"), &crate::repo::root(), &error);
+        assert!(
+            message.starts_with("could not start `cargo`: "),
+            "{message}"
+        );
+
+        let mut runner = RealRunner::new(missing.clone());
+        let outcome = runner.run(&step(&["--version"], None), OutputMode::Capture);
+        let Outcome::Skipped { reason, .. } = outcome else {
+            panic!("expected a skip: {outcome:?}");
+        };
+        assert!(reason.starts_with("working directory `"), "{reason}");
+    }
 
     #[test]
     fn tail_keeps_the_last_lines() {

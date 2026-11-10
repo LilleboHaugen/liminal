@@ -277,7 +277,7 @@ pub(crate) fn measure(
     stderr: Stderr,
 ) -> Result<Measurement, MeasureError> {
     let cannot_start = |error: std::io::Error| MeasureError::Skipped {
-        reason: format!("could not start `{}`: {error}", cargo.to_string_lossy()),
+        reason: crate::process::start_error(cargo, root, &error),
         help: crate::process::CARGO_HELP.to_string(),
     };
     let probed = Command::new(cargo)

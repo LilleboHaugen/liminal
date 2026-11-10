@@ -227,7 +227,10 @@ fn trace_rejects_a_crate_without_spec_and_a_missing_crate_name() {
     assert_usage_error(&["trace", "--crate"], "`--crate` needs a crate name");
 }
 
-/// Verifies: XTASK-R072
+/// Runs only the passing side of `status --check`: the failing side needs a stale
+/// `docs/STATUS.md`, and the binary cannot be pointed at another root or made to see one without
+/// changing the repository (XTASK-R010). The library tests in `src/status/tests.rs` verify
+/// XTASK-R072 on both sides.
 #[test]
 fn status_check_passes_and_status_leaves_an_up_to_date_file_unchanged() {
     let path = repo_root().join("docs/STATUS.md");
@@ -327,8 +330,17 @@ fn doctor_reports_every_tool_whatever_is_installed() {
         let name = tool["tool"].as_str().expect("`tool` is a string");
         let words: Vec<&str> = line.split_whitespace().collect();
         assert_eq!(words.first(), Some(&name), "line: {line}");
+        let state = line
+            .trim_start()
+            .strip_prefix(name)
+            .unwrap_or_else(|| panic!("line does not start with {name}: {line}"))
+            .trim_start();
         if tool["present"] == false {
-            assert_eq!(words.get(1..), Some(&["missing"][..]), "line: {line}");
+            assert_eq!(state, "missing", "line: {line}");
+        } else if let Some(version) = tool["version"].as_str() {
+            assert_eq!(state, version, "line: {line}");
+        } else {
+            assert_eq!(state, "present (no version output)", "line: {line}");
         }
     }
     let result = match findings {
