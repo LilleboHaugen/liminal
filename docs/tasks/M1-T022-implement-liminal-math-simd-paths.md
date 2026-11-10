@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_math]
 depends_on: [M1-T021, M1-T017, M1-T018]
-requirements: []
+requirements: [MATH-R131, MATH-R132, MATH-R191]
 ---
 
 # M1-T022: Implement `liminal_math` SIMD paths
@@ -41,7 +41,7 @@ Requirements in frontmatter; differential tests; Miri.
 
 ## Notes
 
-_None._
+Added by M1-T019 (2026-11-10): `docs/specs/liminal_math.md` §9 names this task (the first `liminal_math` task that depends on the benchmark harness) for the `det` baseline cases as well as the SIMD and reference cases. Spec §12 open question 3 (benchmark evidence for the x86_64 paths) and open question 4 (Miri and intrinsics) are resolved here.
 
 ## Handoff
 

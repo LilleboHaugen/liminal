@@ -31,7 +31,7 @@
 | [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | todo | M1-T015 |
 | [M1-T017](tasks/M1-T017-cargo-xtask-bench-and-the-first-wall-clock-basel.md) | cargo xtask bench and the first wall-clock baselines | todo | M1-T016 |
 | [M1-T018](tasks/M1-T018-miri-and-loom-in-ci.md) | Miri and loom in CI | todo | M1-T014, M1-T006 |
-| [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | todo | M1-T001, M1-T054 |
+| [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | review | M1-T001, M1-T054 |
 | [M1-T020](tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md) | Implement liminal_math — scalar vector, matrix and quaternion types | todo | M1-T019, M1-T014 |
 | [M1-T021](tasks/M1-T021-implement-liminal-mathdet.md) | Implement liminal_math::det | todo | M1-T020 |
 | [M1-T022](tasks/M1-T022-implement-liminal-math-simd-paths.md) | Implement liminal_math SIMD paths | todo | M1-T021, M1-T017, M1-T018 |
@@ -78,7 +78,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 55 | 48 | 0 | 0 | 0 | 7 |
+| M1 (Headless core) | 55 | 47 | 0 | 0 | 1 | 7 |
 | M2 (Agent interface v0) | 4 | 4 | 0 | 0 | 0 | 0 |
 
 ## Crates
@@ -86,7 +86,7 @@ None.
 | Crate | Layer | Maturity | Spec |
 |---|---|---|---|
 | liminal_core | 0 | planned | [liminal_core.md](specs/liminal_core.md) |
-| liminal_math | 0 | planned | — |
+| liminal_math | 0 | planned | [liminal_math.md](specs/liminal_math.md) |
 | liminal_memory | 0 | planned | — |
 | liminal_reflect | 0 | planned | — |
 | liminal_reflect_derive | 0 | planned | — |
