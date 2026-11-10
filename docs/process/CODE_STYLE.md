@@ -84,3 +84,5 @@ API correctly from its docs alone.
   applicable, module declarations and re-exports, and no logic.
 - Feature flags are documented in the crate root docs and in the spec. Avoid feature combinations
   that change behaviour silently. Every feature must build alone (`--no-default-features --features x`).
+  `cargo xtask ci` tests every crate that has features once more with all of them off (step
+  `test-features-off`, XTASK-R014); no command builds each feature alone yet.

@@ -2,7 +2,7 @@
 id: M1-T056
 title: liminal_telemetry spec follow-ups from the M1-T027 review
 milestone: M1
-status: in-progress
+status: review
 crates: [liminal_telemetry, xtask]
 depends_on: [M1-T027]
 requirements: []
@@ -89,11 +89,12 @@ and `cargo xtask ci` runs the tests that exist only with the `telemetry` feature
 
 ## Acceptance criteria
 
-- [ ] Items 1 to 10 are done, or a declined or split-off item is written into this task with the
-      reason.
-- [ ] Spec changes bump `spec_version` with a history row; moved requirement IDs are in exactly
+- [x] Items 1 to 10 are done, or a declined or split-off item is written into this task with the
+      reason. (Item 7: the viewer check is not done, see "Handoff"; item 9c: `liminal_memory`
+      links not done, its spec is not on `main`.)
+- [x] Spec changes bump `spec_version` with a history row; moved requirement IDs are in exactly
       one task's `requirements` frontmatter.
-- [ ] `cargo xtask ci` passes.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -102,7 +103,65 @@ requirements they touch are tested by M1-T028 and M1-T029.
 
 ## Handoff
 
-_Empty._
+Session 2026-11-10 (implementation sub-agent). Status `review`. M1-T028 and M1-T029 were both
+`todo`, so no code was checked. `docs/specs/liminal_telemetry.md` is at `spec_version` 2,
+`docs/specs/xtask.md` at 23.
+
+| Item | Outcome |
+|---|---|
+| 1 | Done. TELE-R063 and TELE-R064 moved to M1-T028 (spec §6 "Assignment", both tasks' `requirements`, scope and notes). The word "provisionally" is gone; M1-T028 implements `end_frame` completely. |
+| 2 | Done. Spec §4 "Frame" states both ways of calling `end_frame` (per main-loop iteration; per simulation step with `sim_steps: 1` plus once after rendering with `sim_steps: 0`). Which one `liminal_app` uses is open question 11 (M1-T044). No requirement changed: TELE-R063 and TELE-R064 already hold for every call. |
+| 3 | Done, first option: the clause is stated not to apply (spec §10 "Ring buffer and its reference", pointers in §3 and §9). The reference stays private test code (PERFORMANCE.md item 3), so §5 has no `reference` module and §9 no comparison case. See "For the reviewer" 1. |
+| 4 | Done. TELE-R011: a span records only into the collector it was entered under; mechanism "collector identity" in §4 (the value the one relaxed load reads); test described in the requirement. The requirement also states what happens to the open-span count. |
+| 5 | Done. §4 "Record": the log payload is one `Box`; TELE-R056 says the payload is outside the 48 bytes; TELE-R052 (with a test), TELE-R061 and TELE-R065 say when a discarded log record's payload is freed. |
+| 6 | Done. TELE-R082: the unsigned rule covers only this crate's own integers; field values follow CORE-R010 (leading `-`). TELE-R093: `min` and `max` over finite values only, `null` exactly when there is none; `last` is `null` when non-finite. §10 snapshot input gained a negative `Int`, an infinite gauge and a counter and gauge with one name. |
+| 7 | **Partly done.** Not checked in Perfetto: no code writes a trace yet and this agent had no trace viewer. The spec keeps the format, states the assumption and both checks in open question 12 and TELE-R084, and names the change M1-T029 makes if the check confirms it (also in M1-T029 "Notes"). |
+| 8 | Done. TELE-R090: the sum is `u64`, saturating at `u64::MAX`. |
+| 9a | Done. §10 table: lock per test binary for integration tests, unit tests, doc tests and other crates' test binaries; poisoned-lock rule. |
+| 9b | Done. The two "Not scheduled" rows are removed; §9 says the task that prepares the `stable` promotion adds them (same wording as M1-T055 used for `liminal_core`). |
+| 9c | Done for `liminal_core` (three links). **Not done for `liminal_memory`:** `docs/specs/liminal_memory.md` is not on `main` (M1-T024 not merged), and a link to a missing file fails `check-docs`. The two "on its branch" references (§2, open question 7) stay; whoever next edits this spec after M1-T024 is merged turns them into links. |
+| 10 | Done, not split off. New step `test-features-off` in `cargo xtask ci`, directly after `test` (XTASK-R014, `xtask/src/features_off.rs`, runner in `xtask/src/process.rs`). Spec open question 2 is closed; TELE-R004 and §13 name the step. |
+
+Item 10 design (details in `docs/specs/xtask.md` "`test-features-off` details"):
+
+- One `cargo test --package <name> --no-default-features --locked` per workspace package whose
+  `features` object in `cargo metadata` is not empty (this includes implicit features of
+  optional dependencies). Not one `--workspace` command: feature unification would let another
+  member turn the feature on again.
+- No package with features (the repository today): the step passes without running a test
+  command. The real process path is still tested: a unit test writes a two-package workspace to
+  a temporary directory and runs the real step on it (real `cargo metadata`, real `cargo test`).
+- `repo::metadata::Package` gained `features`; `cargo metadata` output without a `features`
+  member is LIM-XTASK-0002, never read as "no features".
+- `doctor` lists the step among those that need `rustc` and `cargo`.
+- `.github/workflows/ci.yml` is unchanged: the `checks` jobs run `cargo xtask ci --skip
+  coverage,deny`, which includes the new step.
+
+Verified: `cargo xtask ci` on the merge with `main` (02b19e7): pass, 12 steps, none skipped,
+macOS 27.2 arm64, Rust 1.99.1; `xtask` coverage 98.1 % (floor 97.6, unchanged). Two seeded
+mutants in `features_off.rs` (flag `--no-default-features` removed; filter "has features"
+removed) each failed three tests, then were reverted. Not verified locally: Windows and Linux
+(the branch CI run covers them; result in the journal entry `2026-11-10-M1-T056.md`).
+
+For the reviewer:
+
+1. Item 3 is a judgment. The spec argues that the ring's `unsafe` implements ADR-0016's
+   "lock-free per-thread buffers" and is not an optimization of a safe buffer that meets the
+   contract. Two parts of the argument are marked in the spec as not proven: that no safe
+   single-producer single-consumer ring is possible with `std`, and that `sync_channel` is
+   excluded only by INV-5's "no read-modify-write atomic" rule, which is this spec's choice.
+   The alternative (second option of item 3) needs the ring and its reference to be public.
+2. Not covered by any command: each feature built alone (`--no-default-features --features x`,
+   CODE_STYLE.md). Stated in the xtask spec and CODE_STYLE.md. No task was written for it
+   (several sub-agents create tasks at once; a new task ID from here could collide). The
+   follow-up task of this review can carry it.
+3. `cargo llvm-cov` runs the new real-workspace test too, so a nested `cargo test` runs inside
+   the coverage step. It passed here and the `xtask` percentage is computed as before; the
+   `coverage` CI job on Linux is the second data point.
+4. The `test-features-off` step stops at the first failing package (spec details). `ci` itself
+   still runs the later steps (XTASK-R004).
+5. M1-T029's title still says "frame stats"; only its scope and `requirements` changed, to
+   keep the task index and file name stable.
 
 ## Review
 
