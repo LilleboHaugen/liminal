@@ -205,3 +205,11 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   changes the hash by ECS-R190 (4). Name it among the conditions.
 - `docs/tasks/README.md` has no row for M1-T059, and `depends_on` of
   `docs/tasks/M1-T053-m1-exit-review.md` lists none of M1-T055 to M1-T061 (only M1-T062).
+
+## M1-T061 — review 2026-11-10
+
+- `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is
+  not in the list passes, so bare prelude names (`Clone`, `Default`, `Box`, `Into`) in generated
+  code pass test (1), and test (2) does not shadow them. Same gap as in `spec_version` 2; M1-T032
+  may extend the list or the shadowing test.
+- `docs/tasks/README.md`: no row for M1-T061 (task created by the M1-T057 review).

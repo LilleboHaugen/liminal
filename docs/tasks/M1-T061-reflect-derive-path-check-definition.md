@@ -2,7 +2,7 @@
 id: M1-T061
 title: Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review)
 milestone: M1
-status: review
+status: done
 crates: [liminal_reflect_derive]
 depends_on: [M1-T057]
 requirements: []
@@ -133,4 +133,22 @@ rule (c); write such code without that macro form, or change the spec.
 
 ## Review
 
-_Filled in by the reviewing session: date, what was checked, outcome._
+2026-11-10, review sub-agent (ADR-0026, ADR-0030; journal `docs/journal/2026-11-10-M1-T061-review.md`),
+rules of `origin/main` at `c891029`. macOS 27.2 arm64, Rust 1.99.1.
+
+**Outcome: done.** No blocking finding.
+
+| Check | Result |
+|---|---|
+| Item 1 | Candidate (b) chosen and stated exactly in REFLD-R003 test (1): rules (a) to (d), the definition of *absolute* and *root*, the `QSelf` storage, which identifiers are not checked. §3 records `full` and `visit` with the reason. `syn-3.0.9` (the `Cargo.lock` version) declares both features (read in its `Cargo.toml`). |
+| Item 2 | `String` excluded from the field types of the test inputs, with the reason; no exemption for copied tokens. |
+| Item 3 | Re-run independently: own probe (session scratchpad, not committed; `syn` =3.0.9 with the six features, `quote` =1.0.47, `proc-macro2` =1.0.107, `--offline`), checker written from the spec text, not from the handoff. A hand-written expansion of `Pair<T, U> where T: Clone` (impl generics with bounds, `-> ::std::string::String`, `=>` arms with `::core::option::Option::Some`, `&dyn ::liminal_reflect::…`, `<T as ::liminal_reflect::value::Typed>::type_path()`, `::std::format!`, `::core::module_path!`, `::std::vec!`, `Self { a, .. }` pattern, `#[automatically_derived]`) passes. Fail, each with the expected rule: `::liminal_core::x()`, bare `Option<u8>`, `None::<u8>`, `<T as Typed>::…`, `<T>::…`, `::liminal_core` inside `::std::format!`, bare `format!`, `use … as _;`, `Vec::new()`, field type `String`, bound `T: Typed`. `syn` representation of `<T>::f` (absolute, 1 segment, position 0) and of `<T as ::liminal_reflect::value::Typed>::f` (absolute, 4 segments, position 3) confirmed as the spec says. |
+| Criteria 2, 3 | `spec_version` 2 → 3 with history row. `cargo xtask ci` on the task branch with `origin/main` `c891029` merged and the review edits: pass, 12 of 12 steps, none skipped. |
+| Scope | Diff touches only REFLD-R003 test (1), §3, §10, two `spec_version` mentions in §2 and §12, the history row, the M1-T032 Notes and `docs/STATUS.md`. Test (2) and the derive design unchanged. |
+| Spec agreement | M1-T032 (`todo`) Notes and `depends_on` point at this task; §10 row matches the requirement. |
+| Session boundaries | Implementation sub-agent of the parent on `session/2026-11-10-m1-t014-review` (its journal is written at the parent's handoff, not yet on any branch: not verifiable here); this reviewer did not work on the task; review prompt is the ADR-0030 Decision 7 template verbatim. No install, no workflow change. |
+
+Not checked: the compile-time effect of `full` and `visit` (the handoff says unmeasured; the
+spec says so too); Windows and Linux.
+
+Backlog: 2 entries under "M1-T061 — review 2026-11-10". Follow-up task: none.
