@@ -36,10 +36,10 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 
 ## M1-T055 — review 2026-11-10
 
-- `docs/specs/liminal_core.md` §5.1, §5.6: `ErrorContext`, `Tick` and `TickDuration` derive
-  `Default`, and no requirement states the value (empty context; count 0). The derived values
-  are the only reasonable ones and `ErrorContext::default()` is already tested as empty; add
-  the statement to CORE-R007 / CORE-R111 when those rows are next edited, or leave it.
+- `docs/specs/liminal_core.md` §5.1: `ErrorContext` derives `Default`, and no requirement
+  states the value (the empty context). `ErrorContext::default()` is already tested as empty;
+  add the statement to CORE-R007 when that row is next edited, or leave it. (The `Tick` and
+  `TickDuration` part of this entry was fixed by M1-T014: CORE-R114, `spec_version` 4.)
 - `docs/process/DOCUMENTATION.md`, `docs/specs/_TEMPLATE.md`: the spec frontmatter field
   `last_reviewed` has no stated meaning (date of the last spec review, or of the last change?).
   `docs/specs/liminal_core.md` v2 keeps 2026-11-09, the review date of v1. Define the field.
@@ -173,3 +173,14 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   missing-value case; for the other checks (field count, name, kind, variant index, array
   length, field ID) the strings are examples, while §10 asks for hand-written expected values.
   M1-T031 fixes the strings in the requirement when it writes the tests.
+
+## M1-T014 — review 2026-11-10
+
+- `crates/liminal_core/src/collections/set.rs`: `DetHashSet::insert` hashes and probes the
+  value twice (`contains_key`, then `DetHashMap::insert`). Still expected constant time
+  (CORE-R075); one probe would halve the cost. Revisit with the `liminal_benches` tasks.
+- `crates/liminal_core/examples/seeded_world.rs`: `cargo test` compiles it, but no CI step runs
+  it, so its own check (two runs with one seed give one hash) runs only by hand.
+- `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
+  would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
+  changes.
