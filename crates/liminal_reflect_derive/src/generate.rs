@@ -187,9 +187,25 @@ fn enum_table(variants: &[Variant]) -> TokenStream {
 
 /// `ReflectFields` methods of a struct (REFLD-R032).
 fn struct_fields(fields: &Fields) -> TokenStream {
-    let indices = 0..fields.fields.len();
-    let members: Vec<_> = fields.fields.iter().map(|field| &field.member).collect();
-    let indices_mut = indices.clone();
+    // `Some(&self.m)` carries the field type's span, so a missing `Reflect` impl is reported at
+    // the field type (REFLD-R053).
+    let arms: Vec<_> = fields
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(index, Field { member, ty, .. })| {
+            let some = quote_spanned!(ty.span()=> ::core::option::Option::Some(&self.#member));
+            quote!(#index => #some,)
+        })
+        .collect();
+    let arms_mut = fields
+        .fields
+        .iter()
+        .enumerate()
+        .map(|(index, Field { member, ty, .. })| {
+            let some = quote_spanned!(ty.span()=> ::core::option::Option::Some(&mut self.#member));
+            quote!(#index => #some,)
+        });
     let accessors = if fields.fields.is_empty() {
         quote! {
             fn field_at(&self, _index: ::core::primitive::usize)
@@ -206,14 +222,14 @@ fn struct_fields(fields: &Fields) -> TokenStream {
             fn field_at(&self, index: ::core::primitive::usize)
                 -> ::core::option::Option<&dyn ::liminal_reflect::value::Reflect> {
                 match index {
-                    #(#indices => ::core::option::Option::Some(&self.#members),)*
+                    #(#arms)*
                     _ => ::core::option::Option::None,
                 }
             }
             fn field_at_mut(&mut self, index: ::core::primitive::usize)
                 -> ::core::option::Option<&mut dyn ::liminal_reflect::value::Reflect> {
                 match index {
-                    #(#indices_mut => ::core::option::Option::Some(&mut self.#members),)*
+                    #(#arms_mut)*
                     _ => ::core::option::Option::None,
                 }
             }
@@ -252,10 +268,10 @@ fn field_arms(variants: &[Variant]) -> impl Iterator<Item = TokenStream> + '_ {
             .fields
             .iter()
             .enumerate()
-            .map(move |(index, Field { member, .. })| {
+            .map(move |(index, Field { member, ty, .. })| {
+                let some = quote_spanned!(ty.span()=> ::core::option::Option::Some(#binding));
                 quote! {
-                    (Self::#ident { #member: #binding, .. }, #index) =>
-                        ::core::option::Option::Some(#binding),
+                    (Self::#ident { #member: #binding, .. }, #index) => #some,
                 }
             })
     })
