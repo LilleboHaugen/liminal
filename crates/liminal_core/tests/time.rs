@@ -111,6 +111,8 @@ fn ticks_to_seconds_converts_the_count_and_divides_once() {
     assert_eq!(secs(60, 0), 0.0_f64.to_bits());
     assert_eq!(secs(60, 120), 2.0_f64.to_bits());
     assert_eq!(secs(60, 90), 1.5_f64.to_bits());
+    // A division, not a multiplication by `dt`: 49 × (1/49) would be 1 − 2^-53.
+    assert_eq!(secs(49, 49), 1.0_f64.to_bits());
     assert_eq!(secs(1000, 1), 0x3F50_624D_D2F1_A9FC); // 0.001
     assert_eq!(secs(3, 1), 0x3FD5_5555_5555_5555); // 1/3
     assert_eq!(secs(1, TWO_POW_53), 0x4340_0000_0000_0000); // 2^53, exact
