@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_memory]
 depends_on: [M1-T024, M1-T014, M1-T018]
-requirements: []
+requirements: [MEM-R001, MEM-R002, MEM-R003, MEM-R010, MEM-R011, MEM-R012, MEM-R013, MEM-R014, MEM-R015, MEM-R016, MEM-R017, MEM-R018, MEM-R019, MEM-R030, MEM-R031, MEM-R032, MEM-R033]
 ---
 
 # M1-T025: Implement `liminal_memory`: arena and frame allocators
@@ -42,7 +42,13 @@ Requirements in frontmatter; property tests (alignment, no overlap, reset semant
 
 ## Notes
 
-_None._
+- Scope clarification (M1-T024, 2026-11-09): `docs/specs/liminal_memory.md` assigns the arena's
+  own aligned slice call (`Arena::alloc_slice_fill_aligned`, MEM-R003, MEM-R015) and the error
+  codes LIM-MEM-0001 to LIM-MEM-0004 (MEM-R002) to this task, because they are part of the `Arena`
+  type. "Aligned allocation" in **Out** means `AlignedBuf` (M1-T026). Allocation statistics
+  (`Arena::stats`, MEM-R070) stay in M1-T026.
+- The spec's §5 uses a placeholder name for the `liminal_core` error trait (spec Q1); use the
+  names from `docs/specs/liminal_core.md` and update the spec if they differ.
 
 ## Handoff
 
