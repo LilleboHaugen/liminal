@@ -92,3 +92,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M2-T005](M2-T005-rust-lexer-number-follow-ups.md) | Rust lexer numeric literal follow-ups from the M1-T004 review |
 | [M2-T006](M2-T006-determinism-lint-follow-ups.md) | Determinism lint follow-ups from the M1-T011 review |
 | [M2-T007](M2-T007-dependabot-and-main-run-follow-ups.md) | Dependabot handling and `main` run cancellation follow-ups from the M1-T006 review |
+| [M2-T008](M2-T008-status-file-without-merge-conflicts.md) | Remove the `docs/STATUS.md` merge conflict from task branches (ADR-0030) |

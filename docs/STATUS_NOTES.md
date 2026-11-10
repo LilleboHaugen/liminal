@@ -16,12 +16,25 @@ T010. Review M1-T014 first: M1-T020, M1-T015 and most other crates wait for it. 
 merges (task ID collision M1-T061 on the M1-T037 branch, `docs/specs/xtask.md` `spec_version`
 24, branches that predate ADR-0029) are in that journal entry.
 
-ADR-0029 (accepted 2026-11-10 on the owner's instruction, supersedes ADR-0021 and ADR-0027):
-a fresh review sub-agent may review a task a sibling sub-agent wrote; minor review findings go
-to `docs/BACKLOG.md`, only contract-changing ones become a task; a spec task and the first
-implementation task of a crate may be one unit. A session SHOULD act as a parent whenever two
-or more tasks are eligible and keep up to 3 sub-agents (1 review) running (AGENTS.md step 6,
-WORKFLOW.md §2).
+ADR-0030 (accepted 2026-11-10 on the owner's approval, supersedes ADR-0029, whose other
+decisions stay in force):
+- A session has a time budget of 45 minutes unless the owner states another, starts nothing new
+  in its last 20 minutes, and hands off when its running sub-agents have ended.
+- A session starts with a check for other live sessions, worktrees and unmerged session
+  branches, and reports them to the owner before any task work.
+- Up to 3 sub-agents at once, up to 2 of them reviews. A fresh review sub-agent may review a
+  sibling's task. Review prompt: ADR-0030 Decision 7.
+- Reviewers merge on local `cargo xtask ci` green; GitHub CI still runs on three platforms and
+  is read once per session, before the handoff.
+- A `todo` spec task starts only with the first implementation task of its crate, as one unit.
+- `xtask` is frozen except for missed violations and tooling that blocks engine work.
+
+**Parallel M3 track recorded by the owner (2026-11-10, ADR-0030 Decision 11).** Once
+`liminal_core` and `liminal_math` are both `usable`, the M3 kickoff is eligible beside M1 work.
+M1 tasks keep priority for slots. First deliverable of M3: a window with a triangle, then a
+rotating cube, on Metal; Vulkan and all three platforms follow inside M3, nothing is cut. The
+track is paused and the owner told if a review finds it delayed an eligible M1 task or bent the
+GPU interface towards Metal.
 
 **The repository is public since 2026-11-09.** ADR-0028 is accepted (ADR review 2026-11-09)
 and adds AGENTS.md rule 17 and REVIEW.md item 11. Outside issues and pull requests, Dependabot's
@@ -87,20 +100,13 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
 
 ## Blockers needing an owner decision
 
-Not blocking a task today; each needs the owner before the named point.
-
-1. **Nightly toolchain and Miri** (ADR-0022): M1-T018 needs the install approved. M1-T022,
-   T025, T028 and T035 depend on M1-T018.
-2. **First pixels earlier.** The owner expected a visual demo early (2026-11-10). Options the
-   session offered, none chosen yet: (a) a throwaway spike outside the engine rules, using an
-   existing graphics library; (b) a thin first-pixels slice in the engine (window, Metal only,
-   triangle, cube) right after `liminal_core` and the scalar math types; (c) both. Each needs an
-   ADR, because it changes the milestone order in `docs/ROADMAP.md`.
-3. **Platforms and CI.** The owner asked about macOS only and local checks only. The session
-   suggested instead: keep CI but do not wait for it before a merge, and build Metal first with
-   Vulkan later. Not decided. Either needs an ADR (ADR-0005, ADR-0028 rule 17).
-4. **Parallel GPU track.** `docs/ROADMAP.md` allows M3 beside M1/M2 once `liminal_core` and
-   `liminal_math` are `usable`, when the owner records it here.
-5. **Engine-wide conventions** (handedness, axes, matrix layout, angle unit, clip depth) are set
+1. **Nightly toolchain and Miri** (ADR-0022): the owner approved the install in principle on
+   2026-11-10. The parent that runs M1-T018 states the exact command, the install location and
+   the undo, and waits for the owner's yes to that command. M1-T022, T025, T028 and T035 depend
+   on M1-T018.
+2. **Engine-wide conventions** (handedness, axes, matrix layout, angle unit, clip depth) are set
    in the `liminal_math` spec without an ADR; its open question 9 asks whether the owner wants
    one before the M3 kickoff.
+
+Decided on 2026-11-10 (ADR-0030): all three platforms stay; GitHub CI stays and is not waited
+for; no existing GPU library and no throwaway demo; first pixels through the parallel M3 track.
