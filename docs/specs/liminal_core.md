@@ -2,7 +2,7 @@
 crate: liminal_core
 req_prefix: CORE
 layer: 0
-maturity: planned
+maturity: usable
 spec_version: 4
 last_reviewed: 2026-11-09
 adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0024]
@@ -735,8 +735,10 @@ of CORE-R056 and CORE-R098, on `macos-latest` (arm64), `windows-latest` (x86_64)
 
 ## 13. Maturity
 
-Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T014
-(2026-11-10, measured on macOS 27.2 arm64, Rust 1.99.1) and checked by the session that reviews it.
+Current: `usable` (promoted from `planned` via `experimental` by the M1-T014 review,
+2026-11-10: every gate below re-checked by the reviewer, see the "Review" note in
+`docs/tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md`). Next target: `stable`.
+Evidence for `usable` prepared by M1-T014 (2026-11-10, measured on macOS 27.2 arm64, Rust 1.99.1).
 
 - [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
       review of M1-T012, 2026-11-09, "Review" note in

@@ -88,8 +88,8 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
   M0-T011). `xtask` is `usable` (M0-T010, 2026-11-09).
 - `liminal_core` (M1-T013, M1-T014, 2026-11-10) has all six modules of its spec: `error`,
   `handle`, `hash`, `collections`, `rng`, `time`. Line coverage 99.37 % (floor 99.3, measured
-  on macOS). Its spec frontmatter still says `maturity: planned`: only a reviewing session
-  changes it (MATURITY.md); the `usable` evidence is in the spec's §13. Recorded hash and RNG
+  on macOS). `liminal_core` is `usable` (promoted by the M1-T014 review, 2026-11-10; evidence
+  in the spec's §13). Recorded hash and RNG
   literals in its tests are oracles; `crates/liminal_core/tests/reference/kat.py` (Python 3,
   standard library, not run by CI) reproduces the ones it names.
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and

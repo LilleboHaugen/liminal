@@ -173,3 +173,14 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   missing-value case; for the other checks (field count, name, kind, variant index, array
   length, field ID) the strings are examples, while §10 asks for hand-written expected values.
   M1-T031 fixes the strings in the requirement when it writes the tests.
+
+## M1-T014 — review 2026-11-10
+
+- `crates/liminal_core/src/collections/set.rs`: `DetHashSet::insert` hashes and probes the
+  value twice (`contains_key`, then `DetHashMap::insert`). Still expected constant time
+  (CORE-R075); one probe would halve the cost. Revisit with the `liminal_benches` tasks.
+- `crates/liminal_core/examples/seeded_world.rs`: `cargo test` compiles it, but no CI step runs
+  it, so its own check (two runs with one seed give one hash) runs only by hand.
+- `crates/liminal_core/tests/reference/kat.py`: not run by CI. A literal regenerated without it
+  would go unnoticed; consider a CI step (Python 3 is on the hosted runners) when CI next
+  changes.

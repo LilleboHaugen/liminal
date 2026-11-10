@@ -2,7 +2,7 @@
 id: M1-T014
 title: Implement liminal_core — hashing, RNG, collections, time; reach usable
 milestone: M1
-status: review
+status: done
 crates: [liminal_core]
 depends_on: [M1-T013, M1-T059]
 requirements: [CORE-R050, CORE-R051, CORE-R052, CORE-R053, CORE-R054, CORE-R055, CORE-R056, CORE-R057, CORE-R060, CORE-R061, CORE-R070, CORE-R071, CORE-R072, CORE-R073, CORE-R074, CORE-R075, CORE-R076, CORE-R090, CORE-R091, CORE-R092, CORE-R093, CORE-R094, CORE-R095, CORE-R096, CORE-R097, CORE-R098, CORE-R110, CORE-R111, CORE-R112, CORE-R113, CORE-R114, CORE-R130, CORE-R131, CORE-R132, CORE-R133]
@@ -108,4 +108,57 @@ Requirements in frontmatter. Known-answer tests for hash and RNG; determinism te
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0030; parent: the owner-started session of
+2026-11-10 that spawned it), worktree `../liminal-worktrees/M1-T014-review`. Rules read from
+`origin/main` (`d873165`: `AGENTS.md`, `docs/process/REVIEW.md` with ADR-0030). Outcome: **done**,
+no blocking finding. `liminal_core` promoted to `usable` (REVIEW.md §3).
+
+Checked (REVIEW.md §1):
+1. Acceptance criteria: each re-checked by running or reading (below). Requirement list of the
+   frontmatter: every ID has a `Verifies:` test that checks the behaviour; trace with
+   `maturity: usable` applied: MUST 58/58, `trace: ok`.
+2. `cargo xtask ci` on the task branch with `origin/main` (`d873165`) merged in (merge
+   `992f6aa`, `docs/STATUS.md` regenerated): pass, 12 steps, none skipped, macOS 27.2 arm64,
+   Rust 1.99.1. Run again after the review edits (maturity `usable`): pass.
+3. Tests: read `tests/hashing.rs`, `rng.rs`, `collections.rs`, `determinism.rs` and the vector
+   and model helpers. Oracles are external or independent (xxHash sanity vectors, published
+   `rand_xoshiro` reference outputs, hand-written byte sequences, `kat.py`, `Vec` linear-search
+   models); none mirrors the implementation. Mental mutants (XXH64 merge/tail constants,
+   xoshiro rotation, SplitMix shifts, Lemire threshold, seed/key order, map order on remove,
+   table not rebuilt, float shifts) each break a known-answer or model test. The author's 33
+   mutants are listed in the journal.
+4. No fake progress: no placeholder, no ignored or weakened test; the oracle-wording change of
+   spec §10 is a documented substitute, not a scope cut. Coverage floor 98.9 → 99.3 is a raise.
+5. Spec agreement: §5.3–§5.6 match the public API (signatures, bounds, `Default` impls,
+   hand-written `Debug`); XXH64, xoshiro256\*\*, SplitMix64, Lemire, float conversion, tick
+   arithmetic read line by line against CORE-R050–R114. Spec `spec_version` 4 changes reviewed
+   (REVIEW.md §2 for the changed text): accepted.
+6. Unsafe: none (`#![forbid(unsafe_code)]`); Miri not applicable.
+7. Determinism: no std `HashMap`/`HashSet`, clock, OS randomness or transcendental float
+   functions in the crate; `Rng`, `Tick*`, `StreamKey`, collections and handles implement
+   `StateHash`. Branch CI run 42882724790 (`9760608`) read with `gh`: success on
+   `checks (macos-latest)`, `checks (windows-latest)`, `checks (ubuntu-latest)`, `coverage`,
+   `deny`; the later commits change one test assertion and docs only.
+8. Docs: every public item documented; doc tests run; `STATUS_NOTES.md`, spec §11, §13 current.
+9. Architecture: no new dependency; `check-arch` passes.
+10. Session boundaries: author was sub-agent row 21 of `2026-11-10-session-m1-reviews.md`
+    (owner-started); this reviewer did not work on the task; one implementation and one review
+    sub-agent.
+11. Public repository: no workflow change; no outside issue or pull request acted on.
+
+Promotion review (REVIEW.md §3, MATURITY.md `experimental` and `usable` gates), re-run by the
+reviewer: spec reviewed (M1-T012, later versions with M1-T055, M1-T059 and this review);
+`cargo xtask trace --crate liminal_core` with `maturity: usable`: MUST 58/58; `cargo xtask
+coverage`: `liminal_core` 99.37 % (1753/1764) ≥ 85 %; public items documented, entry points
+with runnable examples; integration tests use the public API only; `tests/determinism.rs` with
+four recorded literals, green on the three CI operating systems; example
+`cargo run -p liminal_core --example seeded_world` runs (exit 0, equal hashes for two runs of
+seed 42). `python3 -I crates/liminal_core/tests/reference/kat.py rng-streams` reproduces the
+`rng_streams` literal `0x51B4_4F7B_1B0B_7FA7`. Set `maturity: usable` in the spec and
+`docs/specs/README.md`; `docs/STATUS.md` regenerated.
+
+Findings: 3 follow-ups appended to `docs/BACKLOG.md` ("M1-T014 — review 2026-11-10"). No
+follow-up task (none is contract-changing).
+
+Not verified by the reviewer: Windows and Linux locally (branch CI only); the CI run of the
+commits after `9760608`.
