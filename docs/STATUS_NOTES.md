@@ -6,22 +6,35 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-0025 are accepted.
-M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
-it) first, then the engine crates (plan in M1-T001 "Handoff"). M1-T002 is done (review
-2026-11-09; follow-ups in M2-T001).
+M1 is in progress: 16 tasks became `done` on 2026-11-10 (journal
+`2026-11-10-session-m1-reviews.md`). `crates/liminal_core` exists on `main` (error model,
+handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs.
 
-Parent session `2026-11-09-session-m1-subagents.md` set M1-T004, T006, T008–T012, T024, T027,
-T030 and T054 to `review`, each on its own pushed task branch (not on `main`). The next session
-reviews those still in `review`; no agent of that parent session may. Expect merge conflicts in
-`docs/specs/xtask.md` (`spec_version`), `xtask/src/repo.rs` and `docs/specs/README.md` (see that
-journal entry). Every new spec fails the `xtask` test `loads_the_real_repository` until M1-T012
-(or another spec task) is merged.
+In `review`, each on its own pushed task branch (not on `main`): M1-T014 (rest of
+`liminal_core`, with the evidence for `usable`), M1-T037 (ECS spec), M1-T058, M1-T008, T009,
+T010. Review M1-T014 first: M1-T020, M1-T015 and most other crates wait for it. Traps for those
+merges (task ID collision M1-T061 on the M1-T037 branch, `docs/specs/xtask.md` `spec_version`
+24, branches that predate ADR-0029) are in that journal entry.
 
-ADR-0027 (sub-agents by default, no per-session total) is accepted (ADR review 2026-11-09) and
-supersedes ADR-0026, whose other decisions stay in force through it. Sessions SHOULD act as a
-parent whenever two or more tasks are eligible, keep up to 3 sub-agents (1 review) running until
-nothing is eligible (AGENTS.md step 6, WORKFLOW.md §2).
+ADR-0030 (accepted 2026-11-10 on the owner's approval, supersedes ADR-0029, whose other
+decisions stay in force):
+- A session has a time budget of 45 minutes unless the owner states another, starts nothing new
+  in its last 20 minutes, and hands off when its running sub-agents have ended.
+- A session starts with a check for other live sessions, worktrees and unmerged session
+  branches, and reports them to the owner before any task work.
+- Up to 3 sub-agents at once, up to 2 of them reviews. A fresh review sub-agent may review a
+  sibling's task. Review prompt: ADR-0030 Decision 7.
+- Reviewers merge on local `cargo xtask ci` green; GitHub CI still runs on three platforms and
+  is read once per session, before the handoff.
+- A `todo` spec task starts only with the first implementation task of its crate, as one unit.
+- `xtask` is frozen except for missed violations and tooling that blocks engine work.
+
+**Parallel M3 track recorded by the owner (2026-11-10, ADR-0030 Decision 11).** Once
+`liminal_core` and `liminal_math` are both `usable`, the M3 kickoff is eligible beside M1 work.
+M1 tasks keep priority for slots. First deliverable of M3: a window with a triangle, then a
+rotating cube, on Metal; Vulkan and all three platforms follow inside M3, nothing is cut. The
+track is paused and the owner told if a review finds it delayed an eligible M1 task or bent the
+GPU interface towards Metal.
 
 **The repository is public since 2026-11-09.** ADR-0028 is accepted (ADR review 2026-11-09)
 and adds AGENTS.md rule 17 and REVIEW.md item 11. Outside issues and pull requests, Dependabot's
@@ -87,4 +100,13 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
 
 ## Blockers needing an owner decision
 
-None.
+1. **Nightly toolchain and Miri** (ADR-0022): the owner approved the install in principle on
+   2026-11-10. The parent that runs M1-T018 states the exact command, the install location and
+   the undo, and waits for the owner's yes to that command. M1-T022, T025, T028 and T035 depend
+   on M1-T018.
+2. **Engine-wide conventions** (handedness, axes, matrix layout, angle unit, clip depth) are set
+   in the `liminal_math` spec without an ADR; its open question 9 asks whether the owner wants
+   one before the M3 kickoff.
+
+Decided on 2026-11-10 (ADR-0030): all three platforms stay; GitHub CI stays and is not waited
+for; no existing GPU library and no throwaway demo; first pixels through the parallel M3 track.

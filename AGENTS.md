@@ -17,8 +17,12 @@ it works. Code without evidence is not progress.
 
 ## Session protocol
 
-1. **Orient.** Read `docs/STATUS.md`, `docs/STATUS_NOTES.md` and the three most recent entries in
-   `docs/journal/`.
+1. **Orient (ADR-0030).** Note the start time (`date`). Read `docs/STATUS.md`,
+   `docs/STATUS_NOTES.md` and the newest journal entry whose file name contains `session`. Run the
+   start check: other worktrees, unmerged `session/*` branches, other live sessions. If any exist,
+   report them to the owner and do no task work until the owner says how to proceed. A sub-agent
+   skips the check and reads its task file, what the task references and the journal entries
+   named after its task.
 2. **Pick work**, in this priority order:
    1. **Review** a task in status `review` that you did not work on (`docs/process/REVIEW.md`). Only a
       reviewer can set a task to `done`, so reviews unblock everything else. Only findings of class
@@ -35,20 +39,26 @@ it works. Code without evidence is not progress.
    the plain cargo commands listed under "Commands").
 5. **Hand off.** Before the session ends — finished or not — update the task file (status + handoff notes),
    write a journal entry (`docs/journal/README.md`), and update any doc your change made stale.
-6. **Stop at the session boundary (ADR-0026, ADR-0027, ADR-0029).** A session does at most one review, then one
+6. **Stop at the session boundary (ADR-0026, ADR-0027, ADR-0029, ADR-0030).** A session has a
+   time budget: 45 minutes unless the owner states another. From 20 minutes before its end, start
+   nothing new; let running sub-agents end, then hand off and tell the owner the start time, the
+   end time and what is left. A session does at most one review, then one
    implementation task. When you set your task to `review`, stop task work. Never review
    your own work. Only the project owner starts sessions. A session SHOULD spawn sub-agents for
    task work whenever two or more tasks are eligible, unless the owner forbids it in that session.
-   It then follows ADR-0026, ADR-0027 and ADR-0029:
+   It then follows ADR-0026, ADR-0027, ADR-0029 and ADR-0030:
    every sub-agent counts as a separate session and meets every rule here. The parent only
    orchestrates (no review, implementation, status change, task merge or `done`). Each
    implementation sub-agent gets one task on its own branch and worktree, and concurrent ones
    share no crate. A task is never reviewed by an agent that worked on it, nor by the parent; a
    fresh review sub-agent may review a task a sibling sub-agent wrote. Review
-   sub-agents start fresh with the fixed prompt only. At most 3 sub-agents run at once (1
-   review). Keep the slots full until no task is eligible; each task gets at most one
-   implementation and one review sub-agent per session. A spec task and the first implementation
-   task of the same crate may go to one sub-agent as one unit. Sub-agents never spawn agents.
+   sub-agents start fresh with the fixed prompt only. At most 3 sub-agents run at once (2
+   reviews). Keep the slots full until no task is eligible or the time cutoff is reached; each
+   task gets at most one implementation and one review sub-agent per session. A spec task starts
+   only together with the first implementation task of the same crate, as one unit for one
+   sub-agent. A reviewer merges on local `cargo xtask ci` green without waiting for GitHub CI;
+   the session reads the GitHub run on `main` once, before its handoff. Sub-agents never spawn
+   agents.
    When the owner asks what is next or for the status, and a task written in this session is in
    `review` that this session may not review (it runs no sub-agents, or the task already had its
    review sub-agent), answer: "Start a new session. It will review `<task>`, then continue with

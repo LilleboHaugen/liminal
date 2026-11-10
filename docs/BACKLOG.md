@@ -116,3 +116,60 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   holds under `panic = "abort"` (the process aborts; the requirements apply to unwinding
   builds only). §4 "Helping": spans of an unrelated job run by a waiting thread nest under
   that thread's open span; say so for readers of traces.
+
+## M1-T060 — review 2026-11-10
+
+- `docs/specs/liminal_math.md` §10 "Validation errors": the row lists the vectors for MATH-R160,
+  MATH-R165 and MATH-R175 together. As frustum plane coefficients `(1e-30, 0, 0)` gives
+  LIM-MATH-0014, not LIM-MATH-0001, and the accepted boundary `(2^−63, 0, 0)` needs a matrix
+  whose other five planes are valid; MATH-R175 states neither case, and MATH-R165 does not
+  list `(2^−64, 0, 0)` and `(1e-30, 0, 0)`. State the cases per constructor.
+- `docs/specs/liminal_math.md` MATH-R160: `Plane::from_points` with finite points whose
+  difference or edge cross product overflows (edge lengths above about 1.8e19) reports
+  LIM-MATH-0013, whose message says the points are collinear or too close. Same class as the
+  MATH-R049 entry under "M1-T019 — review 2026-11-10"; decide both together.
+- `docs/specs/liminal_math.md` MATH-R073, MATH-R049: `Quat::from_axis_angle` and `Mat4::look_to`
+  normalize without the `length_squared() < f32::MIN_POSITIVE` check of MATH-R160, so an axis
+  such as `(1e-22, 5e-23, 0)` gives `Ok` with a quaternion of length about 0.9956. No invariant
+  covers them and their property domains use unit vectors. Reject as in MATH-R160 or state it.
+
+## M1-T056 — review 2026-11-10
+
+- `docs/specs/liminal_telemetry.md` §2 and §12 item 7: two references to
+  `docs/specs/liminal_memory.md` still say "on its branch". The file is on `main` (M1-T024);
+  turn them into links (rest of M1-T056 item 9c).
+- `docs/specs/xtask.md` "`test-features-off` details", `xtask/src/features_off.rs` (`test_args`
+  doc): "`--package` selects one package, so no other workspace member can turn a feature on"
+  does not hold for the package's own dependency graph. If a dev-dependency (for example a
+  future `liminal_testkit`) depends on the tested crate with the feature enabled, Cargo unifies
+  it on again and the `cfg(not(feature))` tests silently do not run. By Cargo's rules; not run.
+  State the limit, and check it when `liminal_telemetry` gets dev-dependencies (M1-T028).
+- `docs/specs/xtask.md` XTASK-R014, `docs/process/CODE_STYLE.md`: no command builds each
+  feature alone (`--no-default-features --features x`), and no task covers it (M1-T056 handoff,
+  "For the reviewer" 2). XTASK-R014 also lacks the "revisit at M3" note of XTASK-R012: a crate
+  that needs exactly one backend feature would fail with all features off.
+- `docs/specs/liminal_telemetry.md` §10 "Ring buffer and its reference": the assumption gives
+  "atomics hold one machine word" as the reason no safe ring exists. A 48-byte record can be
+  spread over six `AtomicU64`; the obstacle is that `&'static str` names and the log `Box`
+  cannot be rebuilt from integers without `unsafe`. Correct the reason; M1-T028's review checks
+  the `unsafe` against it (REVIEW.md item 6).
+- `docs/specs/liminal_telemetry.md` TELE-R011: "so no frame record holds a span with a
+  `start_ns` before its collector's `install`" holds only if no collector is dropped and
+  installed on another thread between the guard's identity load and its push. Qualify the
+  sentence (same window as for `counter!`, `gauge!`, `log!`), or state it for one thread.
+- `docs/tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md`: title and file
+  name say "frame stats", which are M1-T028's since M1-T056 (handoff, "For the reviewer" 5).
+
+## M1-T057 — review 2026-11-10
+
+- `docs/specs/liminal_reflect.md` §3: says the cited CORE requirements were compared with the
+  core spec at `spec_version` 1 and 2. `docs/specs/liminal_core.md` is at 3 on `main`; the
+  review compared CORE-R050, R053, R054, R056 and R098 with it (identical text). Update the
+  sentence when the spec is next edited.
+- `docs/specs/liminal_reflect_derive.md` §3: the manifest line
+  `proc-macro2 = { workspace = true, … }` assumes a `[workspace.dependencies]` entry that the
+  root `Cargo.toml` does not have. M1-T032 adds it or writes a version.
+- `docs/specs/liminal_reflect.md` REFL-R080: `expected` / `actual` are fixed only for the
+  missing-value case; for the other checks (field count, name, kind, variant index, array
+  length, field ID) the strings are examples, while §10 asks for hand-written expected values.
+  M1-T031 fixes the strings in the requirement when it writes the tests.

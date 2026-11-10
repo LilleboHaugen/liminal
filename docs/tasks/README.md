@@ -85,7 +85,7 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T057](M1-T057-liminal-reflect-spec-follow-ups.md) | `liminal_reflect` and `liminal_reflect_derive` spec follow-ups from the M1-T030 review |
 | [M1-T058](M1-T058-liminal-memory-spec-follow-ups.md) | `liminal_memory` spec follow-ups from the M1-T024 review |
 | [M1-T060](M1-T060-liminal-math-spec-follow-ups.md) | `liminal_math` spec follow-ups from the M1-T019 review |
-| [M1-T061](M1-T061-reflect-impls-for-liminal-math-and-liminal-core-types.md) | `Reflect` impls for `liminal_math` and `liminal_core` types |
+| [M1-T062](M1-T062-reflect-impls-for-liminal-math-and-liminal-core-types.md) | `Reflect` impls for `liminal_math` and `liminal_core` types |
 | [M2-T001](M2-T001-check-docs-markdown-follow-ups.md) | `check-docs` Markdown follow-ups from the M1-T002 review |
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
 | [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |
@@ -93,3 +93,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M2-T005](M2-T005-rust-lexer-number-follow-ups.md) | Rust lexer numeric literal follow-ups from the M1-T004 review |
 | [M2-T006](M2-T006-determinism-lint-follow-ups.md) | Determinism lint follow-ups from the M1-T011 review |
 | [M2-T007](M2-T007-dependabot-and-main-run-follow-ups.md) | Dependabot handling and `main` run cancellation follow-ups from the M1-T006 review |
+| [M2-T008](M2-T008-status-file-without-merge-conflicts.md) | Remove the `docs/STATUS.md` merge conflict from task branches (ADR-0030) |

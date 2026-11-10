@@ -74,7 +74,7 @@ Requirement IDs leave gaps between groups (template §6). Keep the API small: ev
   script over the requirement tables: no MUST unassigned, none assigned twice). The IDs are in
   those tasks' `requirements` frontmatter and each task's Notes list what the spec sets for it.
 - `docs/specs/README.md` index row; `docs/STATUS.md` regenerated.
-- New task `M1-T061` (`Reflect` impls for `liminal_math` and `liminal_core` types), with its row
+- New task `M1-T062` (`Reflect` impls for `liminal_math` and `liminal_core` types), with its row
   in `docs/tasks/README.md`; `M1-T050` and `M1-T053` list it in `depends_on`.
 
 **Design decisions in the spec (for the spec review to accept or reject)**
@@ -102,7 +102,7 @@ Requirement IDs leave gaps between groups (template §6). Keep the API small: ev
 10. The state hash covers entities, components, registered resources and buffered events, and
     leaves out freed slots, ticks and reader positions (ECS-R190, ECS-R192, §12 item 9).
 11. `liminal_reflect.md` §12 item 1 is decided as option (a) (reflect depends on math); the
-    change itself is task M1-T061, because it is outside `crates: [liminal_ecs]`.
+    change itself is task M1-T062, because it is outside `crates: [liminal_ecs]`.
 
 **Verified**
 - macOS 27.2 arm64, Rust 1.99.1: `cargo xtask ci` passes, 11 of 11 steps, none skipped
@@ -122,12 +122,12 @@ Requirement IDs leave gaps between groups (template §6). Keep the API small: ev
 - That `Primitive(U64)` for `Entity` is accepted by the future serializer (§12 item 2).
 
 **Traps**
-- `M1-T061` is the next free task ID on this branch and on every remote branch on 2026-11-10;
+- `M1-T062` is the next free task ID on this branch and on every remote branch on 2026-11-10;
   another branch of the same parent session may take the same ID before the merge. If so,
   renumber one (file name, `docs/tasks/README.md`, `depends_on` of M1-T050 and M1-T053, the
   three mentions in `docs/specs/liminal_ecs.md` and in the notes of this task).
 - `docs/specs/liminal_reflect.md` §12 items 1 and 2 and `docs/specs/liminal_math.md` §12 item 7
-  still read as open; M1-T061 updates them (left untouched here because M1-T057 and M1-T060
+  still read as open; M1-T062 updates them (left untouched here because M1-T057 and M1-T060
   edit those files).
 - Merging: `docs/specs/README.md` and `docs/tasks/README.md` (index rows) and `docs/STATUS.md`
   (regenerate) will differ from other branches.

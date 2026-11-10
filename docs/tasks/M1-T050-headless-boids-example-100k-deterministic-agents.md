@@ -4,7 +4,7 @@ title: headless_boids example — 100k deterministic agents
 milestone: M1
 status: todo
 crates: []
-depends_on: [M1-T049, M1-T023, M1-T061]
+depends_on: [M1-T049, M1-T023, M1-T062]
 requirements: []
 ---
 

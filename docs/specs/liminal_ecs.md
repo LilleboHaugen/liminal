@@ -1094,14 +1094,14 @@ Open:
    and implements `Reflect` for the math types, so that `liminal_math` stays free of reflection.
    For `liminal_core` types (item 2 there), the form this spec uses for `Entity` (a primitive
    shape over the stored bits, written only through `downcast_mut` of the whole type, ECS-R004)
-   is one candidate. The change is outside this crate: task M1-T061 makes it (the
+   is one candidate. The change is outside this crate: task M1-T062 makes it (the
    `architecture.toml` edge, a `spec_version` bump of the reflect spec, the impls), and
    M1-T050 depends on it.
 2. **`Entity` as a reflected primitive.** ECS-R004 gives `Entity` the shape
    `Primitive(U64)` under its own type path. `liminal_reflect` `spec_version` 1 accepts this
    (REFL-R061, REFL-R080), but no consumer exists yet. Resolve in the `liminal_serial` spec
    (M2, OQ-002): whether a serializer may treat a non-`u64` type with a primitive shape as its
-   primitive, or whether reflect needs an "opaque" shape (M1-T061 may answer it first).
+   primitive, or whether reflect needs an "opaque" shape (M1-T062 may answer it first).
 3. **Components without reflection.** Every component is `Typed` and hashed (ADR-0008 requires it
    for simulation state). Components that are not simulation state or cannot be reflected (GPU
    handles, interpolation caches) have no place yet. Resolve at the M3 kickoff (first
