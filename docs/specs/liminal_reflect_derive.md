@@ -1,0 +1,265 @@
+---
+crate: liminal_reflect_derive
+req_prefix: REFLD
+layer: 0
+maturity: planned
+spec_version: 1
+last_reviewed: 2026-11-10
+adrs: [ADR-0003, ADR-0017, ADR-0018]
+---
+
+# Spec: `liminal_reflect_derive`
+
+## 1. Purpose
+
+`liminal_reflect_derive` provides `#[derive(Reflect)]`, which generates the `liminal_reflect` trait
+impls (`Reflect`, `Typed`, `ReflectFields`, and `ReflectEnum` for enums) for structs and enums, so
+that game and engine types become reflectable without hand-written boilerplate. It is a separate
+crate because Rust requires procedural macros to live in a `proc-macro` crate. Its contract is the
+behaviour of the generated code, which `docs/specs/liminal_reflect.md` defines for impls in
+general, plus the input the macro accepts and the compile errors it reports. Users never depend on
+this crate directly: `liminal_reflect::value::Reflect` re-exports the macro (REFL-R120).
+
+## 2. Scope
+
+**In scope:**
+- The derive macro `Reflect` for named structs, tuple structs, unit structs and enums (unit, tuple
+  and struct variants), with generic type parameters.
+- The attributes `#[reflect(type_path = "…")]` (on the type) and `#[reflect(ignore)]` (on a field).
+- Default type paths of derived types (REFLD-R020).
+- Compile errors for rejected input, each with a stable code `LIM-REFLD-NNNN` (§8).
+
+**Out of scope / non-goals:**
+- The traits, descriptors, field access semantics, registry and state encoding:
+  `liminal_reflect` (`docs/specs/liminal_reflect.md`). The derive generates impls that meet those
+  requirements; it defines none of its own runtime behaviour.
+- Unions, lifetime parameters and const generic parameters (rejected, §8; §12 item 1).
+- Other derives (`Default`, serialization): not in this crate.
+- Renaming the `liminal_reflect` dependency in a user's `Cargo.toml` (`#[reflect(crate = …)]`):
+  not in `spec_version` 1 (§12 item 2).
+
+## 3. Dependencies
+
+- Engine crates: none (`architecture.toml`: layer 0, `same_layer_deps = []`). The generated code
+  names `::liminal_reflect`, which the user's crate depends on; the derive crate itself does not.
+  It cannot have `liminal_reflect` as a dev-dependency (XTASK-R032, no same-layer edge), so tests
+  that compile derived types live in `liminal_reflect` (§10).
+- External crates: `syn`, `quote`, `proc-macro2`, scope `build` (ADR-0003, `architecture.toml`
+  `external`). The `syn` features used are fixed by M1-T032 and recorded in §3 by a spec update if
+  they go beyond `derive`, `parsing`, `printing` and `proc-macro`.
+- `unsafe = "forbid"` (ADR-0018): the crate root has `#![forbid(unsafe_code)]`.
+- `deterministic = false` in `architecture.toml` (it runs at compile time, not in simulation). Its
+  output is still a pure function of its input (REFLD-R070).
+- Structure: `src/lib.rs` holds only the `#[proc_macro_derive(Reflect, attributes(reflect))]` entry
+  point, which converts `proc_macro::TokenStream` to `proc_macro2::TokenStream` and calls a private
+  `expand(input: proc_macro2::TokenStream) -> proc_macro2::TokenStream`. Parsing, validation and
+  generation are in modules below `lib.rs`, operate on `proc_macro2` types only, and are unit-tested
+  in the crate, so `cargo llvm-cov` measures them (proc-macro code that runs inside the compiler is
+  not measured).
+
+## 4. Concepts
+
+- **Accepted input:** a `struct` (named, tuple, unit) or an `enum` with at least one variant, with
+  zero or more generic type parameters, an optional `where` clause, and the `reflect` attributes of
+  §5. Everything else is rejected with a code (§8).
+- **Reflected field:** a field without `#[reflect(ignore)]`. Reflected fields keep their declaration
+  order and get consecutive indices from 0 (per struct, or per enum variant).
+- **Base path:** the part of the type path before the generic arguments: `module_path!()` + `::` +
+  the type's identifier without `r#`, or the `type_path` attribute's value.
+- **Generated block:** all generated items are trait impls inside one `const _: () = { … };` block,
+  so no names are added to the user's module.
+
+## 5. Public API
+
+The crate's only public item is the derive macro. Its accepted syntax is normative:
+
+```rust
+#[proc_macro_derive(Reflect, attributes(reflect))]
+pub fn derive_reflect(input: proc_macro::TokenStream) -> proc_macro::TokenStream;
+```
+
+```rust
+use liminal_reflect::value::Reflect;
+
+#[derive(Reflect)]
+#[reflect(type_path = "my_game::Health")]     // optional, at most once, on the type
+struct Health {
+    current: u32,
+    max: u32,
+    #[reflect(ignore)]                          // optional, on any field (named or tuple)
+    cache: SomeNonReflectType,
+}
+
+#[derive(Reflect)]
+enum State<T> {                                 // generic type parameters: `T: Typed` is added
+    Idle,                                       // unit variant
+    Moving(T, f32),                             // tuple variant: fields "0", "1"
+    Fleeing { from: u32 },                      // struct variant
+}
+```
+
+Generated for a type `X` with generic type parameters `P1 … Pn` (n ≥ 0): `impl<…> Reflect for X<…>`,
+`impl<…> Typed for X<…>`, `impl<…> ReflectFields for X<…>`, and for enums also
+`impl<…> ReflectEnum for X<…>`, each with the type's own generics and `where` clause plus the bound
+`Pi: ::liminal_reflect::value::Typed` for every type parameter. Paths in generated code are absolute
+(`::liminal_reflect::…`, `::core::…`, `::std::…`).
+
+## 6. Requirements
+
+### Accepted input and generated items (R001–R019)
+
+| ID | Level | Requirement |
+|---|---|---|
+| REFLD-R001 | MUST | `#[derive(Reflect)]` on a named struct, tuple struct, unit struct, or an enum with at least one variant (any mix of unit, tuple and struct variants) generates impls of `Reflect`, `Typed` and `ReflectFields`, and for enums also `ReflectEnum`, and nothing else; the impls are inside one `const _: () = { … };` block. The generated code compiles without warnings under the workspace lints (`cargo clippy --all-targets -- -D warnings`), checked by derived test types in `liminal_reflect`'s tests. |
+| REFLD-R002 | MUST | For each generic type parameter `P` of the input, the generated impls carry the bound `P: ::liminal_reflect::value::Typed` in addition to the input's own bounds and `where` clause, which are kept unchanged. A type with two type parameters, one of them with its own bound (`T: Copy`), derives and works for `T = u8, U = String`. |
+| REFLD-R003 | MUST | Generated code names items only through absolute paths starting with `::liminal_reflect`, `::core` or `::std`. A crate that depends on `liminal_reflect` alone (not on `liminal_reflect_derive` or `liminal_core`) and declares local items named `Reflect`, `Typed`, `TypeInfo`, `Shape`, `Option`, `Some`, `None`, `Result`, `Ok`, `Err`, `Vec` and `String` derives without errors (integration test with such shadowing items). |
+| REFLD-R004 | MUST | Field names: a named field's identifier with any `r#` prefix removed (`r#type` → `"type"`); a tuple field's position among the input's fields in decimal, counted before ignored fields are removed (`struct T(u8, #[reflect(ignore)] C, u16)` has fields `"0"` and `"2"`). Reflected fields keep declaration order and have consecutive indices from 0. |
+| REFLD-R005 | MUST | Recursive types derive and their `Typed::type_info()` returns (it does not call `type_info()` of field types): `struct Node { value: u32, children: Vec<Node> }` has a descriptor whose `children` field has `TypeRef` path `"Vec<" + Node::type_path() + ">"`. |
+
+### Type paths (R020–R029)
+
+| ID | Level | Requirement |
+|---|---|---|
+| REFLD-R020 | MUST | Without a `type_path` attribute, `Typed::type_path()` returns `module_path!()` of the module that contains the type definition, `::`, and the type's identifier without `r#`. With generic type parameters `P1 … Pn` (n ≥ 1) it appends `<`, then `P1::type_path()` … `Pn::type_path()` joined by `", "`, then `>`. Example: `Pair<u8, String>` defined in module `game::grid` → `game::grid::Pair<u8, String>`. |
+| REFLD-R021 | MUST | `#[reflect(type_path = "…")]` on the type replaces the base path (generic arguments are still appended by REFLD-R020). The string literal is accepted exactly when it matches `^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)+$` (at least two segments, so it never equals a primitive or container path of `liminal_reflect`); otherwise LIM-REFLD-0006. |
+
+### Generated behaviour (R030–R049)
+
+| ID | Level | Requirement |
+|---|---|---|
+| REFLD-R030 | MUST | `Typed::type_info()` returns `TypeInfo { type_path: Self::type_path(), id: Self::stable_type_id(), shape }` with `shape` `Struct { kind, fields }` for structs (`kind` `Named`, `Tuple` or `Unit` by the struct's syntax) or `Enum { variants }` for enums (variants in declaration order; each `VariantInfo` has the variant's identifier without `r#`, its kind by syntax, and its reflected fields). Each `FieldInfo` has the name of REFLD-R004 and `ty: TypeRef::of::<F>()` for the field's type `F`. `Reflect::reflect_type_info` returns `Self::type_info()`. |
+| REFLD-R031 | MUST | `reflect_ref` and `reflect_mut` return `Struct(self)` for structs and `Enum(self)` for enums. For enums, `variant_index()` is the current variant's 0-based declaration position (explicit discriminants are ignored) and `variant_name()` its identifier without `r#`. |
+| REFLD-R032 | MUST | `ReflectFields` of a derived struct, or of an enum's current variant: `field_count()` is the number of reflected fields; `field_name(i)`, `field_at(i)` and `field_at_mut(i)` return the reflected field with index `i` for `i < field_count()` and `None` otherwise. A unit struct and a unit variant have 0 fields. |
+| REFLD-R033 | MUST | Differential test: for each derived test type in `crates/liminal_reflect/tests/` (named, tuple and unit struct; enum with all three variant kinds; generic type with two parameters; type with ignored fields; recursive type), a hand-written reference impl of a structurally identical twin type (written per `docs/specs/liminal_reflect.md`, kept from M1-T031) gives equal `type_info()` apart from `type_path` and `id`, `validate_reflect` returns `Ok` for both, and for proptest-generated values `reflect_state_hash`, `field_count`, `field_name`, and the result of every `field(name)` / `field_mut(name)` request (value read back or error code) are equal. |
+| REFLD-R034 | MUST | A field with `#[reflect(ignore)]` is absent from `type_info()`, has no index, is not returned by `field_at`, `field`, or `field_mut` (requests for its name return LIM-REFL-0010 or LIM-REFL-0013 per REFL-R043), and is not written by `write_reflect`: changing only that field leaves `reflect_state_hash` unchanged. Its type need not implement `Typed`. |
+| REFLD-R035 | MUST | The derived impls meet every requirement that `docs/specs/liminal_reflect.md` states for impls of `Reflect` and `Typed` (REFL-R002 identities, REFL-R041, REFL-R043 to REFL-R045 field access, REFL-R061 descriptor validity, REFL-R080 consistency): property tests run `validate_reflect`, the field round trip of REFL-R045 and `TypeRegistry::register` on every derived test type of REFLD-R033. |
+
+### Diagnostics (R050–R069)
+
+| ID | Level | Requirement |
+|---|---|---|
+| REFLD-R050 | MUST | Each rejected input of §8 makes the derive emit a compile error whose message starts with its code and `: ` (for example `LIM-REFLD-0001: `) followed by the message of §8, spanned at the token named in §8's "Span" column. Verified twice: unit tests of `expand` assert the message and span start for each code; one rustdoc `compile_fail` doc test per code in `liminal_reflect` (on the `Reflect` re-export) proves that compilation fails. |
+| REFLD-R051 | SHOULD | All diagnostics of one derive input are reported together, in source order (one compile run shows every attribute error of the type), not only the first. |
+| REFLD-R052 | MUST | A reflected field whose type does not implement `Typed` makes compilation fail (rustc trait-bound error E0277 naming `Typed`), and the derive emits no LIM-REFLD error for it. Proved by a `compile_fail` doc test in `liminal_reflect`. |
+| REFLD-R053 | SHOULD | The E0277 error of REFLD-R052 points at the field's type (generated bounds and calls carry the field type's span). Checked by review of the expansion and one manual compile, recorded in M1-T032's handoff. |
+
+### Determinism of the expansion (R070–R079)
+
+| ID | Level | Requirement |
+|---|---|---|
+| REFLD-R070 | MUST | `expand` is a pure function of its input tokens: expanding the same input twice gives token streams with identical `to_string()` output, and the output does not depend on environment variables, the file system, time or iteration order of a hash map (unit test over every derived test input, run twice; review checks that no `HashMap`/`HashSet` is used). |
+
+### Assignment to implementation tasks
+
+Every requirement is assigned to exactly one task; the IDs are in the task's `requirements`
+frontmatter.
+
+| Task | Requirements |
+|---|---|
+| M1-T032 (derive, determinism, `usable` evidence) | REFLD-R001 to REFLD-R005, REFLD-R020, REFLD-R021, REFLD-R030 to REFLD-R035, REFLD-R050 to REFLD-R053, REFLD-R070 |
+
+## 7. Invariants
+
+- INV-1: For every accepted input, the generated `type_info()` lists exactly the reflected fields
+  that `field_at` returns, with the same names and order. (Generated from one field list in `expand`;
+  REFLD-R033, REFLD-R035.)
+- INV-2: Every rejected input produces at least one `LIM-REFLD` diagnostic and no impls (the
+  derive emits only the errors). (Unit tests of REFLD-R050.)
+- INV-3: The output of `expand` for an accepted input contains no items outside the
+  `const _: () = { … };` block. (Unit test on the output tokens; REFLD-R001.)
+
+## 8. Error codes
+
+`liminal_reflect_derive` has no runtime errors: it runs inside the compiler and has no
+`liminal_core` dependency, so it does not implement `EngineError`. Its rejections are compile
+errors. They carry stable codes in the ADR-0017 form (`LIM-<req_prefix>-NNNN`) so an agent can look
+them up here. Messages are normative; `{x}` is filled from the input.
+
+| Code | Rejected input | Message (after `LIM-REFLD-NNNN: `) | Help (appended as ` help: …`) | Span |
+|---|---|---|---|---|
+| LIM-REFLD-0001 | `union` | `#[derive(Reflect)]` does not support unions. | use a struct or an enum. | `union` keyword |
+| LIM-REFLD-0002 | enum with no variants | `#[derive(Reflect)]` needs at least one variant in enum `{name}`. | add a variant, or do not derive `Reflect` for an uninhabited type. | enum identifier |
+| LIM-REFLD-0003 | lifetime parameter | `#[derive(Reflect)]` does not support lifetime parameter `{lifetime}`: reflected types are `'static`. | store owned data (`String`, `Vec<T>`) instead of references. | the lifetime parameter |
+| LIM-REFLD-0004 | const generic parameter | `#[derive(Reflect)]` does not support const parameter `{name}`. | use a fixed-size array field `[T; N]` with a literal `N`, or a `Vec<T>`. | the const parameter |
+| LIM-REFLD-0005 | unknown or malformed `reflect` attribute (unknown key, missing `= "…"` for `type_path`, value given to `ignore`, not a list) | unknown or malformed attribute `#[reflect({tokens})]`. | the accepted forms are `#[reflect(type_path = "a::B")]` on the type and `#[reflect(ignore)]` on a field. | the attribute's content |
+| LIM-REFLD-0006 | `type_path` value not matching REFLD-R021 | type path `{value}` is not a Rust path with at least two segments. | write segments of letters, digits and `_` separated by `::`, for example `my_game::Health`. | the string literal |
+| LIM-REFLD-0007 | `type_path` given more than once | `type_path` is given more than once. | keep one `#[reflect(type_path = "…")]`. | the second occurrence |
+| LIM-REFLD-0008 | `reflect` attribute in the wrong place (`ignore` on the type or a variant, `type_path` on a field or a variant, any `reflect` attribute on a variant or generic parameter) | `#[reflect({key})]` is not allowed on {place}. | put `type_path` on the type and `ignore` on fields. | the attribute |
+| LIM-REFLD-0009 | the same field marked `ignore` twice | field `{name}` is marked `#[reflect(ignore)]` more than once. | keep one `#[reflect(ignore)]`. | the second attribute |
+
+`{place}` is one of `a type`, `a variant`, `a field`, `a generic parameter`. Codes 0010 onward are
+unassigned; new codes take the next free number.
+
+## 9. Performance budgets
+
+None yet: set at `stable` from baselines. The derive runs at compile time; its cost shows in build
+times, not frame times.
+
+| Scenario | Budget | Machine | Source of number |
+|---|---|---|---|
+| `cargo build` time of a crate with 100 derived types (10 fields each), compared with the same crate with hand-written impls | none yet | Reference | Not scheduled; added with the `stable` promotion |
+
+## 10. Test plan
+
+No optimized path. The oracle for generated code is the hand-written reference impls of
+`liminal_reflect`'s tests (REFLD-R033).
+
+| Area | Test kinds | Oracle |
+|---|---|---|
+| Parsing and validation (R001, R004, R020, R021, R050, R051, R070) | unit (in `liminal_reflect_derive`, on `expand` with `proc_macro2` token input) | Hand-written expected messages, spans, field lists and type-path expressions; second expansion (R070) |
+| Generated behaviour (R002, R003, R005, R030–R035) | integration and property tests in `crates/liminal_reflect/tests/` | Hand-written reference impls of twin types (M1-T031); `liminal_reflect` requirements |
+| Rejections (R050, R052) | rustdoc `compile_fail` doc tests on `liminal_reflect::value::Reflect` (no compile-test crate is approved, M1-T032) | The compiler rejects the input |
+| Spans (R053) | review, one manual compile | Compiler output recorded in the M1-T032 handoff |
+
+Every requirement's verifying test carries `/// Verifies: REFLD-Rnnn`. `trace` finds annotations in
+every workspace crate, so tests in `liminal_reflect` count for this spec. A `compile_fail` doc test
+cannot carry a `Verifies:` line attached to a test function; REFLD-R050 and REFLD-R052 therefore
+also have `#[test]` functions (the `expand` unit tests for R050; for R052, a unit test asserting that
+`expand` emits no `compile_error!` for a field of a non-`Typed` type) that carry the annotation, and
+the doc tests add the compiler-level check. Primary entry point with `# Examples`: the `Reflect`
+derive (documented and exemplified on the `liminal_reflect::value::Reflect` re-export).
+
+## 11. Determinism
+
+`architecture.toml` marks the crate `deterministic = false`: it runs in the compiler, not in the
+simulation, and the determinism lints of CODE_STYLE.md do not apply. The generated code runs in the
+user's (possibly deterministic) crate and contains no clock, RNG, hash map or floating-point
+arithmetic; its runtime behaviour is covered by `liminal_reflect` §11. The expansion itself is a
+pure function of its input (REFLD-R070), so a type's derived impl is the same in every build and on
+every platform. There is no `tests/determinism.rs` for this crate: ADR-0024 applies to crates with
+`deterministic = true`; `liminal_reflect`'s workloads use derived types and cover their runtime
+behaviour.
+
+## 12. Open questions
+
+1. **Const generics.** `struct Grid<const W: usize>` would need `W` in the type path. Rejected in
+   `spec_version` 1 (LIM-REFLD-0004). Revisit when a consumer needs it (voxel chunk types, M6).
+2. **Renamed dependency.** Generated code names `::liminal_reflect`; a crate that renames the
+   dependency cannot use the derive. Add `#[reflect(crate = "…")]` if a consumer (for example the
+   `liminal_engine` facade re-exporting reflection) needs it; resolve in the facade's spec.
+3. **Coverage measurement.** The `usable` gate needs 85 % line coverage. This spec assumes that
+   unit tests of `expand` in the derive crate are measured by `cargo llvm-cov` like any library
+   code. M1-T032 confirms it; if the proc-macro crate type prevents measurement, it records the
+   finding and the resolution (a floor on the measured part, or an ADR) before the promotion.
+
+## 13. Maturity
+
+Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T032 and
+checked by the session that reviews it.
+
+- [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
+      review of M1-T030).
+- [ ] Compiles, all lints pass, registered in `ci/coverage.toml` (evidence: M1-T032).
+- [ ] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied on a
+      scratch copy reports every REFLD MUST tested (evidence: M1-T032).
+- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T032; §12 item 3).
+- [ ] Every public item documented; the derive has runnable `# Examples` (on the re-export).
+- [ ] Integration tests (in `crates/liminal_reflect/tests/`) use only the public API.
+- [ ] Determinism: not a `deterministic = true` crate; REFLD-R070 covers the expansion.
+- [ ] At least one example or dependent crate uses it: `liminal_reflect` re-exports and tests it.
+
+## 14. History
+
+| spec_version | Date | Change | By task |
+|---|---|---|---|
+| 1 | 2026-11-10 | Initial spec | M1-T030 |

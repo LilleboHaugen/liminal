@@ -42,7 +42,7 @@
 | [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | todo | M1-T001 |
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
-| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | todo | M1-T001 |
+| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | review | M1-T001 |
 | [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | todo | M1-T030, M1-T014 |
 | [M1-T032](tasks/M1-T032-implement-the-reflect-derive-macro-reach-usable.md) | Implement the Reflect derive macro; reach usable for both reflect crates | todo | M1-T031 |
 | [M1-T033](tasks/M1-T033-instruction-count-regression-gate-in-ci.md) | Instruction-count regression gate in CI | todo | M1-T017, M1-T022, M1-T006 |
@@ -77,7 +77,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 54 | 49 | 0 | 0 | 0 | 5 |
+| M1 (Headless core) | 54 | 48 | 0 | 0 | 1 | 5 |
 | M2 (Agent interface v0) | 3 | 3 | 0 | 0 | 0 | 0 |
 
 ## Crates
@@ -87,8 +87,8 @@ None.
 | liminal_core | 0 | planned | — |
 | liminal_math | 0 | planned | — |
 | liminal_memory | 0 | planned | — |
-| liminal_reflect | 0 | planned | — |
-| liminal_reflect_derive | 0 | planned | — |
+| liminal_reflect | 0 | planned | [liminal_reflect.md](specs/liminal_reflect.md) |
+| liminal_reflect_derive | 0 | planned | [liminal_reflect_derive.md](specs/liminal_reflect_derive.md) |
 | liminal_telemetry | 0 | planned | — |
 | liminal_app | 1 | planned | — |
 | liminal_assets | 1 | planned | — |
