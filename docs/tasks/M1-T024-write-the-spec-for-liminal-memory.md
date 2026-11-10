@@ -2,7 +2,7 @@
 id: M1-T024
 title: Write the spec for liminal_memory
 milestone: M1
-status: review
+status: done
 crates: [liminal_memory]
 depends_on: [M1-T001]
 requirements: []
@@ -94,4 +94,80 @@ same failure); when merging, combine both versions.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026/0027) of parent session `session/2026-11-10-m1-reviews`
+(journal `2026-11-10-session-m1-reviews.md`), fresh context, prompt = the ADR-0026 review template.
+This session implemented no part of M1-T024; the author was sub-agent no. 5 of the other parent
+session `2026-11-09-session-m1-subagents.md`. macOS 27.2 (Darwin), Rust 1.99.1, worktree
+`liminal-worktrees/M1-T024-review`, branch at `f3d1af0`. Task review (REVIEW.md §1) plus spec
+review (REVIEW.md §2), as "Test requirements" says.
+
+Outcome: **done**, no blocking findings (B1–B5). Follow-ups: M1-T058.
+
+Checked:
+- AC 1: the spec has the 14 template sections in order; `maturity: planned`, `spec_version: 1`;
+  `adrs` `[ADR-0003, ADR-0009, ADR-0010, ADR-0011, ADR-0017, ADR-0018, ADR-0023, ADR-0024]`.
+- AC 2: 37 requirement rows (script): 36 MUST, 1 SHOULD, IDs unique, each with a level. Word
+  search for "fast", "robust", "efficient", "seamless", "powerful", "quickly", "cheap",
+  "lightweight": no hit. Inputs whose result is not stated are follow-up items 2 and 3.
+- AC 3: §5 covers every scope item (arena, frame allocator, pool, aligned buffers, tracking,
+  unsafe inventory with the safe API, reference models). Compared with `docs/ARCHITECTURE.md` §2
+  row, `architecture.toml` (layer 0, `unsafe = "allow"`, `deterministic = true`, dep
+  `liminal_core`, dev `proptest`), ADR-0017, ADR-0018, ADR-0024 and `docs/specs/liminal_core.md`
+  v1 as on `main` (it did not exist when the spec was written; the spec's placeholder and Q1 say
+  so). Nothing in §5 or §8 conflicts with the core error contract (CORE-R005, R006, R012): the
+  context field names match `^[a-z][a-z0-9_]*$`, area `MEM`. Closing Q1 is follow-up item 7.
+- AC 3, API shape compiled (rustc 1.99.1, a reduced copy in the session scratch directory, not
+  committed): `Arena::alloc<T>(&self, T) -> Result<&mut T, _>` with
+  `const { assert!(!needs_drop::<T>()) }`, `reset(&mut self)`, `begin_frame(&mut self) -> &Arena`.
+  `compile_fail` doc tests on a private `#[cfg(doctest)]` function run under `cargo test --doc`
+  and pass for: a type that needs drop, use of a reference after `reset`. The same rejection is
+  reported by `cargo build` and not by `cargo check` (item 6). The returned borrow of
+  `begin_frame` blocks every other method of the allocator while it is used (item 5).
+- The handoff's three questions: (1) soundness table read row by row against the API: borrows
+  are tied to `&self`/`PoolBox`, resets need `&mut self`, `Send` without `Sync` follows from
+  `Cell`, `PoolBox` is neither `Send` nor `Sync` through `&Pool`, forgotten boxes only leak; no
+  unsound row found. The pool's free-list storage is not stated (item 4). (2) Check order of
+  errors: consistent between §5, MEM-R003, MEM-R015, MEM-R040 and MEM-R060, except the two
+  `AlignedBuf` inputs of item 3. (3) `/// Verifies:` on a `#[cfg(doctest)]` function satisfies
+  XTASK-R041 (the annotation attaches to the next `fn`), and the doc test is the real check:
+  acceptable.
+- The `isize::MAX / 2` assumption: on this machine `std::alloc::alloc` of `isize::MAX / 2` bytes
+  with alignment 4096 returns null. Windows, Linux and Miri: not verified (M1-T025, as the spec
+  says).
+- AC 4: five codes with message and help; every context field appears in its message.
+- AC 5: test kinds per area are those of TESTING.md (unit, property, differential, integration,
+  doc, Miri, determinism); reference models named for arena, pool, `AlignedBuf` and tracking;
+  the spec states why no loom tests apply. Rows missing for MEM-R031 and one half of MEM-R040:
+  item 6.
+- AC 6: W1–W3 with sizes, operation mixes and what is hashed; each "cross-platform identity
+  claimed: yes", "not yet verified", recorded literals (ADR-0024 item 3).
+- AC 7: four scenarios, no number, reference machine, baseline assigned to M1-T026
+  (`depends_on` M1-T017).
+- AC 8: script over the spec and both task files: 36 MUST IDs in exactly one of M1-T025 (17) and
+  M1-T026 (19 + SHOULD MEM-R074), none unknown, no overlap; §13 agrees.
+- AC 9: six open questions, each with the task or milestone that resolves it.
+- AC 10: `docs/specs/README.md` row. `cargo xtask ci` on `f3d1af0`: pass, 11 of 11 steps, none
+  skipped. Branch CI run 42686522939 on `f3d1af0`: success.
+- Read for correctness: placement rule against the §4 diagram (they disagree: item 1); INV-1 to
+  INV-6 against the requirements; MEM-R070 to MEM-R072 against `AllocStats`; slot order against
+  the reference pool model.
+- Oracle change: `xtask/src/repo.rs` `loads_the_real_repository`, exact spec list replaced by
+  membership and exclusion checks. Justified in the journal ("Oracle changes"). `main` already
+  carries an equivalent change from M1-T012; the merge keeps one copy of the assertions.
+- No fake progress: no code; scope not reduced; the M1-T025 scope clarification is written into
+  that task's "Notes" with the reason.
+- Session boundaries (item 10): the author is row 5 of its parent's journal, "impl template".
+  The author's journal names its parent as "`2026-11-09-m1-subagents` session journal", not the
+  file name (ADR-0026 Decision 8.2); the parent's entry records that. No install or nested spawn
+  recorded.
+- ADR-0028: no workflow change; no credentials or personal data in the diff; no issue, pull
+  request or outside code acted on.
+
+Follow-ups (M1-T058): the §4 diagram contradicts the placement rule; address of zero-size
+requests; two `AlignedBuf::new` inputs without a defined result and LIM-MEM-0004 fields for
+`AlignedBuf` and `Pool`; storage of the pool free list; `begin_frame`'s returned borrow; test-plan
+rows and "does not compile" meaning "does not build"; closing Q1 against the core spec; small
+text items.
+
+Whoever starts M1-T025 before M1-T058 is done: do not take offsets from the §4 diagram (item 1);
+the placement rule in §4 and MEM-R011 is the contract.

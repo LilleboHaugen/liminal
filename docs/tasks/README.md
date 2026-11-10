@@ -80,3 +80,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T052](M1-T052-competitive-benchmarks-ecs-vs-bevy-ecs-and-hecs.md) | Competitive benchmarks: ECS vs `bevy_ecs` and `hecs` |
 | [M1-T053](M1-T053-m1-exit-review.md) | M1 exit review |
 | [M1-T054](M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review |
+| [M1-T058](M1-T058-liminal-memory-spec-follow-ups.md) | `liminal_memory` spec follow-ups from the M1-T024 review |
