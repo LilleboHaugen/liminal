@@ -5,6 +5,7 @@
 //! Every check extends this module instead of reading files itself.
 
 pub(crate) mod architecture;
+pub(crate) mod clippy;
 pub(crate) mod coverage;
 pub(crate) mod metadata;
 pub(crate) mod sources;
@@ -166,6 +167,10 @@ pub(crate) struct ArchModel {
     pub packages: Vec<Package>,
     /// Contents of every crate root file ([`crate_roots`]): repository-relative path → text.
     pub sources: BTreeMap<String, String>,
+    /// For each workspace package registered with `deterministic = true` (first registry entry of
+    /// its name), the clippy configuration that applies to it ([`clippy::effective`]), by package
+    /// name. Other packages have no entry.
+    pub clippy: BTreeMap<String, Option<clippy::ClippyConfig>>,
 }
 
 /// Target kinds whose root file is a crate root checked by XTASK-R035: libraries of every crate
@@ -201,7 +206,8 @@ pub(crate) fn crate_roots(package: &Package) -> impl Iterator<Item = &str> {
 ///
 /// [`LoadError`]: LIM-XTASK-0001 if `architecture.toml` or a crate root file cannot be read,
 /// LIM-XTASK-0002 if the JSON is not `cargo metadata` output, LIM-XTASK-0003 if
-/// `architecture.toml` is invalid.
+/// `architecture.toml` is invalid, LIM-XTASK-0001 or LIM-XTASK-0004 if the clippy configuration
+/// of a deterministic crate cannot be read or is invalid.
 pub(crate) fn load_arch(root: &Path, metadata_json: &str) -> Result<ArchModel, LoadError> {
     let architecture = architecture::parse(&read(root, "architecture.toml")?)?;
     let packages = metadata::parse(metadata_json)?;
@@ -213,10 +219,23 @@ pub(crate) fn load_arch(root: &Path, metadata_json: &str) -> Result<ArchModel, L
             }
         }
     }
+    let mut clippy = BTreeMap::new();
+    for package in &packages {
+        let deterministic = architecture
+            .crates
+            .iter()
+            .find(|entry| entry.name == package.name)
+            .is_some_and(|entry| entry.deterministic);
+        if deterministic {
+            let config = clippy::effective(root, &package.manifest_dir)?;
+            clippy.insert(package.name.clone(), config);
+        }
+    }
     Ok(ArchModel {
         architecture,
         packages,
         sources,
+        clippy,
     })
 }
 
@@ -283,13 +302,14 @@ mod tests {
             })
             .collect();
         assert_eq!(excluded, Vec::<&String>::new());
-        assert_eq!(
-            model
-                .members
+        // The real workspace gains a member per engine crate; check membership, not the exact
+        // list (M1-T013 added the first engine crate).
+        let members: Vec<&str> = model.members.iter().map(|m| m.name.as_str()).collect();
+        assert!(members.contains(&"xtask") && members.contains(&"liminal_core"));
+        assert!(
+            members
                 .iter()
-                .map(|m| m.name.as_str())
-                .collect::<Vec<_>>(),
-            ["xtask"]
+                .all(|name| *name == "xtask" || name.starts_with("liminal_"))
         );
         assert!(model.architecture.crates.iter().any(|c| c.name == "xtask"));
 
@@ -297,7 +317,16 @@ mod tests {
         assert!(adrs.contains(&"0001-record-architecture-decisions.md"));
         assert!(!adrs.contains(&"0000-template.md") && !adrs.contains(&"README.md"));
         let specs: Vec<&str> = model.spec_files().map(|(path, _)| path).collect();
-        assert_eq!(specs, ["docs/specs/xtask.md"]);
+        // The real repository gains a spec per crate; check membership and exclusions, not the
+        // exact list (M1-T012 added the first engine spec). The loader must find xtask's spec
+        // and must skip the template and the index.
+        assert!(specs.contains(&"docs/specs/xtask.md"));
+        assert!(specs.iter().all(|path| path.starts_with("docs/specs/")));
+        assert!(
+            !specs
+                .iter()
+                .any(|path| path.ends_with("/_TEMPLATE.md") || path.ends_with("/README.md"))
+        );
         let tasks: Vec<&str> = model
             .task_files()
             .map(|(path, _)| file_name(path))

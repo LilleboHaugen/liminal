@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_ecs]
 depends_on: [M1-T042, M1-T017]
-requirements: []
+requirements: [ECS-R190, ECS-R191, ECS-R192, ECS-R193, ECS-R194, ECS-R220, ECS-R221]
 ---
 
 # M1-T043: Implement `World::state_hash`, ECS benchmarks; reach `usable`
@@ -47,7 +47,7 @@ Requirements in frontmatter; property tests; determinism tests.
 
 ## Notes
 
-_None._
+Requirements written by M1-T037 (spec §6 "Assignment"). Points set by the spec: (1) The byte layout of the hash is ECS-R190, with a hand-written known-answer test; what the hash leaves out is ECS-R192. (2) `reference::World::state_hash` (ECS-R194) belongs here. (3) The determinism workloads are `world_churn` and `schedule_ticks` (spec §11), both with recorded literals. (4) Benchmark cases and their IDs are in spec §9, including the pair `liminal_ecs/query/simple_iter` and `liminal_ecs/reference/simple_iter` (ADR-0018).
 
 ## Handoff
 

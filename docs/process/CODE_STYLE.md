@@ -24,9 +24,21 @@ Rules for Rust code in Liminal. Where a lint can enforce a rule, it is enforced 
   whose job is to print (`xtask`, `liminal_cli`) allow these two lints at their binary's crate root, with
   `#![allow(clippy::print_stdout, clippy::print_stderr, reason = "…")]`. Cargo does not allow
   per-crate overrides together with `[lints] workspace = true`, so the attribute is the mechanism.
-- Deterministic crates: `clippy.toml` `disallowed-methods` bans `f32::sin`, `f32::cos`, `f32::tan`,
-  `f32::powf`, `f32::exp`, `f32::ln` (and `f64` equivalents), `std::collections::HashMap::new`, and
-  `std::time::Instant::now`. Use `liminal_math::det` and `liminal_core` types instead (ADR-0009).
+- Deterministic crates (`deterministic = true` in `architecture.toml`): clippy `disallowed-methods`
+  bans `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln` (and `f64`
+  equivalents), `std::collections::HashMap::new`, and `std::time::Instant::now`. Use
+  `liminal_math::det` and `liminal_core` types instead (ADR-0009).
+  **Where it lives:** in the crate's own `<manifest directory>/clippy.toml`. Clippy reads only one
+  file per crate, the nearest `.clippy.toml` or `clippy.toml` in the crate's directory or a parent,
+  and does not merge it with the root `clippy.toml` (verified with clippy 0.1.99, M1-T011). The
+  crate's file therefore repeats every setting of the root `clippy.toml` (the `allow-*-in-tests`
+  lines) and adds the `disallowed-methods` list, each entry as
+  `{ path = "f32::sin", reason = "ADR-0009: use liminal_math::det" }`. Do not create `.clippy.toml`
+  files: within one directory it takes precedence over `clippy.toml`. The crate's first
+  implementation task writes the file; `cargo xtask check-arch` (XTASK-R039) fails while a
+  deterministic workspace crate's effective configuration misses a path of this list. The root
+  `clippy.toml` does not ban these paths, because `xtask` and the non-deterministic crates may use
+  them.
 
 ## Errors (ADR-0017)
 
@@ -84,3 +96,5 @@ API correctly from its docs alone.
   applicable, module declarations and re-exports, and no logic.
 - Feature flags are documented in the crate root docs and in the spec. Avoid feature combinations
   that change behaviour silently. Every feature must build alone (`--no-default-features --features x`).
+  `cargo xtask ci` tests every crate that has features once more with all of them off (step
+  `test-features-off`, XTASK-R014); no command builds each feature alone yet.

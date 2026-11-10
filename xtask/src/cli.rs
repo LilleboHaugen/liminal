@@ -152,7 +152,7 @@ pub const COMMANDS: &[Command] = &[
     },
     Command {
         name: "check-arch",
-        summary: "Check the crate graph against architecture.toml (XTASK-R030 … R037).",
+        summary: "Check the crate graph against architecture.toml (XTASK-R030 … R039).",
         run: crate::check_arch::command,
     },
     Command {

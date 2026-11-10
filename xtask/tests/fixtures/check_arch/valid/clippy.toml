@@ -1,0 +1,2 @@
+# Fixture root clippy configuration: like the repository's, it bans nothing.
+allow-unwrap-in-tests = true
