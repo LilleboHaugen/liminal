@@ -23,6 +23,40 @@ Each baseline file records the machine ID, OS version, toolchain version, commit
 - CI gate: instruction counts of single-threaded cases under Valgrind on Linux,
   `ci/perf/ci-linux-x86_64/instructions.json`; more than 1 % increase fails.
 
+## Reference implementations reachable from benchmarks
+
+Benchmarks see only public API (ADR-0023), yet an optimized path must show it beats its simple
+reference (AGENTS.md rule 4, "Rules for optimization work" below). A crate makes the reference
+reachable as follows (rule set by M1-T054):
+
+1. **A public `reference` module.** A reference implementation that `liminal_benches` (or a test
+   outside the crate) needs is a `pub` item in a module named `reference` at the crate root, for
+   example `liminal_math::reference::mat4_mul`. It has the same name and signature as its
+   optimized counterpart, so the differential test and the benchmark compare `crate::x` with
+   `crate::reference::x`.
+2. **Always compiled, never hidden.** The module has no cargo feature gate and no
+   `#[doc(hidden)]`. Its items are documented like every public item; their docs name the
+   optimized counterpart and state that the item is the correctness oracle, not the fast path.
+3. **Only what is needed.** An item enters `reference` only when an optimized counterpart exists
+   or is specified. A reference used only by the crate's own unit tests stays private
+   (`pub(crate)` or `#[cfg(test)]`) until a benchmark or an outside test needs it.
+4. **Spec and rules.** The crate's spec lists the `reference` items in its API section and names
+   the differential tests that compare them. Reference items follow the crate's other rules
+   (determinism per ADR-0009, `det` functions in simulation crates). A reference SHOULD contain no
+   `unsafe`; where the operation is itself unsafe (for example raw allocation), the spec says why.
+5. **Several kept paths.** When a crate keeps more than one optimized path for one operation (for
+   example two SIMD widths chosen by `cfg(target_feature)`), the benchmark measures the path the
+   public item selects on the measuring machine. Other paths are not made public to be
+   benchmarked; the per-target differential tests and the runs on each machine cover them.
+
+Reasons, against the alternatives the M1-T001 review named:
+
+| Option | Outcome and reason |
+|---|---|
+| Cargo feature (`bench-reference`) | Rejected. Resolver 3 unifies features across the workspace members of one build, so every `--workspace` build in `cargo xtask ci` would compile the feature on (because `liminal_benches` enables it), while games built alone would not: two API surfaces, one missing from an API snapshot taken without the feature, plus one more feature that must build alone (CODE_STYLE.md "Formatting and structure"). |
+| `#[doc(hidden)]` public items | Rejected. Rustdoc omits hidden items unless run with `--document-hidden-items`, so the items would be undocumented and (assumption, to be confirmed by the ADR-0025 task) absent from the `cargo public-api` snapshot: changes to them would not show in review. |
+| Public `reference` module | Chosen. Visible in docs and in the ADR-0025 snapshot like any other item, one build configuration, no change to ADR-0023. Cost: a few public items per optimized crate, kept small by item 3. |
+
 ## Budgets
 
 - Each spec's **Performance budgets** section lists budgets as concrete numbers with units, a scenario
@@ -71,7 +105,8 @@ dev builds (evaluated at M2).
 
 1. Measure first. Profile (`liminal_telemetry` spans, Instruments on macOS, `perf` on Linux) and
    record what dominates.
-2. Keep or write the simple reference implementation. Differential test before and after.
+2. Keep or write the simple reference implementation. Differential test before and after. If a
+   benchmark needs it, it lives in the crate's `reference` module (see above).
 3. Benchmark before and after on the reference machine. Commit both numbers in the commit message or
    perf report.
 4. Do not trade correctness or determinism for speed. A faster wrong answer is a regression.

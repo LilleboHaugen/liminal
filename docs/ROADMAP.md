@@ -21,9 +21,9 @@ criterion is met and verified. No dates are promised.
 
 ## Milestone kickoff rule
 
-Only M0 (and the M1 kickoff task) have detailed task files today. When a milestone starts, its first
-task is **kickoff**: resolve the open questions due at that milestone, and write detailed task files
-(`docs/tasks/`) from the work items below. These include one "write spec for `<crate>`" task per new
+M0 and M1 have detailed task files today (M1's were written by its kickoff, M1-T001). When a
+milestone starts, its first task is **kickoff**: resolve the open questions due at that milestone,
+and write detailed task files (`docs/tasks/`) from the work items below. These include one "write spec for `<crate>`" task per new
 crate. Specs are written by those tasks, not by the kickoff itself. Plans for later milestones are refined at kickoff, when the facts are known.
 
 Parallel tracks: after M1's `liminal_core` and `liminal_math` reach `usable`, the GPU track (M3) can run
@@ -62,7 +62,7 @@ Work items:
   recorded inputs.
 - Benchmark harness decision (OQ-004, resolved by ADR-0023) and first baselines in `ci/perf/`.
 - Competitive benchmarks: ECS vs `bevy_ecs` and `hecs`; math vs `glam`; jobs vs `rayon`
-  (comparison crates are dev-dependencies of benchmark crates only; ADR required per OQ-004).
+  (comparison crates are dev-dependencies of benchmark crates only; ADR-0023).
 - Example `headless_boids`: 100k agents simulated deterministically.
 
 Exit criteria:

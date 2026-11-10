@@ -21,6 +21,7 @@ requirements: []
 - `architecture.toml` entry for `liminal_ecs` (layer, `unsafe`, `deterministic`, allowed deps).
 - ADR-0008 (archetype ECS); ADR-0009; `docs/specs/liminal_reflect.md`, `docs/specs/liminal_jobs.md`.
 - PERFORMANCE.md competitive workloads (they shape the budgets section).
+- PERFORMANCE.md "Reference implementations reachable from benchmarks" (M1-T054): the spec's API section lists the crate's `reference` items for each optimized path.
 - Written by the M1 kickoff (M1-T001, 2026-11-09).
 
 ## Scope

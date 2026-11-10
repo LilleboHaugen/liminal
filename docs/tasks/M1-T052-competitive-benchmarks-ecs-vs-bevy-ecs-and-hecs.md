@@ -28,6 +28,10 @@ ECS results are recorded against `bevy_ecs` and `hecs` (M1 exit criterion 3).
 ## Acceptance criteria
 
 - [ ] `cargo deny check` passes on the competitive lock file.
+- [ ] For `bevy_ecs` and `hecs` each, the competitive crate's documentation records licence, maintenance status
+      (date of the last release), transitive dependency count at the pinned version and whether it
+      uses `unsafe` (DEPENDENCIES.md "Adding a dependency" step 2; ADR-0023 is accepted and
+      immutable, so the data lives there; added by M1-T054).
 - [ ] The four workloads exist for all three engines and measure the same work.
 - [ ] `ci/perf/competitive/liminal_ecs-<date>.json` committed; summary in `docs/specs/liminal_ecs.md`.
 

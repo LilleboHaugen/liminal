@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 20
+spec_version: 21
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -24,7 +24,8 @@ the same on macOS, Windows and Linux, with no shell scripts.
 pattern detection; coverage floors; STATUS.md generation; tool availability report.
 
 **Out of scope:** building or packaging games (`liminal_cli`, M7); benchmarks and perf baselines
-(added under OQ-004 in M1); asset cooking (`liminal_cook`).
+(OQ-004 is resolved by ADR-0023; `cargo xtask bench` is specified here by M1-T017, which adds
+it); asset cooking (`liminal_cook`).
 
 ## 3. Dependencies
 
@@ -570,7 +571,8 @@ repository state (R071, INV-1).
 
 ## 12. Open questions
 
-- None blocking. Benchmark and perf-baseline commands are added after OQ-004 is resolved (M1).
+- None blocking. OQ-004 is resolved by ADR-0023; M1-T017 adds and specifies `cargo xtask bench`
+  and the perf-baseline files.
 
 ## 13. Maturity
 
@@ -620,3 +622,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 18 | 2026-11-09 | §6 `check-docs` details: table lines and cells, and closing fences, trim only space and tab (GFM); the line-1 error names a leading U+FEFF | M1-T002 |
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
 | 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
+| 21 | 2026-11-10 | §2 and §12: OQ-004 is resolved by ADR-0023; benchmark commands come with M1-T017 (text only, no requirement change) | M1-T054 |
