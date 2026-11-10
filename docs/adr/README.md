@@ -44,4 +44,5 @@ Rules (ADR-0001):
 | [0026](0026-sub-agents-for-task-work.md) | Sub-agents for task work under the same rules as owner-started sessions | superseded by ADR-0027 |
 | [0027](0027-sub-agents-by-default-no-total-cap.md) | Sub-agents by default, no per-session total | superseded by ADR-0029 |
 | [0028](0028-public-repository.md) | Public repository — publication, CI and untrusted input | accepted |
-| [0029](0029-faster-loop.md) | Faster loop — same-session review by sub-agents, backlog for minor findings, spec with code | accepted |
+| [0029](0029-faster-loop.md) | Faster loop — same-session review by sub-agents, backlog for minor findings, spec with code | superseded by ADR-0030 |
+| [0030](0030-short-sessions-faster-merges.md) | Short sessions, two review slots, merge on local CI, spec with code, early first pixels | accepted |

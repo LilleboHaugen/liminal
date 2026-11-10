@@ -73,6 +73,7 @@ fn package(name: &str, kinds: &[&str], dependencies: Vec<Dependency>) -> Package
             })
             .collect(),
         dependencies,
+        features: Vec::new(),
     }
 }
 
@@ -434,10 +435,11 @@ fn r032_a_path_dependency_on_a_root_package_is_a_workspace_dependency() {
     let json = r#"{
   "packages": [
     { "name": "high", "id": "high-id", "manifest_path": "/w/Cargo.toml",
-      "targets": [ { "kind": ["lib"], "src_path": "/w/src/lib.rs" } ], "dependencies": [] },
+      "targets": [ { "kind": ["lib"], "src_path": "/w/src/lib.rs" } ], "dependencies": [],
+      "features": {} },
     { "name": "mid", "id": "mid-id", "manifest_path": "/w/crates/mid/Cargo.toml",
       "targets": [ { "kind": ["lib"], "src_path": "/w/crates/mid/src/lib.rs" } ],
-      "dependencies": [ { "name": "high", "kind": null, "path": "/w" } ] }
+      "dependencies": [ { "name": "high", "kind": null, "path": "/w" } ], "features": {} }
   ],
   "workspace_members": ["high-id", "mid-id"],
   "workspace_root": "/w"

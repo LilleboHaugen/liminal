@@ -1,10 +1,10 @@
 ---
 id: ADR-0029
 title: Faster loop — same-session review by sub-agents, backlog for minor findings, spec with code
-status: accepted
+status: superseded
 date: 2026-11-10
 supersedes: [ADR-0021, ADR-0027]
-superseded_by: []
+superseded_by: [ADR-0030]
 ---
 
 # ADR-0029: Faster loop — same-session review by sub-agents, backlog for minor findings, spec with code

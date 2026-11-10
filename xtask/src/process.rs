@@ -67,6 +67,7 @@ impl StepRunner for RealRunner {
             Action::Cargo(invocation) => self.run_cargo(invocation, mode),
             Action::Check(check) => self.run_check(*check),
             Action::Coverage => crate::coverage::run_real_step(&self.root, &self.cargo, mode),
+            Action::FeaturesOff => self.run_features_off(mode),
         }
     }
 }
@@ -111,6 +112,11 @@ impl RealRunner {
                 Err(error) => return self.cannot_start(&error),
             }
         }
+        self.run_command(args, env, mode)
+    }
+
+    /// Runs `cargo <args>` and maps its exit status to pass or fail.
+    fn run_command(&self, args: &[&str], env: &[(&str, &str)], mode: OutputMode) -> Outcome {
         let mut command = self.command(args, env);
         match mode {
             OutputMode::Inherit => match command.status() {
@@ -128,6 +134,34 @@ impl RealRunner {
                     output_tail: Some(tail(&output, TAIL_LINES)),
                 },
                 Err(error) => self.cannot_start(&error),
+            },
+        }
+    }
+
+    /// The `test-features-off` step (XTASK-R014): lists the workspace packages with
+    /// `cargo metadata`, then tests each one that has features with the features off.
+    ///
+    /// A `cargo` that cannot start skips the step (XTASK-R006). A `cargo metadata` failure or
+    /// unreadable output fails it, with the error message as `output_tail` in both output modes
+    /// (as for a native check step).
+    fn run_features_off(&self, mode: OutputMode) -> Outcome {
+        let probe = self
+            .command(&["--version"], &[])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+        if let Err(error) = probe {
+            return self.cannot_start(&error);
+        }
+        let packages = crate::repo::metadata::run_cargo(&self.root, &self.cargo)
+            .and_then(|json| crate::repo::metadata::parse(&json));
+        match packages {
+            Ok(packages) => {
+                crate::features_off::run(&packages, |args| self.run_command(args, &[], mode))
+            }
+            Err(error) => Outcome::Fail {
+                findings: Vec::new(),
+                output_tail: Some(error.to_string()),
             },
         }
     }
