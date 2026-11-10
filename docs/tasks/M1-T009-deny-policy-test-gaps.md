@@ -106,8 +106,12 @@ Checked:
 - `cargo xtask ci` on the task branch with `origin/main` (`043f3e2`) merged in: pass, 12 of 12
   steps, macOS 27.2 (arm64). Merge conflicts: `docs/STATUS.md` (regenerated) and
   `docs/specs/xtask.md`, where main had reached `spec_version` 24; this task's history row and
-  the two "added in `spec_version`" notes in the R083/R084 test approach are now 25 (the
-  handoff above says 19).
+  the two "added in `spec_version`" notes in the R083/R084 test approach are now 26 (the
+  handoff above says 19). A second merge of `origin/main` (`70dac69`, M1-T008 merged meanwhile
+  and took 25) renumbered this change to 26, kept both §10 rows, and added the `env` argument
+  (`&[]`) to M1-T008's new `run_deny` call in `check_licence_file`. On that tree:
+  `deny_policy -- --ignored` 6 passed, the three mutants again each fail a test, `cargo xtask ci`
+  passes (12 of 12).
 - Tests: the registry test asserts `error[source-not-allowed]` and the crate name, so a failure
   of cargo metadata or of the fixture cannot pass it; each advisory case has a passing control.
   `Verifies:` tags match (R083 registry, R084 advisories).

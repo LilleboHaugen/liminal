@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 26 of 62 tasks done.
+**M1** (Headless core): 27 of 62 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -20,7 +20,7 @@
 | [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | done | M0-T006 |
 | [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | done | M0-T007 |
 | [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | done | M0-T008 |
-| [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | todo | M0-T009 |
+| [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | done | M0-T009 |
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | done | M0-T009 |
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | done | M1-T001 |
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 36 | 0 | 0 | 0 | 26 |
+| M1 (Headless core) | 62 | 35 | 0 | 0 | 0 | 27 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates

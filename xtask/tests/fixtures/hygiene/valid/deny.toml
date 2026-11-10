@@ -1,0 +1,6 @@
+# Fixture policy for XTASK-R085: one ignored advisory that expires on the last day of year 9999
+# and names an open task.
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2026-0001", reason = "fixture; expires 9999-12-31 (M0-T005)" },
+]

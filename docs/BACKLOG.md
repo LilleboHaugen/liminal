@@ -215,6 +215,14 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   used())`") holds for zero-size allocations only vacuously (§4: their address may lie outside
   the base). Say so in INV-2 so the `debug_assert!`/property test does not check their address.
 
+## M1-T008 — review 2026-11-10
+
+- `xtask/src/doctor/tests.rs` `a_probe_that_reads_stdin_sees_it_closed` kills a `Stdio::inherit()`
+  mutant only when the test's own stdin is an open pipe; with stdin `/dev/null` (typical CI) it
+  passes. The spec says "the parent's stdin stays open"; a test could give the child an open pipe itself.
+- `xtask/src/hygiene/advisories.rs` (R085): a table entry with a valid `reason` but neither `id`
+  nor `crate` passes R085 (named `entry`); cargo-deny rejects it, so R085 could too.
+
 ## M1-T061 — review 2026-11-10
 
 - `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is

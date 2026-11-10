@@ -4,6 +4,8 @@
 `xtask/tests/deny_policy.rs` copies both to a temporary directory and runs
 `cargo deny --offline --config <repository>/deny.toml --manifest-path app/Cargo.toml check licenses`:
 it must fail on `fixture_copyleft`, and pass after the copy's licence is changed to `MIT`.
+The `confidence-threshold` test (M1-T008) replaces the copy's `license` line with
+`license-file = "LICENSE"` and writes the licence text at test time.
 Nothing here is a workspace member of the Liminal repository.
 
 The sources (XTASK-R083) and advisories (XTASK-R084) tests in the same file build their fixtures

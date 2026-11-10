@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 25
+spec_version: 26
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -516,6 +516,7 @@ as `output_tail` in both output modes.
 | XTASK-R082 | MUST | `deny.toml` rejects every dependency whose licence is not in the allow list of `docs/process/DEPENDENCIES.md` ("Licence policy"), in particular every GPL, LGPL and AGPL licence. MPL-2.0 is accepted only through a per-crate `exceptions` entry. |
 | XTASK-R083 | MUST | `deny.toml` rejects every dependency whose source is not crates.io: any git dependency (`allow-git` is empty) and any other registry. |
 | XTASK-R084 | MUST | `deny.toml` rejects every dependency that has a RustSec vulnerability advisory or an `unmaintained` advisory, unless the advisory is in `[advisories] ignore`. |
+| XTASK-R085 | MUST | `hygiene` reports every `[advisories] ignore` entry of `deny.toml` that has no `reason` ending with `expires YYYY-MM-DD (<task ID>)`, whose date is not a valid date or is today or earlier (UTC), or whose task does not exist or is `done`. |
 
 `doctor` and `deny` details (added in `spec_version` 13):
 
@@ -524,6 +525,14 @@ as `output_tail` in both output modes.
   is `$CARGO`, else `cargo` from `PATH`, as in `ci`. A tool is present if its probe starts and
   exits with status 0. Its version is the first non-empty line of the probe's stdout, trimmed
   (`null` if there is none).
+- Probe stdin and stderr (`spec_version` 25). "stdin closed" is tested: a probe of a program
+  that reads stdin to its end returns at once, having read nothing, and its stderr is not in the
+  probe's stdout (`a_probe_that_reads_stdin_sees_it_closed` in `xtask/src/doctor/tests.rs`,
+  whose probe program is the test binary itself). The test fails (timeout) if stdin is inherited
+  and the parent's stdin stays open. Removing `.stdin(Stdio::null())` from `RealProber::command`
+  passes it: `Command::output` already gives the child a closed stdin, so that call states the
+  rule rather than changes it. `.stderr(Stdio::null())` discards stderr instead of capturing it;
+  nothing reads it, so removing it is not observable either.
 
   | Tool | Probe | Needed by `ci` steps |
   |---|---|---|
@@ -559,7 +568,7 @@ as `output_tail` in both output modes.
   a fixture crate whose only dependency is a git dependency on a local repository
   (`file://<temp>/dep`, created by the test with `git`), which is rejected; and against a
   fixture crate whose only dependency comes from a second registry, which is rejected with
-  `error[source-not-allowed]` (added in `spec_version` 25). That registry is a git index the
+  `error[source-not-allowed]` (added in `spec_version` 26). That registry is a git index the
   test creates at a `file://` URL (named through `CARGO_REGISTRIES_FIXTURE_INDEX`), whose `dl`
   is a `file://` directory holding the `.crate` file of a crate of the repository `Cargo.lock`,
   copied from the local crates.io cache, with the checksum from `Cargo.lock`; cargo runs with a
@@ -570,13 +579,34 @@ as `output_tail` in both output modes.
   crates.io crate of the repository `Cargo.lock`. An `unmaintained` advisory and a vulnerability
   advisory are each rejected; the same database without either passes. The `unmaintained` case
   runs twice: once on a crate the fixture app reaches only through a path crate, once on a
-  direct dependency of the app (added in `spec_version` 25), so `unmaintained = "all"` is
+  direct dependency of the app (added in `spec_version` 26), so `unmaintained = "all"` is
   distinguished from `"workspace"` and `"transitive"`. The crates come from the
   local cargo registry cache, so no network is needed once the repository has been built.
   cargo-deny reads the database from `<db-path>/advisory-db-<hash of the URL>`; the test takes
   that directory name from cargo-deny's own error output on an empty `db-path`, so it does not
   depend on the hash function. Both tests need `cargo-deny` (and R083 needs `git`), so they are
   ignored in the `test` step and run by the `deny` CI job like R082.
+- `confidence-threshold` (R082, `spec_version` 25). It applies only to a crate that declares its
+  licence through a `license-file`, not to an SPDX `license` expression. The policy value 0.93 is
+  verified by `a_licence_file_below_the_confidence_threshold_is_rejected`: the fixture's
+  dependency gets a `license-file` with the exact MIT text (accepted), then with the MIT text
+  whose last two lines are replaced (cargo-deny 0.20.2 scores it 0.88: rejected). The test
+  asserts the reported score lies strictly between cargo-deny's default threshold 0.8 and the
+  policy's, so a threshold of 0.88 or less, or the key removed, fails it. A threshold between
+  0.88 and 0.93 is not distinguished.
+- Ignored advisories (R085, `spec_version` 25). `hygiene` reads `[advisories] ignore` of
+  `deny.toml` (no file: nothing to check; invalid TOML or `ignore` not an array:
+  LIM-XTASK-0004; other keys are not read). Each entry must be a table with a string `reason`
+  (a bare advisory ID string has none). The reason, with trailing whitespace removed, must end
+  with `expires <date> (<task ID>)`, with `expires` at the start or after whitespace and the
+  task ID as in R050. `<date>` must be `YYYY-MM-DD` naming an existing day; the entry is expired
+  on that date and after it (today is the UTC date of the system clock). The task must exist and
+  must not be `done`, as for R051. Each violation is an `error` at `deny.toml:<line of the
+  entry>`, named by its `id` (else `crate`). R085 depends on the date, so the same repository
+  can pass today and fail on a later day; that is its purpose (INV-1 holds for one day).
+- `doctor` in CI (`spec_version` 25). Each `checks` job runs `cargo xtask doctor --json` after
+  `ci`, prints the report and uploads it with the CI summary. Exit 1 is accepted there (the job
+  installs neither cargo-llvm-cov nor cargo-deny); exit 2 fails the job.
 
 ## 7. Invariants
 
@@ -596,7 +626,7 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039)) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039), `deny.toml` for R085) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
 
@@ -617,6 +647,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
 | `deny.toml` (R083, R084) | `cargo deny check sources` on a local git dependency and on a dependency from a local second registry; `check advisories` on a fixture advisory database with transitive and direct advised crates, with passing controls | cargo-deny's sources and advisories checks |
+| `deny.toml` ignores (R085) | unit tests of the entry rules with a fixed date; `hygiene` fixture `r085_advisory_ignore` | Rules above |
 | Every command (real binary) | integration tests running `CARGO_BIN_EXE_xtask` on this repository (`xtask/tests/cli.rs`, `ci.rs`, `commands.rs`): an `ok` run, and a usage error or a failing run with `$CARGO` naming a missing program; `ci` only with steps that do not run the test suite; a real `coverage` run is ignored in the `test` step and run by the `coverage` CI job | Exit codes (R007), output formats of §5 and "Check command output" |
 | Real repository | `cargo xtask ci` on the actual repository in CI | Must pass |
 
@@ -685,4 +716,5 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 22 | 2026-11-09 | Lexing: numeric literals end at `..`, `.` + identifier and after a tuple-field `.`; R041: a string literal counts only directly after `extern`; R050: `ignore` counts only directly after `[` or `,` (not `(`) | M1-T004 |
 | 23 | 2026-11-09 | New R039 (deterministic crates' clippy `disallowed-methods` configuration) with its details; LIM-XTASK-0004 covers that configuration; ADR-0009 in `adrs` | M1-T011 |
 | 24 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
-| 25 | 2026-11-10 | R083 test approach: a second (local git index) registry is now tested; R084: the `unmaintained` case also covers a direct dependency (review 2 of M0-T009) | M1-T009 |
+| 25 | 2026-11-10 | `doctor` and `deny` details: probe stdin/stderr test and why the `Stdio::null()` calls are not observable; `confidence-threshold` test; new R085 (expiry of ignored advisories, checked by `hygiene`); `doctor` in the `checks` CI jobs; LIM-XTASK-0004 covers `deny.toml` | M1-T008 |
+| 26 | 2026-11-10 | R083 test approach: a second (local git index) registry is now tested; R084: the `unmaintained` case also covers a direct dependency (review 2 of M0-T009) | M1-T009 |
