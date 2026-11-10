@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 13 of 58 tasks done.
+**M1** (Headless core): 14 of 58 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -25,7 +25,7 @@
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | done | M1-T001 |
 | [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | done | M1-T001 |
-| [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | todo | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
+| [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | done | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
 | [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | todo | M1-T013 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | todo | M1-T014 |
 | [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | todo | M1-T015 |
@@ -81,7 +81,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 58 | 45 | 0 | 0 | 0 | 13 |
+| M1 (Headless core) | 58 | 44 | 0 | 0 | 0 | 14 |
 | M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates
