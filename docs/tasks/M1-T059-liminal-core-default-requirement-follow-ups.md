@@ -2,7 +2,7 @@
 id: M1-T059
 title: liminal_core Default requirement follow-ups from the M1-T055 review
 milestone: M1
-status: in-progress
+status: review
 crates: [liminal_core]
 depends_on: [M1-T055, M1-T013]
 requirements: [CORE-R041]
@@ -58,14 +58,14 @@ M1-T014 implements the rest of `liminal_core` and collects the `usable` evidence
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask trace --crate liminal_core` lists at least one test for CORE-R041, and
+- [x] `cargo xtask trace --crate liminal_core` lists at least one test for CORE-R041, and
       breaking `Default` for either type (for example `with_slot_limit(0)`) makes a test with
       that tag fail.
-- [ ] Spec §6 and the `requirements` frontmatter of M1-T013, M1-T014 and this task assign every
+- [x] Spec §6 and the `requirements` frontmatter of M1-T013, M1-T014 and this task assign every
       CORE requirement to exactly one task.
-- [ ] CORE-R076 names, for each type-bound case, a behaviour a test can observe.
-- [ ] `spec_version` is bumped with a history row.
-- [ ] `cargo xtask ci` passes with no failed or skipped step.
+- [x] CORE-R076 names, for each type-bound case, a behaviour a test can observe.
+- [x] `spec_version` is bumped with a history row.
+- [x] `cargo xtask ci` passes with no failed or skipped step.
 
 ## Test requirements
 
@@ -73,7 +73,46 @@ M1-T014 implements the rest of `liminal_core` and collects the `usable` evidence
 
 ## Handoff
 
-_Empty._
+**2026-11-10, implementation sub-agent (journal `2026-11-10-M1-T059.md`). Status: `review`.**
+
+Done:
+- Item 1: five tests with `/// Verifies: CORE-R041` in `crates/liminal_core/tests/handles.rs`:
+  `default_allocator_is_in_the_state_of_new` (`live_count()` 0, `Debug` equal to `new()` and to
+  `with_slot_limit(u32::MAX)`, different from `with_slot_limit(0)`),
+  `default_allocator_issues_0v1_first`, `default_map_is_in_the_state_of_new`,
+  `default_map_inserts_at_0v1_first`,
+  `default_map_exists_for_a_value_type_without_default_or_debug` (`HandleMap<Opaque>` and
+  `HandleMap<Large>`; neither type implements `Default` or `Debug`). No library code changed.
+  The older assertions under CORE-R037 and CORE-R039 stay.
+- Mutation check (acceptance criterion 1), both reverted: `HandleAllocator::default()` =
+  `with_slot_limit(0)` fails 2 of the tagged tests (and the CORE-R037 test);
+  `HandleMap::default()` = `with_slot_limit(0)` fails 3 of the tagged tests (and the CORE-R039
+  test).
+- Item 2: spec §6 table: M1-T013 has CORE-R030 to CORE-R040, new row M1-T059 with CORE-R041.
+  CORE-R041 removed from M1-T013's `requirements`; dated line at the end of M1-T013's handoff.
+- Item 3, **second option chosen**: in spec §5.4 `new`, `len` and `is_empty` of `DetHashMap` and
+  `DetHashSet` are in `impl` blocks without trait bounds. Reason: the unbounded
+  `impl Default { /* new() */ }` of §5.4 can only call `new()` if `new()` is unbounded too, and
+  "`len()` 0" then holds and is testable for every type. CORE-R076 now has case (a) every `K`,
+  `V`, `T` (`default()` and `new()` compile, `len()` 0, `is_empty()` true) and case (b)
+  `Hash + Eq` types (iteration yields nothing; same results after the same operations). §10
+  names the test for each case. `with_capacity`, `iter`, `clear` and the rest keep their bounds
+  (not in the item's list).
+- Item 4: `spec_version` 2 → 3 with a history row.
+
+Check of acceptance criterion 2 (every CORE requirement in exactly one task): the union of the
+`requirements` frontmatter of M1-T013 (R001–R013, R030–R040), M1-T014 (R050–R057, R060, R061,
+R070–R076, R090–R098, R110–R114, R130–R133) and this task (R041) equals the ID column of spec
+§6, with no ID twice; compared by script, see the journal.
+
+Not done: nothing in scope. CORE-R076 has no test yet (M1-T014, as the task says).
+
+Traps:
+- M1-T014 must put `new`, `len`, `is_empty` in unbounded `impl` blocks; a single
+  `impl<K: Hash + Eq, V>` block as in spec v2 no longer matches the spec.
+- `Result<Handle<T>, CoreError>` is not `Copy`: bind the unwrapped handle before comparing twice.
+
+Next step: a session reviews M1-T059. Then M1-T014 can start.
 
 ## Review
 
