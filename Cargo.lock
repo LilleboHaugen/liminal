@@ -181,7 +181,17 @@ name = "liminal_reflect"
 version = "0.0.0"
 dependencies = [
  "liminal_core",
+ "liminal_reflect_derive",
  "proptest",
+]
+
+[[package]]
+name = "liminal_reflect_derive"
+version = "0.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

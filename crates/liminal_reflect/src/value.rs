@@ -14,53 +14,146 @@ use crate::info::{PrimitiveKind, StableTypeId, TypeInfo};
 
 pub use validate::validate_reflect;
 
-/// Object-safe runtime view of a value. `'static` through [`core::any::Any`].
+/// `#[derive(Reflect)]`: implements [`Reflect`], [`Typed`] and [`ReflectFields`] for a struct,
+/// and also [`ReflectEnum`] for an enum (`docs/specs/liminal_reflect_derive.md`).
 ///
-/// A type that implements `Reflect` also implements [`Typed`]; the derive macro (M1-T032)
-/// writes both. Hand-written impls must keep `reflect_ref` consistent with the descriptor;
-/// [`validate_reflect`] checks it.
+/// The trait and the macro share the name, so `use liminal_reflect::value::Reflect;` imports
+/// both. Accepted: named, tuple and unit structs and enums with at least one variant, with
+/// generic type parameters (each gets the bound `T: Typed`). Attributes:
+/// `#[reflect(type_path = "a::B")]` on the type replaces the default base path
+/// `module_path!()::Name`; `#[reflect(ignore)]` on a field leaves it out of the descriptor, the
+/// field access and the state encoding. Every other field is reflected, private ones included.
+/// Rejected input fails to compile with a `LIM-REFLD-NNNN` error (spec §8).
 ///
 /// # Examples
 ///
-/// A hand-written impl of a named struct, then field access by name:
+/// ```
+/// use liminal_reflect::hash::reflect_state_hash;
+/// use liminal_reflect::registry::TypeRegistry;
+/// use liminal_reflect::value::{Reflect, ReflectEnum, ReflectRef, Typed};
+///
+/// #[derive(Reflect)]
+/// #[reflect(type_path = "my_game::Health")]
+/// struct Health {
+///     current: u32,
+///     max: u32,
+///     #[reflect(ignore)]
+///     cache: core::cell::Cell<u8>,
+/// }
+///
+/// #[derive(Reflect)]
+/// enum State<T> {
+///     Idle,
+///     Moving(T, f32),
+///     Fleeing { from: u32 },
+/// }
+///
+/// assert_eq!(Health::type_path(), "my_game::Health");
+/// assert_eq!(<State<u8>>::type_path(), format!("{}::State<u8>", module_path!()));
+///
+/// let health = Health { current: 3, max: 5, cache: core::cell::Cell::new(0) };
+/// let value: &dyn Reflect = &health;
+/// assert!(value.field("cache").is_err());
+/// let before = reflect_state_hash(value);
+/// health.cache.set(9); // ignored: the state hash does not change
+/// assert_eq!(reflect_state_hash(&health), before);
+///
+/// let state = State::<u8>::Fleeing { from: 7 };
+/// match state.reflect_ref() {
+///     ReflectRef::Enum(e) => assert_eq!((e.variant_index(), e.variant_name()), (2, "Fleeing")),
+///     _ => unreachable!(),
+/// }
+///
+/// let mut registry = TypeRegistry::new();
+/// assert_eq!(registry.register::<Health>(), Ok(Health::stable_type_id()));
+/// ```
+///
+/// Rejected inputs (one per code, LIM-REFLD-0001 to 0009, REFLD-R050) and a field type that does
+/// not implement `Typed` (rustc E0277, REFLD-R052) do not compile:
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0001
+/// union U { a: u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0002
+/// enum Never {}
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0003
+/// struct Borrowed<'a> { a: &'a u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0004
+/// struct Grid<const W: usize> { cells: [u8; 4] }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0005
+/// #[reflect(rename = "x")]
+/// struct S { a: u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0006
+/// #[reflect(type_path = "Health")]
+/// struct S { a: u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0007
+/// #[reflect(type_path = "a::S")]
+/// #[reflect(type_path = "b::S")]
+/// struct S { a: u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0008
+/// #[reflect(ignore)]
+/// struct S { a: u8 }
+/// ```
+///
+/// ```compile_fail
+/// use liminal_reflect::value::Reflect;
+/// #[derive(Reflect)] // LIM-REFLD-0009
+/// struct S { #[reflect(ignore)] #[reflect(ignore)] a: u8 }
+/// ```
+///
+/// ```compile_fail,E0277
+/// use liminal_reflect::value::Reflect;
+/// struct NotReflected;
+/// #[derive(Reflect)] // E0277: `NotReflected: Typed` is not satisfied
+/// struct S { a: NotReflected }
+/// ```
+pub use liminal_reflect_derive::Reflect;
+
+/// Object-safe runtime view of a value. `'static` through [`core::any::Any`].
+///
+/// A type that implements `Reflect` also implements [`Typed`]; `#[derive(Reflect)]` writes both
+/// (and [`ReflectFields`], and [`ReflectEnum`] for enums). Hand-written impls must keep
+/// `reflect_ref` consistent with the descriptor; [`validate_reflect`] checks it.
+///
+/// # Examples
+///
+/// Field access by name on a derived type:
 ///
 /// ```
 /// use liminal_reflect::error::ReflectError;
-/// use liminal_reflect::info::{FieldInfo, Shape, StructKind, TypeInfo, TypeRef};
-/// use liminal_reflect::value::{Reflect, ReflectFields, ReflectMut, ReflectRef, Typed};
+/// use liminal_reflect::value::Reflect;
 ///
+/// #[derive(Reflect)]
 /// struct Velocity { x: f32, y: f32 }
-///
-/// impl Reflect for Velocity {
-///     fn reflect_type_info(&self) -> TypeInfo { Velocity::type_info() }
-///     fn reflect_ref(&self) -> ReflectRef<'_> { ReflectRef::Struct(self) }
-///     fn reflect_mut(&mut self) -> ReflectMut<'_> { ReflectMut::Struct(self) }
-/// }
-///
-/// impl Typed for Velocity {
-///     fn type_path() -> String { "my_game::Velocity".to_string() }
-///     fn type_info() -> TypeInfo {
-///         let field = |name| FieldInfo { name, ty: TypeRef::of::<f32>() };
-///         TypeInfo {
-///             type_path: Velocity::type_path(),
-///             id: Velocity::stable_type_id(),
-///             shape: Shape::Struct { kind: StructKind::Named, fields: vec![field("x"), field("y")] },
-///         }
-///     }
-/// }
-///
-/// impl ReflectFields for Velocity {
-///     fn field_count(&self) -> usize { 2 }
-///     fn field_name(&self, index: usize) -> Option<&'static str> {
-///         ["x", "y"].get(index).copied()
-///     }
-///     fn field_at(&self, index: usize) -> Option<&dyn Reflect> {
-///         match index { 0 => Some(&self.x), 1 => Some(&self.y), _ => None }
-///     }
-///     fn field_at_mut(&mut self, index: usize) -> Option<&mut dyn Reflect> {
-///         match index { 0 => Some(&mut self.x), 1 => Some(&mut self.y), _ => None }
-///     }
-/// }
 ///
 /// fn main() -> Result<(), ReflectError> {
 ///     let mut v = Velocity { x: 1.0, y: 2.0 };

@@ -8,9 +8,10 @@ license.workspace = true
 repository.workspace = true
 publish = false
 
-# Layer 0 (architecture.toml). `liminal_reflect_derive` is added by M1-T032.
+# Layer 0 (architecture.toml).
 [dependencies]
 liminal_core = { path = "../liminal_core" }
+liminal_reflect_derive = { path = "../liminal_reflect_derive" }
 
 [dev-dependencies]
 proptest.workspace = true

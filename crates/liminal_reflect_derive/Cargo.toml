@@ -1,0 +1,23 @@
+[package]
+name = "liminal_reflect_derive"
+version = "0.0.0"
+description = "Liminal `#[derive(Reflect)]` procedural macro, re-exported as `liminal_reflect::value::Reflect` (docs/specs/liminal_reflect_derive.md)."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+proc-macro = true
+
+# Layer 0, no engine dependency (architecture.toml). Features: spec §3. `full` and `visit` of
+# `syn` and `span-locations` of `proc-macro2` are used by the unit tests only, but are on the
+# normal dependency because a crate of scope `build` cannot be a dev-dependency (XTASK-R034).
+[dependencies]
+syn = { workspace = true, features = ["full", "visit"] }
+quote.workspace = true
+proc-macro2 = { workspace = true, features = ["span-locations"] }
+
+[lints]
+workspace = true

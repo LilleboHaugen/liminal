@@ -1,5 +1,10 @@
 [workspace]
-members = ["crates/liminal_core", "crates/liminal_reflect", "xtask"]
+members = [
+    "crates/liminal_core",
+    "crates/liminal_reflect",
+    "crates/liminal_reflect_derive",
+    "xtask",
+]
 # Edition 2024 implies resolver 3; stated explicitly for readers (ADR-0005).
 resolver = "3"
 
@@ -19,6 +24,10 @@ repository = "https://github.com/LilleboHaugen/liminal"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "1.2"
+# scope = "build" (ADR-0003): `liminal_reflect_derive` only. Features of the derive spec §3.
+syn = { version = "3.0", default-features = false, features = ["derive", "parsing", "printing", "proc-macro", "clone-impls"] }
+quote = "1.0"
+proc-macro2 = "1.0"
 # scope = "dev" (ADR-0010)
 proptest = "1.12"
 
