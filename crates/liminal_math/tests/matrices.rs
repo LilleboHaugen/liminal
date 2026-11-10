@@ -22,6 +22,12 @@ fn finite_mat4() -> impl Strategy<Value = Mat4> {
     prop::array::uniform16(-100.0_f32..=100.0).prop_map(|e| Mat4::from_cols_array(&e))
 }
 
+/// `(low, high)` with `low` in −10 to 9 and `high` in `low + 1` to 10 (the MATH-R051 domain),
+/// generated inside the domain so that no case is rejected.
+fn ordered_pair() -> impl Strategy<Value = (f32, f32)> {
+    (-10.0_f32..=9.0).prop_flat_map(|low| (Just(low), (low + 1.0)..=10.0))
+}
+
 fn finite_mat3() -> impl Strategy<Value = Mat3> {
     prop::array::uniform9(-100.0_f32..=100.0).prop_map(|e| Mat3::from_cols_array(&e))
 }
@@ -54,6 +60,39 @@ fn int_det(e: &[i64], n: usize) -> i64 {
         total += sign * e[n * column] * int_det(&minor, n - 1);
     }
     total
+}
+
+/// Adjugate (transposed cofactor matrix) of a column-major `n`×`n` integer matrix, column-major,
+/// in `i64` (test oracle): entry (row `r`, column `c`) is `(−1)^(r + c)` times the determinant of
+/// the matrix without row `c` and column `r`.
+fn int_adjugate(e: &[i64], n: usize) -> Vec<i64> {
+    let mut adjugate = vec![0; n * n];
+    for r in 0..n {
+        for c in 0..n {
+            let mut minor = Vec::with_capacity((n - 1) * (n - 1));
+            for column in (0..n).filter(|column| *column != r) {
+                for row in (0..n).filter(|row| *row != c) {
+                    minor.push(e[n * column + row]);
+                }
+            }
+            let sign = if (r + c) % 2 == 0 { 1 } else { -1 };
+            adjugate[n * c + r] = sign * int_det(&minor, n - 1);
+        }
+    }
+    adjugate
+}
+
+/// `value` as `f32`; exact because the test keeps `abs(value) < 2^24`.
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "the assertion keeps the value in the exactly representable range"
+)]
+fn exact_f32(value: i64) -> f32 {
+    assert!(
+        value.abs() < 1 << 24,
+        "test setup: {value} is not exact in f32"
+    );
+    value as f32
 }
 
 fn to_f32(value: i64) -> f32 {
@@ -116,14 +155,14 @@ proptest! {
     #[test]
     fn determinant_is_exact_for_small_integers(e in small_integer_mat4()) {
         let m = Mat4::from_cols_array(&e.map(to_f32));
-        prop_assert_eq!(m.determinant(), to_f32(int_det(&e, 4)));
+        prop_assert_eq!(m.determinant(), exact_f32(int_det(&e, 4)));
         let e3 = [
             int_at(&e, 0, 0), int_at(&e, 1, 0), int_at(&e, 2, 0),
             int_at(&e, 0, 1), int_at(&e, 1, 1), int_at(&e, 2, 1),
             int_at(&e, 0, 2), int_at(&e, 1, 2), int_at(&e, 2, 2),
         ];
         let m3 = Mat3::from_cols_array(&e3.map(to_f32));
-        prop_assert_eq!(m3.determinant(), to_f32(int_det(&e3, 3)));
+        prop_assert_eq!(m3.determinant(), exact_f32(int_det(&e3, 3)));
     }
 
     /// Verifies: MATH-R044
@@ -154,6 +193,58 @@ proptest! {
             for (x, i) in product.to_cols_array().into_iter().zip(identity3) {
                 prop_assert!((x - i).abs() <= 1e-4, "{:?}", product);
             }
+        }
+    }
+
+    /// Verifies: MATH-R045
+    ///
+    /// General (non-affine) integer matrices: every 2×2 minor, cofactor and the determinant are
+    /// small integers and exact in `f32`, so `inverse()` must equal the integer adjugate divided by
+    /// the integer determinant (one correctly rounded division each). Compared by value, not
+    /// bits: the sign of a zero cofactor depends on the evaluation order, an integer 0 has none. This
+    /// checks every term of the adjugate, including those that vanish for affine matrices.
+    #[test]
+    fn inverse_of_a_small_integer_matrix_is_the_exact_adjugate_over_the_determinant(
+        e in small_integer_mat4()
+    ) {
+        let m = Mat4::from_cols_array(&e.map(to_f32));
+        let d = int_det(&e, 4);
+        match m.inverse() {
+            Err(MathError::SingularMatrix { determinant }) => {
+                prop_assert_eq!(d, 0);
+                prop_assert_eq!(determinant, 0.0);
+            }
+            Ok(inverse) => {
+                prop_assert_ne!(d, 0);
+                let expected: Vec<f32> = int_adjugate(&e, 4)
+                    .into_iter()
+                    .map(|x| exact_f32(x) / exact_f32(d))
+                    .collect();
+                prop_assert_eq!(inverse.to_cols_array().to_vec(), expected);
+            }
+            Err(other) => prop_assert!(false, "unexpected {:?}", other),
+        }
+        let e3 = [
+            int_at(&e, 0, 0), int_at(&e, 1, 0), int_at(&e, 2, 0),
+            int_at(&e, 0, 1), int_at(&e, 1, 1), int_at(&e, 2, 1),
+            int_at(&e, 0, 2), int_at(&e, 1, 2), int_at(&e, 2, 2),
+        ];
+        let m3 = Mat3::from_cols_array(&e3.map(to_f32));
+        let d3 = int_det(&e3, 3);
+        match m3.inverse() {
+            Err(MathError::SingularMatrix { determinant }) => {
+                prop_assert_eq!(d3, 0);
+                prop_assert_eq!(determinant, 0.0);
+            }
+            Ok(inverse3) => {
+                prop_assert_ne!(d3, 0);
+                let expected3: Vec<f32> = int_adjugate(&e3, 3)
+                    .into_iter()
+                    .map(|x| exact_f32(x) / exact_f32(d3))
+                    .collect();
+                prop_assert_eq!(inverse3.to_cols_array().to_vec(), expected3);
+            }
+            Err(other) => prop_assert!(false, "unexpected {:?}", other),
         }
     }
 
@@ -220,6 +311,20 @@ fn identity_determinant_inverse_and_singular_cases() {
         0.5, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, -0.5, 0.0, 0.0, 1.0,
     ]);
     assert_eq!(m.inverse(), Ok(expected));
+    // A hand-computed full (non-affine) case, no zero element: rows (2 1 −1 −2), (−1 −3 −1 1),
+    // (3 1 2 −1), (−1 −1 −2 −1), determinant 16; inverse rows (5/8 3/8 −3/16 −11/16),
+    // (1/4 −1/4 −3/8 −3/8), (−3/4 −1/4 5/8 5/8), (5/8 3/8 −11/16 −19/16) (checked in exact
+    // rational arithmetic: m × m⁻¹ = I).
+    let full = Mat4::from_cols_array(&[
+        2.0, -1.0, 3.0, -1.0, 1.0, -3.0, 1.0, -1.0, -1.0, -1.0, 2.0, -2.0, -2.0, 1.0, -1.0, -1.0,
+    ]);
+    assert_eq!(full.determinant(), 16.0);
+    let full_inverse = Mat4::from_cols_array(&[
+        0.625, 0.25, -0.75, 0.625, 0.375, -0.25, -0.25, 0.375, -0.1875, -0.375, 0.625, -0.6875,
+        -0.6875, -0.375, 0.625, -1.1875,
+    ]);
+    assert_eq!(full.inverse(), Ok(full_inverse));
+    assert_eq!(full * full_inverse, Mat4::IDENTITY);
     // Mat3: rows (1 2 0), (0 1 0), (0 0 2); inverse rows (1 −2 0), (0 1 0), (0 0 0.5).
     let m3 = Mat3::from_cols_array(&[1.0, 0.0, 0.0, 2.0, 1.0, 0.0, 0.0, 0.0, 2.0]);
     assert_eq!(m3.determinant(), 2.0);
@@ -474,13 +579,10 @@ proptest! {
     /// Verifies: MATH-R051
     #[test]
     fn orthographic_maps_the_box_corners(
-        left in -10.0_f32..=10.0, width in 1.0_f32..=20.0,
-        bottom in -10.0_f32..=10.0, height in 1.0_f32..=20.0,
+        (left, right) in ordered_pair(),
+        (bottom, top) in ordered_pair(),
         z_near in 0.05_f32..=1.0, z_far in 10.0_f32..=500.0
     ) {
-        let right = left + width;
-        let top = bottom + height;
-        prop_assume!(right <= 10.0 && top <= 10.0 && right - left >= 1.0 && top - bottom >= 1.0);
         let m = Mat4::orthographic(left, right, bottom, top, z_near, z_far).unwrap();
         let near_corner = m.transform_point3(Vec3::new(left, bottom, -z_near));
         let far_corner = m.transform_point3(Vec3::new(right, top, -z_far));

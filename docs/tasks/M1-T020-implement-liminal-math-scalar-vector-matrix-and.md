@@ -2,7 +2,7 @@
 id: M1-T020
 title: Implement liminal_math — scalar vector, matrix and quaternion types
 milestone: M1
-status: in-progress
+status: review
 crates: [liminal_math]
 depends_on: [M1-T019, M1-T014, M1-T060]
 requirements: [MATH-R001, MATH-R002, MATH-R003, MATH-R004, MATH-R005, MATH-R006, MATH-R007, MATH-R020, MATH-R021, MATH-R022, MATH-R023, MATH-R024, MATH-R025, MATH-R026, MATH-R040, MATH-R041, MATH-R042, MATH-R043, MATH-R044, MATH-R045, MATH-R046, MATH-R047, MATH-R048, MATH-R049, MATH-R051, MATH-R070, MATH-R071, MATH-R072, MATH-R090, MATH-R091, MATH-R092, MATH-R093, MATH-R094, MATH-R130, MATH-R190]
@@ -151,3 +151,38 @@ First review of this task. Rules read from `origin/main` at `115b556` (`AGENTS.m
   did not work on the task.
 
 **Backlog entries:** 0. **Follow-up task:** none.
+
+## Handoff (after review 1)
+
+2026-11-10, implementation sub-agent of the session on branch
+`session/2026-11-10-m1-t020-t031-review` (journal `docs/journal/2026-11-10-M1-T020-2.md`).
+Status `review`. Both required changes of review 1 are addressed, all in
+`crates/liminal_math/tests/matrices.rs`; no library code changed.
+
+1. **B4 (`Mat4::inverse` on non-affine matrices).** New property
+   `inverse_of_a_small_integer_matrix_is_the_exact_adjugate_over_the_determinant`: for integer
+   matrices with elements in −8 to 8 (all 16 elements random, fourth row included), `inverse()`
+   equals the `i64` cofactor oracle `int_adjugate` divided by the `i64` determinant, element by
+   element (exact: every intermediate is an integer below 2^24; compared by value because the
+   sign of a zero cofactor is not defined by the integer oracle); singular cases return
+   `SingularMatrix { determinant: 0.0 }`. Same for `Mat3` on the upper-left 3×3 block. Plus a
+   hand-computed full case in `identity_determinant_inverse_and_singular_cases` (no zero element,
+   determinant 16, dyadic inverse checked in exact rational arithmetic). Mutation check: the
+   reviewer's mutation (row 2, `- a(0, 3) * c[0]` → `+`) and a second one (row 3,
+   `+ a(2, 2) * s[0]` → `-`) each make the new tests fail.
+2. **B1 (`orthographic_maps_the_box_corners` rejects).** Inputs are generated inside the
+   domain by a new strategy `ordered_pair()` (`low` in −10 to 9, `high` in `low + 1` to 10); the
+   `prop_assume!` is gone.
+
+**Further fix found while stress-testing.** `determinant_is_exact_for_small_integers` converted
+the integer determinant (up to 4! × 8^4 = 98,304) through `i16`, so rare inputs aborted with
+"test setup: small integers". It now uses `exact_f32` (asserts `abs < 2^24`). proptest saved the
+failing seed in `crates/liminal_math/tests/matrices.proptest-regressions` (committed, as
+`affine.proptest-regressions` already is).
+
+**Verified.** `cargo xtask ci`: pass, 12 steps, none skipped (macOS 27.2 arm64). Every
+`liminal_math` test binary run 100 times (`tolerance_margins` 3 times): 0 failures; the
+`matrices` binary another 500 times: 0 failures. Not verified on Windows or Linux (GitHub CI).
+
+**Next step.** Second review of M1-T020 (REVIEW.md). The `experimental` promotion of spec §13 is
+still the reviewer's decision.
