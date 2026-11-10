@@ -66,14 +66,42 @@ fn a_coverage_finding_names_the_crate_the_floor_and_the_measured_value() {
 
 /// Verifies: XTASK-R061
 #[test]
-fn floors_below_the_tolerance_and_crates_without_lines_never_fail() {
+fn floors_below_the_tolerance_and_unmeasured_crates_with_floor_0_never_fail() {
     let measured = measurement(&[("low", lines(0, 100)), ("empty", lines(0, 0))]);
-    let floors = floors(&[("low", 5), ("empty", 1000)]);
+    let floors = floors(&[("low", 5), ("empty", 0)]);
     assert_eq!(evaluate(&measured, &floors), Vec::new());
     // 0.6 is more than 0.5 above 0 %.
     let measured = measurement(&[("low", lines(0, 100))]);
     let findings = evaluate(&measured, &self::floors(&[("low", 6)]));
     assert_eq!(rules(&findings), [("XTASK-R061", "ci/coverage.toml:3")]);
+}
+
+/// Verifies: XTASK-R061
+#[test]
+fn a_crate_with_a_floor_above_0_and_no_measured_lines_fails() {
+    // Its files dropped out of the export (member path spelling, a crate that lost its code):
+    // its coverage is unknown, and its ratchet must not be disabled silently.
+    for tenths in [1, 5, 784, 1000] {
+        let measured = measurement(&[("gone", lines(0, 0)), ("xtask", lines(980, 1000))]);
+        let findings = evaluate(&measured, &floors(&[("gone", tenths), ("xtask", 970)]));
+        assert_eq!(
+            rules(&findings),
+            [("XTASK-R061", "ci/coverage.toml:3")],
+            "{tenths}"
+        );
+        assert_eq!(findings[0].severity, Severity::Error);
+    }
+    let measured = measurement(&[("gone", lines(0, 0))]);
+    let findings = evaluate(&measured, &floors(&[("gone", 784)]));
+    assert_eq!(
+        findings[0].message,
+        "`gone` has no measured lines but a coverage floor of 78.4%: its coverage is unknown"
+    );
+    assert!(
+        findings[0].help.contains("cargo llvm-cov"),
+        "{}",
+        findings[0].help
+    );
 }
 
 /// Verifies: XTASK-R062

@@ -16,6 +16,9 @@
 # a task like any other change (do not merge it on GitHub without a reviewed task). To re-pin by
 # hand, resolve the new tag with `git ls-remote https://github.com/<owner>/<repo>.git
 # 'refs/tags/<tag>*'` (for an annotated tag use the `^{}` line, which is the commit).
+#
+# The repository is public (ADR-0028): keep `permissions: contents: read`, SHA pins and
+# `persist-credentials: false`; no secrets, no `pull_request_target`, no self-hosted runners.
 
 name: ci
 

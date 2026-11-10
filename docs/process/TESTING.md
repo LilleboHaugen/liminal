@@ -12,11 +12,11 @@ ADR-0010.
 | Integration | `crates/<crate>/tests/*.rs` | Public-API behaviour per spec | All library crates |
 | Doc tests | `# Examples` in rustdoc | Example compiles and runs | Primary entry points of each crate |
 | Property | Unit or integration, using `proptest` | Invariants over generated inputs | Math, ECS, serialization, allocators, meshing, anything with invariants |
-| Differential | Unit or integration | Simple reference implementation | Every optimized algorithm (AGENTS.md rule 4) |
+| Differential | Unit or integration | Simple reference implementation (public `reference` module when benchmarks need it, PERFORMANCE.md) | Every optimized algorithm (AGENTS.md rule 4) |
 | Golden image | Integration, rendering crates | Approved image in `tests/golden/<backend>/` | Every rendering feature |
 | Snapshot | Integration | Approved text/JSON output in `tests/snapshots/` | Schemas, protocol messages, CLI output, error formats |
 | Determinism / replay | Layer 0–1: the crate's `tests/determinism.rs`; apps: `liminal_testkit` (ADR-0024) | State hashes from `liminal_core`, compared across runs; recorded literals where cross-platform identity is claimed | Deterministic crates at `usable`+, demo games |
-| Concurrency | `loom` tests behind `cfg(loom)` | Exhaustive interleavings | Lock-free code in `liminal_jobs`, `liminal_ecs` |
+| Concurrency | `loom` tests behind `cfg(loom)` | Exhaustive interleavings | Lock-free code in `liminal_jobs`, `liminal_telemetry`, `liminal_ecs` |
 | Miri | `cargo +nightly miri test -p <crate>` | Undefined-behaviour detection | Every crate with `unsafe = "allow"` (where Miri can run) |
 | Fuzz | `fuzz/` with `cargo fuzz` (nightly) | No panic, round-trip invariants | Parsers: cooked formats, JSON, protocol, importers (at `stable`) |
 | Benchmark | `benches/` crate `liminal_benches`; comparisons in `benches/competitive/` (ADR-0023) | Baselines in `ci/perf/` | Performance-critical crates at `stable`+ |

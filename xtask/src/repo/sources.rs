@@ -242,6 +242,34 @@ mod tests {
         );
     }
 
+    /// Verifies: XTASK-R060
+    #[test]
+    fn a_member_spelled_dot_slash_owns_its_files() {
+        let root = crate::test_support::TempRoot::new("sources-dot-member");
+        let files = [
+            ("Cargo.toml", "[workspace]\nmembers = [\"./xtask\"]\n"),
+            (
+                "architecture.toml",
+                "schema_version = 1\n\n[layers]\n\"5\" = \"tools\"\n",
+            ),
+            ("ci/hygiene.toml", ""),
+            ("xtask/Cargo.toml", "[package]\nname = \"xtask\"\n"),
+            ("xtask/src/lib.rs", "//! Lib.\n"),
+        ];
+        for (path, text) in files {
+            let full = root.path().join(path);
+            std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+            std::fs::write(full, text).unwrap();
+        }
+        let model = load(root.path()).unwrap();
+        let owners: Vec<(&str, &str)> = model
+            .sources
+            .iter()
+            .map(|s| (s.path.as_str(), s.crate_name.as_str()))
+            .collect();
+        assert_eq!(owners, [("xtask/src/lib.rs", "xtask")]);
+    }
+
     #[test]
     fn loads_the_rust_files_of_the_real_workspace() {
         let model = load(&super::super::root()).unwrap();

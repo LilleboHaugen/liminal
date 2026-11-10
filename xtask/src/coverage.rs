@@ -49,8 +49,8 @@ pub(crate) fn measured_tenths(lines: Lines) -> Option<u32> {
     Some(u32::try_from(tenths).expect("invariant: covered <= count, so tenths <= 1000"))
 }
 
-/// Whether `lines` is more than 0.5 points below `floor_tenths` (XTASK-R061). A crate without
-/// measured lines is never below its floor.
+/// Whether `lines` is more than 0.5 points below `floor_tenths` (XTASK-R061). Without measured
+/// lines this is false; [`evaluate`] reports such a crate separately if its floor is above 0.
 pub(crate) fn below_floor(lines: Lines, floor_tenths: u32) -> bool {
     // covered / count * 100 < floor / 10 - 0.5  ⇔  covered * 1000 < (floor - 5) * count
     let Some(threshold) = u128::from(floor_tenths).checked_sub(TOLERANCE_TENTHS) else {
@@ -61,7 +61,7 @@ pub(crate) fn below_floor(lines: Lines, floor_tenths: u32) -> bool {
 }
 
 /// The findings of the coverage rules (XTASK-R061, R062), sorted. `measurement` has an entry for
-/// every workspace crate.
+/// every workspace crate. A crate with a floor above 0 and no measured lines is an R061 error.
 pub(crate) fn evaluate(measurement: &Measurement, floors: &Floors) -> Vec<Finding> {
     let mut findings = Vec::new();
     for (name, lines) in measurement {
@@ -75,6 +75,20 @@ pub(crate) fn evaluate(measurement: &Measurement, floors: &Floors) -> Vec<Findin
                     format!("add `{name} = {suggested}` under `[floors]` (its measured coverage, rounded down to 0.1)"),
                 ));
             }
+            // Coverage unknown, not 100 %: its files dropped out of the export, so its ratchet
+            // would be gone without a finding (spec v19).
+            Some(floor) if lines.count == 0 && floor.tenths > 0 => findings.push(Finding::error(
+                "XTASK-R061",
+                format!("{CONFIG_PATH}:{}", floor.line),
+                format!(
+                    "`{name}` has no measured lines but a coverage floor of {}%: its coverage is \
+                     unknown",
+                    tenths_text(floor.tenths)
+                ),
+                "check that the crate's files are in the `cargo llvm-cov` export (its member path \
+                 in Cargo.toml, its source files); if it has no code to measure, set its floor to \
+                 0.0 with a journal entry that says why (docs/process/TESTING.md §Coverage)",
+            )),
             Some(floor) if below_floor(*lines, floor.tenths) => findings.push(Finding::error(
                 "XTASK-R061",
                 format!("{CONFIG_PATH}:{}", floor.line),
