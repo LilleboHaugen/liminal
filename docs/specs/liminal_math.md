@@ -3,7 +3,7 @@ crate: liminal_math
 req_prefix: MATH
 layer: 0
 maturity: planned
-spec_version: 1
+spec_version: 2
 last_reviewed: 2026-11-10
 adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0023, ADR-0024]
 ---
@@ -125,13 +125,21 @@ implementation (open question 1).
 - *D-geo:* points with components in −100 to 100; unit directions made by normalizing a vector
   with components in −1 to 1 and length at least 0.1; radii and half extents in 0.01 to 100.
 
-**Stable case.** A geometric test case (two shapes, or a ray and a shape) is *stable* when a
-reference evaluation in `f64` gives the same answer (true or false, hit or miss) for the shape as
-given, for the shape grown by 0.01 and for the shape shrunk by 0.01. Growing a sphere adds 0.01 to
-its radius; growing an `Aabb` adds 0.01 to each half extent; growing a plane, for a ray test,
-moves it by 0.01 along its normal in either direction. A case whose shrunk shape would have a
-negative radius or half extent is not stable. Only stable cases have a required answer under
-rounding; exactly representable cases are covered by unit tests with hand-computed results.
+**Stable case.** A geometric test case (two shapes, a shape and a point, or a ray and a shape) is
+*stable* when a reference evaluation in `f64` gives the same answer (true or false, hit or miss)
+three times: with the *varied shape* as given, grown by 0.01, and shrunk by 0.01. Exactly one
+shape of a case is varied; every other shape, point or ray stays as given.
+
+| Test | Varied shape | Stays as given |
+|---|---|---|
+| `Sphere::contains_point`, `Sphere::intersects_sphere`, `Sphere::intersects_aabb` (MATH-R157) | The receiver sphere (`self`) | The argument (point, sphere or `Aabb`) |
+| `Ray::intersect_sphere`, `Ray::intersect_aabb`, `Ray::intersect_plane` (MATH-R169) | The argument (sphere, `Aabb` or plane) | The ray |
+
+Growing a sphere adds 0.01 to its radius; growing an `Aabb` adds 0.01 to each half extent; growing
+a plane, for a ray test, moves it by 0.01 along its normal in either direction. Shrinking
+subtracts the same amounts. A case whose shrunk shape would have a negative radius or half extent
+is not stable. Only stable cases have a required answer under rounding; exactly representable
+cases are covered by unit tests with hand-computed results.
 
 **Solid shapes, closed sets.** `Aabb` and `Sphere` are solid and include their boundary: touching
 counts as intersecting, and a point on the surface is contained. A ray that starts inside a solid
@@ -473,7 +481,7 @@ pub struct Plane { /* normal: Vec3, d: f32 */ }
 
 impl Plane {
     /// Plane through `point` with the direction of `normal` (normalized here).
-    /// Errors: LIM-MATH-0002, LIM-MATH-0001 (`normal`).
+    /// Errors: LIM-MATH-0002, LIM-MATH-0001 (`normal`), LIM-MATH-0015 (`normal`).
     pub fn from_normal_and_point(normal: Vec3, point: Vec3) -> Result<Plane, MathError>;
     /// Plane through three points; the normal is `(b - a) × (c - a)` normalized, so the points
     /// are counter-clockwise seen from the positive side. Errors: LIM-MATH-0002, LIM-MATH-0013.
@@ -489,7 +497,8 @@ impl Plane {
 pub struct Ray { /* origin: Vec3, direction: Vec3 */ }
 
 impl Ray {
-    /// `direction` is normalized here. Errors: LIM-MATH-0002, LIM-MATH-0001 (`direction`).
+    /// `direction` is normalized here.
+    /// Errors: LIM-MATH-0002, LIM-MATH-0001 (`direction`), LIM-MATH-0015 (`direction`).
     pub fn new(origin: Vec3, direction: Vec3) -> Result<Ray, MathError>;
     pub fn origin(&self) -> Vec3;
     pub fn direction(&self) -> Vec3;
@@ -538,6 +547,7 @@ pub enum MathError {
     EmptyPointSet,                                                // LIM-MATH-0012
     CollinearPoints,                                              // LIM-MATH-0013
     DegenerateFrustum { plane: &'static str },                    // LIM-MATH-0014
+    VectorTooShort { parameter: &'static str, length_squared: f32 }, // LIM-MATH-0015
 }
 impl liminal_core::error::EngineError for MathError { /* … */ }
 impl std::error::Error for MathError {}
@@ -564,7 +574,7 @@ D-vec, D-unit, D-trs and D-geo to §4.
 | MATH-R001 | MUST | Sizes and alignments in bytes: `Vec2` 8 and 4; `Vec3` 12 and 4; `Vec4` 16 and 16; `Quat` 16 and 16; `Mat3` 36 and 4; `Mat4` 64 and 16; `Affine3` 48 and 4. Each type is `#[repr(C)]` with its `f32` fields at offsets `4 × i` in the order of §5 (columns in order for matrices; `matrix3` then `translation` for `Affine3`). `Vec2::default()`, `Vec3::default()` and `Vec4::default()` equal their `ZERO`. |
 | MATH-R002 | MUST | Conventions of §4: `Vec3::X.cross(Vec3::Y) == Vec3::Z`, `Vec3::Y.cross(Vec3::Z) == Vec3::X` and `Vec3::Z.cross(Vec3::X) == Vec3::Y` exactly; with `h = core::f32::consts::FRAC_1_SQRT_2`, `Quat::from_xyzw(0, 0, h, h) * Vec3::X` (a rotation by +π/2 about +Z) is approximately equal at scale 1 to `Vec3::Y`, and likewise `from_xyzw(h, 0, 0, h)` takes `Vec3::Y` to `Vec3::Z` and `from_xyzw(0, h, 0, h)` takes `Vec3::Z` to `Vec3::X`; `Mat4::from_translation(t) * p.extend(1.0)` equals `(p + t).extend(1.0)` for exactly representable sums; for matrices `a`, `b` and a vector `v` with small integer components (no rounding), `(a * b) * v == a * (b * v)`. |
 | MATH-R003 | MUST | `Mat4::from_cols_array(&e)` builds the matrix whose element at row `r`, column `c` is `e[4 × c + r]`, and `Mat3::from_cols_array(&e)` uses `e[3 × c + r]`. `to_cols_array` is the inverse: `from_cols_array(&m.to_cols_array()) == m` and the array of `from_cols_array(&e)` has the bits of `e`. `from_cols` stores its arguments as the columns in order. |
-| MATH-R004 | MUST | The crate computes floating-point results only with IEEE 754 binary32 and binary64 addition, subtraction, multiplication, division, square root, negation, absolute value, comparison, `floor`, `ceil`, `trunc`, conversions between integers and floats, and bit manipulation of `to_bits` values. Its clippy `disallowed-methods` configuration (mechanism of M1-T011) bans, for `f32` and `f64`: the CODE_STYLE.md list (`sin`, `cos`, `tan`, `powf`, `exp`, `ln`) and also `mul_add`, `sin_cos`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `powi`, `exp2`, `exp_m1`, `ln_1p`, `log`, `log2`, `log10`, `hypot`, `cbrt`; and the estimate and fused intrinsics `_mm_rsqrt_ps`, `_mm_rsqrt_ss`, `_mm_rcp_ps`, `_mm_rcp_ss`, `_mm_fmadd_ps`, `vrsqrteq_f32`, `vrecpeq_f32`, `vfmaq_f32`, `vfmsq_f32`, `vmlaq_f32`, `vmlsq_f32`. A test reads that configuration and fails if a listed path is missing. Tests may use the banned `f64` functions as oracles. |
+| MATH-R004 | MUST | The crate computes floating-point results only with IEEE 754 binary32 and binary64 addition, subtraction, multiplication, division, square root, negation, absolute value, comparison, `floor`, `ceil`, `trunc`, conversions between integers and floats (Rust `as`: integer to float rounds to nearest, ties to even; float to integer truncates toward zero and saturates, NaN gives 0), conversion from binary32 to binary64 (exact; `f64::from` or `as`), conversion from binary64 to binary32 (Rust `as`: rounded to nearest, ties to even, overflow gives an infinity), and bit manipulation of `to_bits` values (`to_bits`, `from_bits`). A `det` function may therefore evaluate in binary64 and round the result once to binary32. Its clippy `disallowed-methods` configuration (mechanism of M1-T011) bans, for `f32` and `f64`: the CODE_STYLE.md list (`sin`, `cos`, `tan`, `powf`, `exp`, `ln`) and also `mul_add`, `sin_cos`, `asin`, `acos`, `atan`, `atan2`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh`, `powi`, `exp2`, `exp_m1`, `ln_1p`, `log`, `log2`, `log10`, `hypot`, `cbrt`; and the estimate and fused intrinsics `_mm_rsqrt_ps`, `_mm_rsqrt_ss`, `_mm_rcp_ps`, `_mm_rcp_ss`, `_mm_fmadd_ps`, `vrsqrteq_f32`, `vrecpeq_f32`, `vfmaq_f32`, `vfmsq_f32`, `vmlaq_f32`, `vmlsq_f32`. A test reads that configuration and fails if a listed path is missing. Tests may use the banned `f64` functions as oracles. |
 | MATH-R005 | MUST | No public function or operator of the crate panics, for arguments of any bit pattern (NaN, infinities and subnormal numbers included) and slices of any length. Invalid input to a function that returns `Result` gives the `Err` named in its requirement; other functions return the value their formula gives. Each implementation task extends the property test of this requirement to the functions it adds. |
 | MATH-R006 | MUST | `MathError` implements `liminal_core::error::EngineError`. Each variant has the code, message, help and context fields of §8, its `Display` is `liminal_core::error::write_display`, and one value of every variant passes `liminal_core::error::validate_error(&e, "MATH")`. |
 | MATH-R007 | MUST | `StateHash` encodings, each as consecutive `write_f32` calls with no length prefix: `Vec2` `x, y`; `Vec3` `x, y, z`; `Vec4` and `Quat` `x, y, z, w`; `Mat3` and `Mat4` their columns in order; `Affine3` `matrix3` then `translation`. The hash of a value equals the hash of its `to_array` or `to_cols_array` elements written one by one. |
@@ -578,7 +588,7 @@ Each requirement applies to `Vec2`, `Vec3` and `Vec4` unless it names one type.
 | MATH-R020 | MUST | `new` stores its arguments in the fields of the same name; `splat(v)` sets every component to `v`; `from_array(a).to_array()` has the bits of `a`, with `x` at index 0. The constants have the values of §5.1 (`X`, `Y`, `Z`, `W` have 1 in the named component and 0 elsewhere). `Vec3::extend(w)` returns `(x, y, z, w)` and `Vec4::truncate()` returns `(x, y, z)`. |
 | MATH-R021 | MUST | The operators compute each component with exactly one IEEE 754 operation: `a + b`, `a - b`, `a * b` (component-wise) on the pair of components; `-a` negates (flips the sign bit); `a * s` and `s * a` multiply each component by the scalar `s`; `a / s` divides each component by `s` (no multiplication by a reciprocal). `+=`, `-=`, `*=` and `/=` store the result of the matching binary operator. |
 | MATH-R022 | MUST | `dot` returns exactly `a.x × b.x + a.y × b.y` (`Vec2`), `(a.x × b.x + a.y × b.y) + a.z × b.z` (`Vec3`), `((a.x × b.x + a.y × b.y) + a.z × b.z) + a.w × b.w` (`Vec4`). `length_squared()` is `self.dot(self)` and `length()` is exactly `sqrt(length_squared())`. Neither rescales its input: a component with `abs` above 1.8e19 can overflow to infinity and one below 1e-19 can underflow to zero. |
-| MATH-R023 | MUST | `Vec3::cross` returns exactly `(a.y × b.z − a.z × b.y, a.z × b.x − a.x × b.z, a.x × b.y − a.y × b.x)`. For all finite inputs `a.cross(b) == -(b.cross(a))`. For `a`, `b` in D-vec, `a.cross(b).dot(a)` and `a.cross(b).dot(b)` are approximately equal to 0 at scale `length(a)² × length(b)` and `length(a) × length(b)²`. |
+| MATH-R023 | MUST | `Vec3::cross` returns exactly `(a.y × b.z − a.z × b.y, a.z × b.x − a.x × b.z, a.x × b.y − a.y × b.x)`. For inputs of every bit pattern (NaN and infinities included), each component of `a.cross(b)` and the same component of `-(b.cross(a))` are either both NaN or equal under `==`. Two cases make this weaker than vector `==` and than equal bits: a product can overflow, so that with `a = b = (0, 3e19, 3e19)` both `x` components are NaN (`∞ − ∞`); and a zero component can differ in sign (`p − p` is `+0`, `−(p − p)` is `−0`). For `a`, `b` in D-vec, `a.cross(b).dot(a)` and `a.cross(b).dot(b)` are approximately equal to 0 at scale `length(a)² × length(b)` and `length(a) × length(b)²`. |
 | MATH-R024 | MUST | `normalize()` computes `l = length()`. If `l` is NaN or infinite it returns `Err(MathError::NonFiniteInput { parameter: "self" })` (LIM-MATH-0002); if `l == 0.0` it returns `Err(MathError::ZeroLengthVector { parameter: "self" })` (LIM-MATH-0001); otherwise `Ok(self / l)`. `normalize_or(fallback)` returns the `Ok` value of `normalize()`, or `fallback` unchanged if it is `Err`. |
 | MATH-R025 | MUST | For a vector whose non-zero components have `abs` in 1e-10 to 1e10 and that has at least one non-zero component, `normalize()` is `Ok(n)` with `abs(n.length() − 1) ≤ 4 × f32::EPSILON`, and each component of `n` has the sign of the input component. |
 | MATH-R026 | MUST | `min` returns, per component, `self`'s component if it is less than `other`'s, else `other`'s; `max` likewise with greater than (so a NaN component in `self` gives `other`'s component). `abs` clears the sign bit of every component. `lerp(end, t)` returns exactly `self + (end − self) × t`; `lerp(end, 0.0) == self` for inputs in D-vec. `is_finite` is true exactly when no component is NaN or infinite. |
@@ -606,7 +616,7 @@ Each requirement applies to `Vec2`, `Vec3` and `Vec4` unless it names one type.
 |---|---|---|
 | MATH-R070 | MUST | `Quat::IDENTITY` is `(0, 0, 0, 1)`. `from_xyzw` stores its arguments unchanged. `dot` returns exactly `((a.x × b.x + a.y × b.y) + a.z × b.z) + a.w × b.w`; `length()` is exactly `sqrt(self.dot(self))`. `conjugate()` negates `x`, `y`, `z` (sign bit) and keeps `w`. `normalize()` follows MATH-R024 and MATH-R025 with four components. |
 | MATH-R071 | MUST | `a * b` for `Quat` returns exactly `x = ((a.w × b.x + a.x × b.w) + a.y × b.z) − a.z × b.y`, `y = ((a.w × b.y − a.x × b.z) + a.y × b.w) + a.z × b.x`, `z = ((a.w × b.z + a.x × b.y) − a.y × b.x) + a.z × b.w`, `w = ((a.w × b.w − a.x × b.x) − a.y × b.y) − a.z × b.z`. `q * Quat::IDENTITY == q` and `Quat::IDENTITY * q == q` for finite `q`. |
-| MATH-R072 | MUST | `q * v` for `Quat` and `Vec3` returns exactly `(v + t × q.w) + u.cross(t)` with `u = (q.x, q.y, q.z)` and `t = u.cross(v) × 2`. For `a`, `b` in D-unit and `v` in D-vec, at scale `length(v)`: `length(a * v)` is approximately `length(v)`; `(a * b) * v` is approximately `a * (b * v)`; `a.conjugate() * (a * v)` is approximately `v`. `Quat::IDENTITY * v == v`. |
+| MATH-R072 | MUST | `q * v` for `Quat` and `Vec3` returns exactly `(v + t × q.w) + u.cross(t)` with `u = (q.x, q.y, q.z)` and `t = u.cross(v) × 2`. For `a`, `b` in D-unit and `v` in D-vec, at scale `length(v)`: `length(a * v)` is approximately `length(v)`; `(a * b) * v` is approximately `a * (b * v)`; `a.conjugate() * (a * v)` is approximately `v`. `Quat::IDENTITY * v == v` for every finite `v` (an infinite component of `v` gives NaN components from `0 × ∞`). |
 | MATH-R073 | MUST | `Quat::from_axis_angle(axis, angle_radians)`: if `angle_radians` is NaN or infinite, `Err(NonFiniteInput { parameter: "angle_radians" })`; else `n = axis.normalize()`, with its error returned with `parameter: "axis"`; else, with `(s, c) = det::sin_cos(angle_radians × 0.5)`, `Ok(Quat::from_xyzw(n.x × s, n.y × s, n.z × s, c))`. `from_axis_angle(Vec3::Z, FRAC_PI_2)` applied to `Vec3::X` is approximately `Vec3::Y` at scale 1 (rotation direction of §4). For a unit `axis`, `angle_radians` in −2π to 2π and `v` in D-vec: `q * axis` is approximately `axis` at scale 1, and `(q * v).dot(v)` is approximately `v.dot(v) × cos(angle) + (axis.dot(v))² × (1 − cos(angle))` (evaluated in `f64`) at scale `length(v)²`. |
 | MATH-R074 | MUST | `a.slerp(end, t)`: `d = a.dot(end)`; if `d < 0`, `b = −end` (all four components negated) and `d = −d`, else `b = end`. If `d > 0.9995` the result is `r ÷ length(r)` with `r = a + (b − a) × t` (four components). Otherwise, with `θ = det::acos(d)`, the result is `(a × det::sin((1 − t) × θ) + b × det::sin(t × θ)) ÷ det::sin(θ)`. For `a`, `end` in D-unit and `t` in 0 to 1: the result's length differs from 1 by at most 1e-5; `a.slerp(end, 0.0)` and `a` differ by at most 1e-6 per component, as do `a.slerp(end, 1.0)` and `b`; and `a.dot(result)` differs from `cos(t × acos(abs(d)))` (evaluated in `f64`) by at most 1e-5. |
 
@@ -655,15 +665,15 @@ Each requirement applies to `Vec2`, `Vec3` and `Vec4` unless it names one type.
 | MATH-R155 | MUST | `Sphere::new(center, radius)`: `Err(NonFiniteInput)` naming the first parameter that is or contains NaN or an infinity; else `Err(MathError::NegativeExtent { parameter: "radius", value: radius })` (LIM-MATH-0011) if `radius < 0`; else `Ok`. A radius of 0 is valid. |
 | MATH-R156 | MUST | `Sphere::contains_point(p)` returns `(p − center).length_squared() ≤ radius × radius`. `a.intersects_sphere(&b)` returns `(a.center − b.center).length_squared() ≤ (a.radius + b.radius) × (a.radius + b.radius)`. `s.intersects_aabb(&b)` returns `(s.center − b.closest_point(s.center)).length_squared() ≤ s.radius × s.radius`. Each has the value of the expression as written (exact expression, §4). |
 | MATH-R157 | MUST | For shapes from D-geo, `Sphere::contains_point`, `Sphere::intersects_sphere` and `Sphere::intersects_aabb` return the answer of the `f64` reference in every stable case (§4). |
-| MATH-R160 | MUST | `Plane::from_normal_and_point(normal, point)`: `Err(NonFiniteInput)` naming the first parameter with a NaN or infinite component; else `n = normal.normalize()`, with its error returned with `parameter: "normal"`; else the plane with normal `n` and `d = −n.dot(point)`, or `Err(NonFiniteInput { parameter: "point" })` if `d` is infinite. `Plane::from_points(a, b, c)`: `Err(NonFiniteInput)` as above; else `n = (b − a).cross(c − a).normalize()`, and if that fails `Err(MathError::CollinearPoints)` (LIM-MATH-0013); else normal `n` and `d = −n.dot(a)`, with the same check of `d` (`parameter: "a"`). `from_points((0,0,0), (1,0,0), (0,1,0))` has normal `(0, 0, 1)` and `d = 0`. |
+| MATH-R160 | MUST | `Plane::from_normal_and_point(normal, point)`: `Err(NonFiniteInput)` naming the first parameter with a NaN or infinite component; else `n = normal.normalize()`, with its error returned with `parameter: "normal"`; else, with `s = normal.length_squared()`, `Err(MathError::VectorTooShort { parameter: "normal", length_squared: s })` (LIM-MATH-0015) if `s < f32::MIN_POSITIVE` (2^−126, 1.1754944e-38; `s` is then a subnormal number); else the plane with normal `n` and `d = −n.dot(point)`, or `Err(NonFiniteInput { parameter: "point" })` if `d` is infinite. `Plane::from_points(a, b, c)`: `Err(NonFiniteInput)` as above; else, with `m = (b − a).cross(c − a)`, `n = m.normalize()`, and if that fails or `m.length_squared() < f32::MIN_POSITIVE`, `Err(MathError::CollinearPoints)` (LIM-MATH-0013); else normal `n` and `d = −n.dot(a)`, with the same check of `d` (`parameter: "a"`). `from_points((0,0,0), (1,0,0), (0,1,0))` has normal `(0, 0, 1)` and `d = 0`. Every plane either function returns as `Ok`, for arguments of any bit pattern, has a finite `d()` and `abs(normal().length() − 1) ≤ 4 × f32::EPSILON` (INV-3). Cases for `from_normal_and_point` with `point = (0, 0, 0)`: the normals `(1e-22, 5e-23, 0)`, `(1e-21, 5e-22, 0)` and `(2^−64, 0, 0)` give `Err(VectorTooShort)`; `(1e-30, 0, 0)` gives `Err(ZeroLengthVector)` (its squared length underflows to zero); `(2^−63, 0, 0)` gives the normal `(1, 0, 0)`. `from_points((0,0,0), (1e-11,0,0), (0,1e-11,0))` gives `Err(CollinearPoints)`. |
 | MATH-R161 | MUST | `Plane::signed_distance(p)` returns exactly `normal.dot(p) + d`. For a plane from `from_normal_and_point(n, q)` with `n`, `q`, `p` from D-geo, it is approximately equal at scale 100 to the `f64` value of `(p − q) · n ÷ length(n)`; `signed_distance(q)` is approximately 0 at scale 100. |
-| MATH-R165 | MUST | `Ray::new(origin, direction)`: `Err(NonFiniteInput)` naming the first parameter with a NaN or infinite component; else `d = direction.normalize()`, with its error returned with `parameter: "direction"`; else `Ok`, and `direction()` returns `d`, `origin()` the argument. `at(distance)` returns exactly `origin + direction × distance`. |
+| MATH-R165 | MUST | `Ray::new(origin, direction)`: `Err(NonFiniteInput)` naming the first parameter with a NaN or infinite component; else `d = direction.normalize()`, with its error returned with `parameter: "direction"`; else, with `s = direction.length_squared()`, `Err(MathError::VectorTooShort { parameter: "direction", length_squared: s })` (LIM-MATH-0015) if `s < f32::MIN_POSITIVE`; else `Ok`, and `direction()` returns `d`, `origin()` the argument. Every `Ok` ray, for arguments of any bit pattern, has `abs(direction().length() − 1) ≤ 4 × f32::EPSILON` (INV-4). The directions `(1e-22, 5e-23, 0)` and `(1e-21, 5e-22, 0)` give `Err(VectorTooShort)`; `(2^−63, 0, 0)` gives the direction `(1, 0, 0)`. `at(distance)` returns exactly `origin + direction × distance`. |
 | MATH-R166 | MUST | `Ray::intersect_plane(plane)`: with `denominator = plane.normal().dot(direction)`, returns `None` if `denominator == 0.0` (the ray is parallel to the plane, also when it lies in it); else, with `t = −plane.signed_distance(origin) ÷ denominator`, `Some(t)` if `t ≥ 0.0` and `None` otherwise. Both sides of the plane are hit. |
 | MATH-R167 | MUST | `Ray::intersect_sphere(sphere)` returns `Some(0.0)` if `sphere.contains_point(origin)`; otherwise `Some(t)` for the smallest `t > 0` at which `at(t)` is on the sphere's surface, or `None` if the ray misses the sphere or the sphere is behind the origin. |
 | MATH-R168 | MUST | `Ray::intersect_aabb(aabb)` returns `Some(0.0)` if `aabb.contains_point(origin)`; otherwise `Some(t)` for the smallest `t > 0` at which `at(t)` is on the box's surface, or `None`. On an axis where the direction component is `0.0` (either sign), the ray misses if the origin component is outside `min` to `max` on that axis, and that axis otherwise puts no bound on `t`; no NaN from `0 × ∞` decides the result. |
 | MATH-R169 | MUST | For rays and shapes from D-geo, in every stable case (§4): `intersect_sphere` and `intersect_aabb` return `Some` exactly when the `f64` reference does, and `intersect_plane` does so when also `abs(denominator) ≥ 0.01`; every returned `t` satisfies `t ≥ 0` and `abs(t − t_ref) ≤ 1e-3 × max(1, t_ref)`. Exactly representable cases with hand-computed results cover: a ray touching a sphere and a box at one point (hit), a ray along a box face (hit), an origin on the surface (`Some(0.0)`), a zero-radius sphere on the ray (hit), a shape behind the origin (`None`), a ray parallel to a plane (`None`). |
 | MATH-R170 | MUST | `StateHash` encodings, as consecutive `write_f32` calls: `Aabb` `min` then `max`; `Sphere` `center` then `radius`; `Plane` `normal` then `d`; `Ray` `origin` then `direction`; `Frustum` its six planes in order. |
-| MATH-R175 | MUST | `Frustum::from_view_projection(m)`: `Err(NonFiniteInput { parameter: "view_projection" })` if an element is NaN or infinite. Else, with `r0` to `r3` the rows of `m` as 4-vectors, the plane coefficient vectors are left `r3 + r0`, right `r3 − r0`, bottom `r3 + r1`, top `r3 − r1`, near `r2`, far `r3 − r2`. Each `(a, b, c, e)` is divided by `l = length((a, b, c))` to give the plane with normal `(a, b, c) ÷ l` and `d = e ÷ l`; if `l` is zero, NaN or infinite, `Err(MathError::DegenerateFrustum { plane })` (LIM-MATH-0014) naming the first such plane in the order above. `planes()` returns the six planes in that order. |
+| MATH-R175 | MUST | `Frustum::from_view_projection(m)`: `Err(NonFiniteInput { parameter: "view_projection" })` if an element is NaN or infinite. Else, with `r0` to `r3` the rows of `m` as 4-vectors, the plane coefficient vectors are left `r3 + r0`, right `r3 − r0`, bottom `r3 + r1`, top `r3 − r1`, near `r2`, far `r3 − r2`. Each `(a, b, c, e)` is divided by `l = length((a, b, c))` to give the plane with normal `(a, b, c) ÷ l` and `d = e ÷ l`. If, with `s = length_squared((a, b, c))`, `s` is NaN, infinite or below `f32::MIN_POSITIVE` (zero included), or `e ÷ l` is NaN or infinite (a sum or difference of two finite rows can overflow), the result is `Err(MathError::DegenerateFrustum { plane })` (LIM-MATH-0014) naming the first such plane in the order above. `planes()` returns the six planes in that order. Every plane of an `Ok` frustum, for a matrix of any bit pattern, has a finite `d()` and `abs(normal().length() − 1) ≤ 4 × f32::EPSILON` (INV-5). A matrix whose rows are `r0 = (1e-22, 5e-23, 0, 0)` (or `(1e-21, 5e-22, 0, 0)`) and `r1 = r2 = r3 = 0` gives `Err(DegenerateFrustum { plane: "left" })`. |
 | MATH-R176 | MUST | `Frustum::contains_point(p)` is true exactly when `plane.signed_distance(p) ≥ 0.0` for all six planes. `intersects_sphere(s)` is true exactly when `plane.signed_distance(s.center()) ≥ −s.radius()` for all six planes. `intersects_aabb(b)` is true exactly when, for all six planes, `plane.signed_distance(v) ≥ 0.0` for the corner `v` of `b` that takes `b.max()`'s component on each axis where the plane normal's component is `≥ 0.0` and `b.min()`'s component elsewhere. |
 | MATH-R177 | MUST | For a frustum from `Mat4::perspective(…) * Mat4::look_to(…)` with the parameter ranges of MATH-R050, `eye` in D-geo, and a unit `direction` and unit `up` as in MATH-R049: the point `eye + direction × (z_near + z_far) × 0.5` is contained; `eye − direction` is not; `eye + direction × (z_far × 1.01 + 0.1)` is not. No false negatives: for every point `p` of a grid of at least 5 × 5 × 5 points spanning an `Aabb` (or the bounding box of a `Sphere`) from D-geo, if `p` is inside the shape and `contains_point(p)` holds with every signed distance at least 0.01, then `intersects_aabb` (or `intersects_sphere`) is true. |
 
@@ -704,14 +714,36 @@ Notes on the assignment:
   property test over generated inputs.)
 - INV-2: A `Sphere` has a finite center and a finite `radius ≥ 0`. (Private fields; constructor.)
 - INV-3: A `Plane` has a finite `d` and a normal whose length differs from 1 by at most
-  `4 × f32::EPSILON`. (Private fields; every constructor normalizes; property test of MATH-R160.)
+  `4 × f32::EPSILON`. (Private fields; every constructor normalizes and rejects a vector to
+  normalize whose `length_squared()` is below `f32::MIN_POSITIVE`; property test of MATH-R160
+  over arbitrary bit patterns.)
 - INV-4: A `Ray` has a finite origin and a direction whose length differs from 1 by at most
-  `4 × f32::EPSILON`. (Private fields; constructor.)
-- INV-5: A `Frustum` holds six planes that each satisfy INV-3. (Private fields; constructor.)
+  `4 × f32::EPSILON`. (Private fields; the constructor rejects as for INV-3; property test of
+  MATH-R165 over arbitrary bit patterns.)
+- INV-5: A `Frustum` holds six planes that each satisfy INV-3. (Private fields; the constructor
+  rejects as for INV-3 and rejects a non-finite `d`; property test of MATH-R175 over arbitrary
+  bit patterns.)
 - INV-6: A `det` function never returns a NaN with bits other than `0x7FC0_0000`. (Property test
   of MATH-R100 over arbitrary bit patterns.)
 - INV-7: A public item with a SIMD path returns the bits of its `reference` item (MATH-R131).
   (Differential property tests on both architectures; workload `simd_paths`.)
+
+In INV-3 to INV-5 "length" is the public `Vec3::length()` (MATH-R022), as in MATH-R025.
+
+How INV-3 to INV-5 hold for every accepted input (`spec_version` 2, option (a) of M1-T060 item
+2): `Vec3::normalize` (MATH-R024) returns `Ok` for every non-zero finite length, and when
+`length_squared()` is a subnormal number (lengths from about 2.6e-23 to 1.1e-19) its result is not
+a unit vector: `(1e-22, 5e-23, 0)` normalizes to length 0.9956 and `(1e-21, 5e-22, 0)` to length
+1 + 1.7e-5. `Plane::from_normal_and_point`, `Plane::from_points`, `Ray::new` and
+`Frustum::from_view_projection` therefore reject a vector to normalize whose `length_squared()`
+is below `f32::MIN_POSITIVE` (MATH-R160, MATH-R165, MATH-R175). `normalize` itself, MATH-R022,
+MATH-R024 and the bit-exact contract are unchanged. Rejected alternatives: (b) rescaling inside
+`normalize` before squaring changes the exact expressions of MATH-R022 and MATH-R024 for every
+caller; (c) invariants that hold only in an input range leave planes and rays with non-unit
+normals in circulation, and every query that assumes a unit normal would need the range as a
+precondition. The bound `4 × f32::EPSILON` for accepted inputs is measured, not proven (open
+question 1), so the constructors do not `debug_assert!` INV-3 to INV-5: a wrong bound would
+turn into a panic, against MATH-R005. The property tests check it instead.
 
 `Vec2`, `Vec3`, `Vec4`, `Mat3`, `Mat4`, `Quat` and `Affine3` have public fields and no invariant:
 every bit pattern is a valid value.
@@ -732,12 +764,13 @@ function cannot use. Messages and help below are normative; `{x}` is the value o
 | LIM-MATH-0010 | `InvalidAabb` | box minimum `{min}` is greater than maximum `{max}` on axis `{axis}`. | pass `min <= max` on every axis, or build the box with `Aabb::from_points`. | `axis`, `min`, `max` |
 | LIM-MATH-0011 | `NegativeExtent` | `{parameter}` has the negative value `{value}`. | pass a radius or half extent of zero or more. | `parameter`, `value` |
 | LIM-MATH-0012 | `EmptyPointSet` | cannot build a bounding box from zero points. | pass at least one point. | none |
-| LIM-MATH-0013 | `CollinearPoints` | the three points lie on one line or coincide, so they define no plane. | pass three points that form a triangle with non-zero area. | none |
-| LIM-MATH-0014 | `DegenerateFrustum` | the `{plane}` plane of the view-projection matrix has a zero or non-finite normal. | pass the product `projection * view` of matrices from `Mat4::perspective` or `Mat4::orthographic` and `Mat4::look_to`. | `plane` |
+| LIM-MATH-0013 | `CollinearPoints` | the three points lie on one line, coincide or span too small a triangle, so they define no plane. | pass three points that form a triangle with non-zero area; the cross product of two of its edges needs a length of at least 1.1e-19 (two perpendicular edges of length 1e-9 are enough). | none |
+| LIM-MATH-0014 | `DegenerateFrustum` | the `{plane}` plane of the view-projection matrix has a normal that is zero, shorter than 1.1e-19 or not finite, or a distance that is not finite. | pass the product `projection * view` of matrices from `Mat4::perspective` or `Mat4::orthographic` and `Mat4::look_to`. | `plane` |
+| LIM-MATH-0015 | `VectorTooShort` | `{parameter}` has the squared length `{length_squared}`, which is below 1.1754944e-38, and cannot be normalized to unit length. | pass a longer vector; a length of at least 1.1e-19 is enough. Below that the squared length is a subnormal `f32`, too coarse to give a unit vector. | `parameter`, `length_squared` |
 
 Each message ends with `.`. `parameter`, `axis` and `plane` are `Text` context values; `value`,
-`min`, `max` and `determinant` are `Float` (`f32` widened exactly; NaN and infinities render as
-`null` in JSON, CORE-R010). Codes 0006 to 0009 and 0015 onward are unassigned; new codes take the
+`min`, `max`, `determinant` and `length_squared` are `Float` (`f32` widened exactly; NaN and
+infinities render as `null` in JSON, CORE-R010). Codes 0006 to 0009 and 0016 onward are unassigned; new codes take the
 next free number in their group (0001–0009 linear algebra, 0010–0019 geometry).
 
 ## 9. Performance budgets
@@ -771,8 +804,9 @@ exists; none is listed before that.
 | `MathError` (R006) | unit, snapshot (`crates/liminal_math/tests/snapshots/math_errors.txt`: Display and JSON of one value of every variant) | Approved snapshot; `liminal_core::error::validate_error` |
 | `StateHash` (R007, R170) | unit | Hash of the component list written with `write_f32` by hand |
 | Exact expressions (R021–R023, R026, R041–R043, R047, R048, R071, R072, R090, R091) | unit (exactly representable inputs, hand-computed results; inputs chosen so that a different association order gives different bits), property | Hand-computed values; for association order, literals computed once by hand from the expression and recorded with the derivation |
-| Algebraic properties (R023, R025, R044–R046, R049–R051, R072–R074, R092, R093) | property (proptest over D-vec, D-unit, D-trs), unit | The identities and tolerances of the requirements; `f64` reference in `tests/common/` where the requirement says "evaluated in `f64`" |
-| Validation errors (R024, R045, R049–R051, R073, R150, R151, R155, R160, R165, R175) | unit (one case per error and per parameter position) | Hand-written expected `MathError` values |
+| Algebraic properties (R023, R025, R044–R046, R049–R051, R072–R074, R092, R093) | property (proptest over D-vec, D-unit, D-trs; arbitrary bit patterns for the antisymmetry clause of R023, arbitrary finite `v` for the identity clause of R072), unit (R023: `a = b = (0, 3e19, 3e19)`) | The identities and tolerances of the requirements; `f64` reference in `tests/common/` where the requirement says "evaluated in `f64`" |
+| Validation errors (R024, R045, R049–R051, R073, R150, R151, R155, R160, R165, R175) | unit (one case per error and per parameter position). For R160, R165 and R175 also the too-short vectors `(1e-22, 5e-23, 0)`, `(1e-21, 5e-22, 0)` and `(2^−64, 0, 0)` (rejected: LIM-MATH-0015, or LIM-MATH-0014 as the coefficients of a frustum plane), `(1e-30, 0, 0)` (LIM-MATH-0001) and the boundary `(2^−63, 0, 0)` (accepted, result `(1, 0, 0)`); for R160 the triangle `(0,0,0), (1e-11,0,0), (0,1e-11,0)` (LIM-MATH-0013) | Hand-written expected `MathError` values |
+| Geometry invariants INV-3 to INV-5 (R160, R165, R175) | property (arguments of arbitrary bit patterns, and vectors scaled so that `length_squared()` is within a factor 16 of `f32::MIN_POSITIVE` on either side, with component ratios down to 2^−12) | Every `Ok` value has a finite `d` and `abs(length − 1) ≤ 4 × f32::EPSILON` for its normal or direction |
 | `det` special values (R101) | unit (every row of §5.5) | The table of §5.5 |
 | `det` accuracy (R102, R104–R109) | differential, three input sets per function: (a) fixed: every special value, ±0, ±1, powers of two, the `f32` nearest to k × π/2 for k in 1 to 1000 and their neighbours, domain bounds and their neighbours, subnormal bounds; (b) 1,000,000 seeded inputs (seeded pairs for `atan2` and `powf`) uniform over the bit patterns of the domain, run in `cargo xtask ci`; (c) exhaustive over every `f32` in the domain (one-argument functions) or 100,000,000 seeded pairs, in tests marked `#[ignore = "M1-T021: exhaustive det sweep"]`, run once by M1-T021 and again whenever a `det` function changes | Rust standard library `f64` function on the widened input (§4 "ULP error") |
 | `det` symmetry and purity (R100, R103) | property (arbitrary bit patterns), determinism | Bit equality; canonical NaN bits |
@@ -841,8 +875,14 @@ verified when each workload's task (M1-T020 to M1-T023) passes on the three CI o
    2,000,000 seeded cases per property (maximum observed errors and the factors of headroom are
    in the journal entry `2026-11-10-M1-T019.md`), not from the implementation. MATH-R161,
    MATH-R049 to MATH-R051, MATH-R044, MATH-R073, MATH-R092 and MATH-R177 were not prototyped; their
-   tolerances are estimates. Resolve: M1-T020 and M1-T023 record the maximum observed error of
-   each property in their journals and change a tolerance by a `spec_version` bump if needed.
+   tolerances are estimates. Added in `spec_version` 2 by M1-T060, from a second throwaway
+   prototype (journal entry `2026-11-10-M1-T060.md`), also not engine code: the bound
+   `4 × f32::EPSILON` of INV-3 to INV-5 for every vector with `length_squared()` from
+   `f32::MIN_POSITIVE` up (maximum observed `1.5 × f32::EPSILON`), and the varied shape of §4
+   "Stable case" for MATH-R157 (the receiver sphere). Which shape the M1-T019 prototype varied for
+   its sphere–sphere and sphere–box figures is not recorded. Resolve: M1-T020 and M1-T023 record
+   the maximum observed error of each property in their journals and change a tolerance by a
+   `spec_version` bump if needed.
 2. **`det::sin`, `cos`, `tan` above 2^20.** Accuracy is required only for `abs(x) ≤ 2^20`; larger
    arguments need an argument reduction with more than 53 bits of π. Results there are defined
    (same bits everywhere, in range) but not accurate. Resolve: M1-T021 either meets the 1 ULP
@@ -923,3 +963,4 @@ checked by the session that reviews it.
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-10 | Initial spec | M1-T019 |
+| 2 | 2026-11-10 | MATH-R023: antisymmetry stated per component as "both NaN or equal under `==`", for every bit pattern (was `==` for all finite inputs, false when products overflow). MATH-R160, MATH-R165, MATH-R175, §7: the plane, ray and frustum constructors reject a vector to normalize whose `length_squared()` is below `f32::MIN_POSITIVE`, so INV-3 to INV-5 hold for every accepted input; new error code LIM-MATH-0015 `VectorTooShort`; messages of LIM-MATH-0013 and LIM-MATH-0014 widened; `Frustum::from_view_projection` also rejects a non-finite plane `d`. MATH-R004: conversions between binary32 and binary64 allowed. MATH-R072: identity clause for finite `v`. §4 "Stable case": names the varied shape. No requirement ID added, removed or renumbered | M1-T060 |
