@@ -2,7 +2,7 @@
 id: M1-T016
 title: Implement the liminal_benches harness
 milestone: M1
-status: in-progress
+status: review
 crates: [liminal_benches]
 depends_on: [M1-T015]
 requirements: [BENCH-R001, BENCH-R002, BENCH-R003, BENCH-R004, BENCH-R005, BENCH-R010, BENCH-R011, BENCH-R012, BENCH-R013, BENCH-R014, BENCH-R015, BENCH-R020, BENCH-R021, BENCH-R022, BENCH-R023, BENCH-R024, BENCH-R030, BENCH-R031, BENCH-R032, BENCH-R033, BENCH-R034, BENCH-R035, BENCH-R040, BENCH-R041, BENCH-R042, BENCH-R050, BENCH-R060, XTASK-R090]
@@ -69,6 +69,25 @@ Done with M1-T015 as one unit (ADR-0029 Decision 3), 2026-11-10. Status `review`
 - Trap: `cargo test` does not build bench targets, so the bench binary is only compiled by
   `clippy --all-targets` in CI; run it by hand with
   `cargo bench -p liminal_benches --bench liminal_core`.
+
+Second round, 2026-11-10 (implementation sub-agent, after the first "changes required"):
+all five required changes addressed. Status `review`.
+
+1. BENCH-R004: `a_filtered_out_case_still_counts_as_given` (`benches/src/bench/tests.rs`).
+2. BENCH-R032: `empty_and_blank_overrides_fall_back_to_detection` (`""`, `" "`, `"\t\n"` fall
+   back to detection and to `unknown`) in `benches/src/machine.rs`.
+3. BENCH-R032: `the_toolchain_comes_from_the_rustc_named_by_rustc` (injected `RUSTC` is the
+   program run; `rustc` without it).
+4. BENCH-R012: `zero_samples_without_from_args_take_one_sample` (`measure` and `Bench::run`
+   with `samples: 0`).
+5. BENCH-R024: spec changed, code kept. `docs/specs/liminal_benches.md` `spec_version` 2: R024
+   names the `None` result for a slice longer than `u32::MAX` (its count does not fit
+   `Summary::samples: u32`); `Bench::run` never reaches it. Doc comment of
+   `Summary::from_samples` updated. That clause has no test: it needs a slice of more than
+   2³² `f64` (32 GiB).
+
+Each reviewer mutant (1–4) was re-applied by hand and makes exactly one test fail; reverted.
+`cargo xtask ci`: 12 steps pass, none skipped (macOS 27.2 arm64). Coverage floor unchanged.
 
 ## Review
 

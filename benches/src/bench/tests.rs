@@ -244,3 +244,36 @@ fn an_unwritable_output_directory_is_an_error() {
     }
     std::fs::remove_file(&file).expect("cleanup");
 }
+
+/// Verifies: BENCH-R004
+#[test]
+fn a_filtered_out_case_still_counts_as_given() {
+    let mut config = fixed(1, 1);
+    config.filter = Some("hash".into());
+    let mut bench = bench("liminal_core", config);
+    let calls = Cell::new(0);
+    let rng = Case::new("liminal_core/rng/next_u64").expect("valid");
+    assert_eq!(bench.run(&rng, || calls.set(calls.get() + 1)), Ok(None));
+    assert_eq!(
+        bench.run(&rng, || calls.set(calls.get() + 1)).err(),
+        Some(BenchError::DuplicateCase {
+            id: "liminal_core/rng/next_u64".into()
+        })
+    );
+    assert_eq!(calls.get(), 0);
+}
+
+/// Verifies: BENCH-R012
+#[test]
+fn zero_samples_without_from_args_take_one_sample() {
+    let (n, samples, calls) = measured(&fixed(0, 3), 100);
+    assert_eq!((n, calls), (3, 3));
+    assert_eq!(samples, vec![100.0]);
+    let mut bench = bench("liminal_core", fixed(0, 2));
+    let case = Case::new("liminal_core/rng/next_u64").expect("valid");
+    let result = bench
+        .run(&case, || ())
+        .expect("runs")
+        .expect("not filtered");
+    assert_eq!(result.summary.samples, 1);
+}

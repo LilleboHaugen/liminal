@@ -3,7 +3,7 @@ crate: liminal_benches
 req_prefix: BENCH
 layer: 5
 maturity: planned
-spec_version: 1
+spec_version: 2
 last_reviewed: 2026-11-10
 adrs: [ADR-0003, ADR-0017, ADR-0018, ADR-0023]
 ---
@@ -275,7 +275,7 @@ toolchain through rustup. Unverified when `RUSTC` points elsewhere.
 | BENCH-R021 | MUST | `Summary::mad_ns` is the median (as R020) of the absolute differences between each sample and the median, without a scale factor. |
 | BENCH-R022 | MUST | `Summary::min_ns` and `max_ns` are the smallest and largest sample, and `samples` the sample count. |
 | BENCH-R023 | MUST | `Summary::throughput_per_s(Some(e))` is `e × 10⁹ / median_ns` elements per second when `median_ns > 0`; it is `None` for `None` or a median of 0. |
-| BENCH-R024 | MUST | `Summary::from_samples` returns `None` for an empty slice or a slice containing NaN or an infinity, and `Some` otherwise. |
+| BENCH-R024 | MUST | `Summary::from_samples` returns `None` for an empty slice, a slice containing NaN or an infinity, or a slice longer than `u32::MAX` elements (its count does not fit `Summary::samples`), and `Some` otherwise. `Bench::run` passes at most `u32::MAX` samples (`Config::samples` is a `u32`), so it always gets `Some`. |
 
 ### Result file (R030–R039)
 
@@ -409,3 +409,4 @@ Current: `planned` (spec written with the first implementation, M1-T015 with M1-
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-10 | Initial spec | M1-T015 |
+| 2 | 2026-11-10 | BENCH-R024 states the `None` result for a slice longer than `u32::MAX` (review of M1-T016, finding 5) | M1-T016 |

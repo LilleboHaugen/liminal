@@ -28,7 +28,7 @@
 | [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | done | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
 | [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | done | M1-T013, M1-T059 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | done | M1-T014 |
-| [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | in-progress | M1-T015 |
+| [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | review | M1-T015 |
 | [M1-T017](tasks/M1-T017-cargo-xtask-bench-and-the-first-wall-clock-basel.md) | cargo xtask bench and the first wall-clock baselines | todo | M1-T016 |
 | [M1-T018](tasks/M1-T018-miri-and-loom-in-ci.md) | Miri and loom in CI | todo | M1-T014, M1-T006 |
 | [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | done | M1-T001, M1-T054 |
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 31 | 1 | 0 | 0 | 30 |
+| M1 (Headless core) | 62 | 31 | 0 | 0 | 1 | 30 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates

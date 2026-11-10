@@ -216,6 +216,46 @@ mod tests {
         assert_eq!(detect_with(&no_env, &clean).commit, "0123abcd");
     }
 
+    /// Verifies: BENCH-R032
+    #[test]
+    fn empty_and_blank_overrides_fall_back_to_detection() {
+        for blank in ["", " ", "\t\n"] {
+            let env = |name: &str| {
+                name.starts_with("LIMINAL_BENCH_")
+                    .then(|| blank.to_string())
+            };
+            let fallback = detect_with(&env, &fail);
+            for field in [
+                &fallback.machine_id,
+                &fallback.os_version,
+                &fallback.toolchain,
+                &fallback.commit,
+                &fallback.power,
+            ] {
+                assert_eq!(field, UNKNOWN);
+            }
+            let git = |program: &str, args: &[&str]| match (program, args) {
+                ("git", ["rev-parse", "HEAD"]) => Some("0123abcd\n".to_string()),
+                ("git", ["status", "--porcelain"]) => Some(String::new()),
+                _ => None,
+            };
+            assert_eq!(detect_with(&env, &git).commit, "0123abcd");
+        }
+    }
+
+    /// Verifies: BENCH-R032
+    #[test]
+    fn the_toolchain_comes_from_the_rustc_named_by_rustc() {
+        let env = |name: &str| (name == "RUSTC").then(|| "/opt/rust/bin/rustc-nightly".to_string());
+        let run = |program: &str, args: &[&str]| match (program, args) {
+            ("/opt/rust/bin/rustc-nightly", ["-V"]) => Some("rustc 2.0.0-nightly\n".to_string()),
+            ("rustc", ["-V"]) => Some("rustc 1.99.1\n".to_string()),
+            _ => None,
+        };
+        assert_eq!(detect_with(&env, &run).toolchain, "rustc 2.0.0-nightly");
+        assert_eq!(detect_with(&no_env, &run).toolchain, "rustc 1.99.1");
+    }
+
     #[test]
     fn pmset_output_names_the_power_source() {
         assert_eq!(

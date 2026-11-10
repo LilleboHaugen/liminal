@@ -32,7 +32,8 @@ pub struct Summary {
 
 impl Summary {
     /// Computes the summary of `samples` (ns per iteration). Returns `None` for an empty slice,
-    /// or if a sample is NaN or infinite (BENCH-R024).
+    /// if a sample is NaN or infinite, or if the slice has more than `u32::MAX` elements, whose
+    /// count [`Summary::samples`] cannot hold (BENCH-R024).
     #[must_use]
     pub fn from_samples(samples: &[f64]) -> Option<Summary> {
         if samples.is_empty() || samples.iter().any(|s| !s.is_finite()) {
