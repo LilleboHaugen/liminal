@@ -938,10 +938,14 @@ verified when each workload's task (M1-T020 to M1-T023) passes on the three CI o
 Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T023 and
 checked by the session that reviews it.
 
-- [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
-      review of M1-T019).
-- [ ] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T020).
+- [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
+      review of M1-T019, task `done`; `spec_version` 2 from M1-T060, reviewed).
+- [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
+      registered in `ci/coverage.toml` (evidence: M1-T020: `cargo xtask ci` green on macOS arm64
+      2026-11-10, `crates/liminal_math/clippy.toml`, floor 97.3 %). With the two items above,
+      every gate of `experimental` holds (every implemented behaviour has tests: the M1-T020
+      requirements are traced); the reviewer of M1-T020 decides the promotion (MATURITY.md
+      "Promotion procedure").
 - [ ] All MUST requirements traced: `cargo xtask trace --crate liminal_math` with
       `maturity: usable` applied on a scratch copy reports every MUST tested (evidence: M1-T023).
 - [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T023).
