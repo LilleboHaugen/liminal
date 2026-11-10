@@ -88,12 +88,13 @@ Not done / limits (none is in scope):
 - CORE-R003 "compile error in a `const` item": checked by a `compile_fail` doc test on
   `ErrorCode`, which passes for any compile error, not only this one. The `Verifies:` tests
   check the panic at run time.
-- CORE-R011 and CORE-R013 "every supported platform": the snapshot literals ran on macOS arm64
-  only in this session. Windows and Linux: not verified until the branch CI run.
+- CORE-R011 and CORE-R013 "every supported platform": the snapshot literals passed on macOS
+  arm64, Windows and Linux in branch CI run 42869339307 (commit `788725c`).
 - CORE-R037 "`new()` has the slot limit `u32::MAX`" is tested through the `Debug` form
   (2^32 allocations are not feasible in a test).
 
-Verified: `cargo xtask ci` on macOS 27.2, Rust 1.99.1: 11 steps pass, none skipped. 20 hand-made
+Verified: `cargo xtask ci` on macOS 27.2, Rust 1.99.1: 11 steps pass, none skipped. Branch CI
+run 42869339307 on `788725c`: all five jobs green (later commits change only docs). 20 hand-made
 mutations of the implementation (list in the journal) each made `cargo test -p liminal_core`
 fail.
 
