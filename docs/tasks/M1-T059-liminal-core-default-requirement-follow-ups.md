@@ -2,7 +2,7 @@
 id: M1-T059
 title: liminal_core Default requirement follow-ups from the M1-T055 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [liminal_core]
 depends_on: [M1-T055, M1-T013]
 requirements: [CORE-R041]
