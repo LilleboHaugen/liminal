@@ -90,3 +90,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M2-T004](M2-T004-reference-module-rule-follow-ups.md) | Reference-module rule follow-ups from the M1-T054 review |
 | [M2-T005](M2-T005-rust-lexer-number-follow-ups.md) | Rust lexer numeric literal follow-ups from the M1-T004 review |
 | [M2-T006](M2-T006-determinism-lint-follow-ups.md) | Determinism lint follow-ups from the M1-T011 review |
+| [M2-T007](M2-T007-dependabot-and-main-run-follow-ups.md) | Dependabot handling and `main` run cancellation follow-ups from the M1-T006 review |

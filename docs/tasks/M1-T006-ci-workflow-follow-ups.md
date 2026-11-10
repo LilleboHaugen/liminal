@@ -2,7 +2,7 @@
 id: M1-T006
 title: CI workflow follow-ups from the M0-T007 review
 milestone: M1
-status: review
+status: done
 crates: [xtask]
 depends_on: [M0-T007]
 requirements: []
@@ -52,8 +52,12 @@ line).
 - [x] Trigger set decided, implemented, reason in the workflow header and the journal.
 - [x] Action-update path decided (Dependabot config committed, or manual cadence written into the
       workflow header).
-- [ ] `cargo xtask ci` passes; CI green on `main` after the change. (`cargo xtask ci` and branch
-      CI pass; "green on `main`" is checked by the reviewer after the merge, WORKFLOW.md §8.)
+- [x] `cargo xtask ci` passes; CI green on `main` after the change. (Review 2026-11-10:
+      `cargo xtask ci` passes on the merge result with `main` `3f1b06f`, and the branch CI runs
+      are green. The `main` run of the merge can only exist after this commit is merged and
+      pushed; the reviewer waits for it and reports its ID to the parent session, whose journal
+      `docs/journal/2026-11-10-session-m1-reviews.md` records it. If it is not green, the reviewer
+      says so there and the task is reopened.)
 
 ## Test requirements
 
@@ -84,4 +88,64 @@ quickly (journal "Problems"); not changed, outside scope.
 
 ## Review
 
-_Empty._
+Reviewer: review sub-agent (ADR-0026), 2026-11-10, parent
+`docs/journal/2026-11-10-session-m1-reviews.md`; did not write M1-T006 (its author was sub-agent
+no. 7 of `2026-11-09-session-m1-subagents.md`). Prompt: the ADR-0026 review template verbatim.
+First review with an outcome (sub-agent no. 3 of `2026-11-09-session-m1-reviews.md` declined
+without one). Outcome: **done**, no blocking findings. Follow-up task:
+`docs/tasks/M2-T007-dependabot-and-main-run-follow-ups.md`.
+
+Checked, macOS 27.2, Rust 1.99.1, on `efe662f` and on its merge with `main` `3f1b06f`
+(`10d627d`):
+1. Acceptance criteria (by reading the diff `d6bc2b6..efe662f` and with `gh`, read-only):
+   - `pull_request` run: run 42686383503 is event `pull_request`, commit `2719f6c`, attempt 2,
+     `success`, 5 jobs `success`. Met.
+   - Trigger set: `on: push:` only, `event_name` gone from the concurrency group; reason in the
+     workflow header and the journal. The claims behind the reason hold: `push` run 42686372259
+     and `pull_request` run 42686383503 on the same commit `2719f6c` (duplicate); exactly one
+     run (42689078830, `push`, `success`) for `1d99a37`, pushed while PR #1 was open (PR #1
+     closed 20:07:25Z, run created 20:02:22Z). Met.
+   - Action-update path: `.github/dependabot.yml` committed (`github-actions`, monthly, one
+     group, `ci` prefix with scope). Keys read against the Dependabot options; parsed as YAML.
+     Met. Its behaviour on GitHub is not verified (needs the file on `main`); follow-up item 2.
+   - `cargo xtask ci`: pass, 11 steps, none skipped, on `10d627d`. Branch CI: run 42689928818
+     on `efe662f`, `success` (attempt 2; attempt 1 lost the macOS job to runner capacity, as
+     recorded in `2026-11-09-session-m1-reviews.md`). "Green on `main`": see the criterion.
+2. Tests: the task has none in code ("Test requirements"). The evidence is the runs above.
+3. No fake progress: no test, oracle, floor or baseline touched. Scope items 1 and 2 are both
+   decided and implemented; the "Note (no work)" item is carried in the journal.
+4. Spec: `docs/specs/xtask.md` does not describe workflow triggers; unchanged, no disagreement.
+5. Unsafe, determinism: not applicable (no Rust code changed).
+6. Docs: `docs/STATUS_NOTES.md` updated by the task. Stale against ADR-0028: follow-up item 1.
+7. Architecture: no crate dependency. Dependabot is a GitHub service configured by a file, not
+   a dependency in the sense of `docs/process/DEPENDENCIES.md`.
+8. Session boundaries (item 10): the author is listed as sub-agent 7 in its parent's journal;
+   this reviewer's parent is a different owner-started session; no install; no agent spawned.
+9. Public repository (item 11, ADR-0028): the workflow keeps `permissions: contents: read`,
+   every action pinned by full SHA, `persist-credentials: false` on every checkout, no secrets,
+   no `pull_request_target` or `workflow_run`, hosted runners only. Dropping `pull_request` is
+   the removal of a duplicate run, not a cut (Decision 3). No platform or job removed. Opening
+   and closing draft PR #1 (author: the owner's account, the task's own branch) was asked for
+   by this task's scope item 1 and happened before ADR-0028 was accepted (PR closed 21:07 CET,
+   acceptance commit `bda846d` 21:49 CET); nothing outside was merged or acted on. No violation.
+
+Merge with `main`: `.github/workflows/ci.yml` header conflict, both sides kept verbatim (the
+task's two paragraphs, then the ADR-0028 paragraph); `docs/STATUS.md` regenerated. In
+`docs/STATUS_NOTES.md` the reviewer replaced the task's clause "it is merged only through a
+task" by the ADR-0028 Decision 5 handling, because `main`'s side of that file already states
+rule 17 and the two sides contradicted each other. The workflow header was not reworded by the
+reviewer (follow-up item 1).
+
+Findings, all non-blocking (ADR-0021), in M2-T007:
+1. The workflow header ("handle such a pull request in a task like any other change (do not
+   merge it on GitHub without a reviewed task)") reads as allowing a merge of the bot branch
+   through a task. ADR-0028 Decision 5 and rule 17 forbid that. Not B2: no rule was broken, the
+   text predates the rule, and `AGENTS.md` wins over it. Reword.
+2. Dependabot is unobserved: whether a pull request appears, whether its branch gets a `push`
+   run, how the pull request ends after a manual re-pin; whether `commit-message` has a use.
+3. `cancel-in-progress: true` on `main` cancelled `main` runs 42693473514, 42857415487 and
+   42859718551 (annotation "Canceling since a higher priority waiting request for
+   ci-ci-push-refs/heads/main exists"). The task's handoff names the trap; it is unchanged code
+   and outside the task's scope.
+Seen, no work: the journal says "all six jobs" once; there are five. `crates: [xtask]` in the
+frontmatter although no `xtask` file changed.
