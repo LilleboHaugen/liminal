@@ -25,7 +25,7 @@ worth its cost. Facts on 2026-11-10, from `docs/STATUS.md`, the task files and t
 | Engine code on `main` | none; `crates/liminal_core` (M1-T013) is in `review` on its branch |
 | M1 tasks `done` | 11 of 58 |
 | Reviews in the parent session of 2026-11-10 | 7, each set its task to `done` |
-| Follow-up tasks those 7 reviews created | 7 (M1-T055 … M1-T058, M2-T004 … M2-T006) |
+| Follow-up tasks those reviews created | 7 (M1-T055 … M1-T058, M2-T004 … M2-T006); an 8th review added M2-T007 |
 | M1 task count during that session | 54 → 58 |
 | Tasks that session wrote and may not review | 7 (M1-T013, T019, T034, T055 … T058) |
 
@@ -85,7 +85,7 @@ those points directly, and merge to main".
       task, or deleted with a one-line reason in that session's journal entry. Between those, an
       implementation task MAY fix backlog entries in files it changes anyway; it deletes the
       entry and says so in its handoff.
-   5. Follow-up tasks that exist on 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T006) stay as
+   5. Follow-up tasks that exist on 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T007) stay as
       they are.
 3. **Spec and first implementation may be one unit of work.**
    1. When a spec task ("Write the spec for …") and the first implementation task of the same

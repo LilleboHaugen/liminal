@@ -13,5 +13,5 @@ Rules:
   deleted, with a one-line reason in that session's journal entry.
 - On merge, keep both sides' entries.
 
-No entries yet. Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T006)
+No entries yet. Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T007)
 stay tasks.
