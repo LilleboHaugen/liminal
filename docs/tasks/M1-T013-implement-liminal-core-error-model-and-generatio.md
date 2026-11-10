@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_core]
 depends_on: [M1-T012, M1-T011, M1-T003, M1-T004, M1-T005]
-requirements: []
+requirements: [CORE-R001, CORE-R002, CORE-R003, CORE-R004, CORE-R005, CORE-R006, CORE-R007, CORE-R008, CORE-R009, CORE-R010, CORE-R011, CORE-R012, CORE-R013, CORE-R030, CORE-R031, CORE-R032, CORE-R033, CORE-R034, CORE-R035, CORE-R036, CORE-R037, CORE-R038, CORE-R039, CORE-R040]
 ---
 
 # M1-T013: Implement `liminal_core`: error model and generational handles

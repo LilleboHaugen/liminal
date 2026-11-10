@@ -297,7 +297,15 @@ mod tests {
         assert!(adrs.contains(&"0001-record-architecture-decisions.md"));
         assert!(!adrs.contains(&"0000-template.md") && !adrs.contains(&"README.md"));
         let specs: Vec<&str> = model.spec_files().map(|(path, _)| path).collect();
-        assert_eq!(specs, ["docs/specs/xtask.md"]);
+        // The real repository gains a spec per crate; check membership and exclusions, not the
+        // exact list (M1-T012 added the first engine spec).
+        assert!(specs.contains(&"docs/specs/xtask.md"));
+        assert!(specs.iter().all(|path| path.starts_with("docs/specs/")));
+        assert!(
+            !specs
+                .iter()
+                .any(|path| path.ends_with("/_TEMPLATE.md") || path.ends_with("/README.md"))
+        );
         let tasks: Vec<&str> = model
             .task_files()
             .map(|(path, _)| file_name(path))
