@@ -2,7 +2,7 @@
 id: M1-T056
 title: liminal_telemetry spec follow-ups from the M1-T027 review
 milestone: M1
-status: todo
+status: in-progress
 crates: [liminal_telemetry, xtask]
 depends_on: [M1-T027]
 requirements: []

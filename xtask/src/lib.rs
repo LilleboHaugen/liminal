@@ -14,6 +14,7 @@ mod ci;
 mod cli;
 mod coverage;
 mod doctor;
+mod features_off;
 mod finding;
 mod frontmatter;
 mod hygiene;

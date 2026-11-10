@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 21
+spec_version: 22
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -67,8 +67,8 @@ cargo xtask status [--check]
 cargo xtask doctor [--json]
 ```
 
-`ci` steps, in order: `fmt`, `clippy`, `test`, `doc`, `check-arch`, `check-docs`, `trace`, `hygiene`,
-`status-check`, `coverage`, `deny`.
+`ci` steps, in order: `fmt`, `clippy`, `test`, `test-features-off`, `doc`, `check-arch`, `check-docs`,
+`trace`, `hygiene`, `status-check`, `coverage`, `deny`.
 
 During M0 each step is added to `ci` by the task that implements it. A step that does not exist yet is
 absent from `ci`. It is never stubbed as a pass. The order above is the final order.
@@ -124,6 +124,7 @@ Summary details (added in `spec_version` 2):
 | XTASK-R011 | MUST | `xtask` has no dependency on any `liminal_*` crate. |
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
+| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 22; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
 
 ### `check-docs` (R020–R029)
 
@@ -218,6 +219,32 @@ first), then rule, then message.
 In `ci`, a native check step (one that runs inside xtask, without spawning a process) reports its
 findings in the step's `findings`. An internal error makes the step `fail`, with the error message
 as `output_tail` in both output modes.
+
+`test-features-off` details (R014; added in `spec_version` 22):
+
+- Packages and their features come from `cargo metadata --format-version 1 --no-deps --offline`
+  run in the repository root (the `check-arch` loader). A package "has a feature" if its
+  `features` object in that output is not empty. Cargo lists there every key of `[features]`
+  (`default` included) and the implicit feature of each optional dependency that no feature names
+  with `dep:`. Packages are tested in ascending name order.
+- One command per package, selected with `--package`, not one `--workspace` command: Cargo
+  unifies features over the packages of one command, so with `--workspace` another member that
+  depends on the package with a feature enabled would turn that feature on again.
+- The step stops at the first command that fails; later packages are not tested. In `--json`
+  mode `output_tail` is `cargo test --package <name> --no-default-features --locked` on its own
+  line, followed by the last 50 lines of that command's output. In human mode the progress line
+  is `==> test-features-off: cargo test --package <crate> --no-default-features --locked (once
+  per workspace crate with features)`.
+- If `cargo` cannot be started, the step is `skipped` (R006). If `cargo metadata` fails or its
+  output cannot be parsed (LIM-XTASK-0005, LIM-XTASK-0002), the step fails with the error message
+  as `output_tail` in both output modes.
+- Not covered: building each feature alone (`--no-default-features --features x`, CODE_STYLE.md
+  "Every feature must build alone") and combinations of features. No command checks them yet.
+- Tests: the step's logic over a package list with a fake command function; the real step
+  (real `cargo metadata` and `cargo test`) on a two-package workspace that the test writes to a
+  temporary directory, where a package without features has a test that always fails, and the
+  package with a default-on feature has one always-failing test that exists only with the
+  feature and one test that exists only without it.
 
 ### `check-arch` (R030–R039)
 
@@ -476,8 +503,8 @@ as `output_tail` in both output modes.
 
   | Tool | Probe | Needed by `ci` steps |
   |---|---|---|
-  | `rustc` | `rustc --version` | fmt, clippy, test, doc, coverage, deny |
-  | `cargo` | `cargo --version` | fmt, clippy, test, doc, coverage, deny |
+  | `rustc` | `rustc --version` | fmt, clippy, test, test-features-off, doc, coverage, deny |
+  | `cargo` | `cargo --version` | fmt, clippy, test, test-features-off, doc, coverage, deny |
   | `rustfmt` | `cargo fmt --version` | fmt |
   | `clippy` | `cargo clippy --version` | clippy |
   | `cargo-llvm-cov` | `cargo llvm-cov --version` | coverage |
@@ -554,6 +581,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 | Each check rule | integration tests on fixture repositories in `xtask/tests/fixtures/<case>/` | One passing fixture plus one fixture per rule that must fail with exactly that rule ID |
 | `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
+| `test-features-off` (R014) | unit tests with a fake command function; the real step on a workspace written to a temporary directory | Expected command lines; tests that exist only with a feature on or off |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
 | `doctor` | unit tests with a fake probe runner; the real probes run on the developer machine | Tool table above |
 | `deny.toml` (R082) | `cargo deny check licenses` on a GPL fixture, with a passing control | cargo-deny's licence check |
@@ -623,3 +651,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
 | 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
 | 21 | 2026-11-10 | §2 and §12: OQ-004 is resolved by ADR-0023; benchmark commands come with M1-T017 (text only, no requirement change) | M1-T054 |
+| 22 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
