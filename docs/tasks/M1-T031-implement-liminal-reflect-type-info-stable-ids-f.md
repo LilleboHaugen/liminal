@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_reflect]
 depends_on: [M1-T030, M1-T014]
-requirements: [REFL-R001, REFL-R002, REFL-R003, REFL-R004, REFL-R005, REFL-R020, REFL-R021, REFL-R040, REFL-R041, REFL-R042, REFL-R043, REFL-R044, REFL-R045, REFL-R060, REFL-R061, REFL-R062, REFL-R063, REFL-R064, REFL-R080, REFL-R100, REFL-R101, REFL-R102, REFL-R103, REFL-R104, REFL-R140]
+requirements: [REFL-R001, REFL-R002, REFL-R003, REFL-R004, REFL-R005, REFL-R020, REFL-R021, REFL-R040, REFL-R041, REFL-R042, REFL-R043, REFL-R044, REFL-R045, REFL-R060, REFL-R061, REFL-R062, REFL-R063, REFL-R064, REFL-R065, REFL-R080, REFL-R100, REFL-R101, REFL-R102, REFL-R103, REFL-R104, REFL-R140]
 ---
 
 # M1-T031: Implement `liminal_reflect`: type info, stable IDs, field access
@@ -41,7 +41,11 @@ Requirements in frontmatter; property tests for get/set round trips.
 
 ## Notes
 
-_None._
+- 2026-11-10 (M1-T057): the spec is at `spec_version` 2. New requirement REFL-R065
+  (`TypeRegistry` `Debug` without `TypeId`) is in this task's `requirements`. REFL-R043,
+  REFL-R080 and REFL-R100 now ask for tests with deliberately wrong hand-written impls
+  (`field_at(1)` / `get(1)` returning `None` below the count); REFL-R061 and REFL-R062 fix the
+  check order; the §5.2 example changed (the `spec_version` 1 form did not compile).
 
 ## Handoff
 

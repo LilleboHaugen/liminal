@@ -159,3 +159,17 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   sentence (same window as for `counter!`, `gauge!`, `log!`), or state it for one thread.
 - `docs/tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md`: title and file
   name say "frame stats", which are M1-T028's since M1-T056 (handoff, "For the reviewer" 5).
+
+## M1-T057 — review 2026-11-10
+
+- `docs/specs/liminal_reflect.md` §3: says the cited CORE requirements were compared with the
+  core spec at `spec_version` 1 and 2. `docs/specs/liminal_core.md` is at 3 on `main`; the
+  review compared CORE-R050, R053, R054, R056 and R098 with it (identical text). Update the
+  sentence when the spec is next edited.
+- `docs/specs/liminal_reflect_derive.md` §3: the manifest line
+  `proc-macro2 = { workspace = true, … }` assumes a `[workspace.dependencies]` entry that the
+  root `Cargo.toml` does not have. M1-T032 adds it or writes a version.
+- `docs/specs/liminal_reflect.md` REFL-R080: `expected` / `actual` are fixed only for the
+  missing-value case; for the other checks (field count, name, kind, variant index, array
+  length, field ID) the strings are examples, while §10 asks for hand-written expected values.
+  M1-T031 fixes the strings in the requirement when it writes the tests.
