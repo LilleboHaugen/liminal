@@ -11,6 +11,13 @@ M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-
 it) first, then the engine crates (plan in M1-T001 "Handoff"). M1-T002 is done (review
 2026-11-09; follow-ups in M2-T001).
 
+Parent session `2026-11-09-session-m1-subagents.md` set M1-T004, T006, T008–T012, T024, T027,
+T030 and T054 to `review`, each on its own pushed task branch (not on `main`). The next session
+reviews those still in `review`; no agent of that parent session may. Expect merge conflicts in
+`docs/specs/xtask.md` (`spec_version`), `xtask/src/repo.rs` and `docs/specs/README.md` (see that
+journal entry). Every new spec fails the `xtask` test `loads_the_real_repository` until M1-T012
+(or another spec task) is merged.
+
 ADR-0027 (sub-agents by default, no per-session total) is accepted (ADR review 2026-11-09) and
 supersedes ADR-0026, whose other decisions stay in force through it. Sessions SHOULD act as a
 parent whenever two or more tasks are eligible, keep up to 3 sub-agents (1 review) running until
