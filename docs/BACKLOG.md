@@ -76,3 +76,10 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `docs/tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md`: scope "Out" says
   geometry and `det` only; the spec also moves `perspective`, `from_axis_angle` and `slerp` to
   M1-T021. Only M1-T021's "Notes" record it; add the same line to M1-T020's "Notes".
+
+## M1-T059 — review 2026-11-10
+
+- `crates/liminal_core/tests/handles.rs`: the five CORE-R041 tests were inserted between the
+  doc comment of `operations_on_many_slots_do_not_scan` ("CORE-R040 is a SHOULD …") and that
+  function. The paragraph now heads `default_allocator_is_in_the_state_of_new`, and the
+  CORE-R040 test has only its `Verifies:` line. Move the paragraph back. Trace output is correct.

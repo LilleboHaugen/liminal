@@ -2,7 +2,7 @@
 id: M1-T059
 title: liminal_core Default requirement follow-ups from the M1-T055 review
 milestone: M1
-status: todo
+status: done
 crates: [liminal_core]
 depends_on: [M1-T055, M1-T013]
 requirements: [CORE-R041]
@@ -58,14 +58,14 @@ M1-T014 implements the rest of `liminal_core` and collects the `usable` evidence
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask trace --crate liminal_core` lists at least one test for CORE-R041, and
+- [x] `cargo xtask trace --crate liminal_core` lists at least one test for CORE-R041, and
       breaking `Default` for either type (for example `with_slot_limit(0)`) makes a test with
       that tag fail.
-- [ ] Spec §6 and the `requirements` frontmatter of M1-T013, M1-T014 and this task assign every
+- [x] Spec §6 and the `requirements` frontmatter of M1-T013, M1-T014 and this task assign every
       CORE requirement to exactly one task.
-- [ ] CORE-R076 names, for each type-bound case, a behaviour a test can observe.
-- [ ] `spec_version` is bumped with a history row.
-- [ ] `cargo xtask ci` passes with no failed or skipped step.
+- [x] CORE-R076 names, for each type-bound case, a behaviour a test can observe.
+- [x] `spec_version` is bumped with a history row.
+- [x] `cargo xtask ci` passes with no failed or skipped step.
 
 ## Test requirements
 
@@ -73,8 +73,86 @@ M1-T014 implements the rest of `liminal_core` and collects the `usable` evidence
 
 ## Handoff
 
-_Empty._
+**2026-11-10, implementation sub-agent (journal `2026-11-10-M1-T059.md`). Status: `review`.**
+
+Done:
+- Item 1: five tests with `/// Verifies: CORE-R041` in `crates/liminal_core/tests/handles.rs`:
+  `default_allocator_is_in_the_state_of_new` (`live_count()` 0, `Debug` equal to `new()` and to
+  `with_slot_limit(u32::MAX)`, different from `with_slot_limit(0)`),
+  `default_allocator_issues_0v1_first`, `default_map_is_in_the_state_of_new`,
+  `default_map_inserts_at_0v1_first`,
+  `default_map_exists_for_a_value_type_without_default_or_debug` (`HandleMap<Opaque>` and
+  `HandleMap<Large>`; neither type implements `Default` or `Debug`). No library code changed.
+  The older assertions under CORE-R037 and CORE-R039 stay.
+- Mutation check (acceptance criterion 1), both reverted: `HandleAllocator::default()` =
+  `with_slot_limit(0)` fails 2 of the tagged tests (and the CORE-R037 test);
+  `HandleMap::default()` = `with_slot_limit(0)` fails 3 of the tagged tests (and the CORE-R039
+  test).
+- Item 2: spec §6 table: M1-T013 has CORE-R030 to CORE-R040, new row M1-T059 with CORE-R041.
+  CORE-R041 removed from M1-T013's `requirements`; dated line at the end of M1-T013's handoff.
+- Item 3, **second option chosen**: in spec §5.4 `new`, `len` and `is_empty` of `DetHashMap` and
+  `DetHashSet` are in `impl` blocks without trait bounds. Reason: the unbounded
+  `impl Default { /* new() */ }` of §5.4 can only call `new()` if `new()` is unbounded too, and
+  "`len()` 0" then holds and is testable for every type. CORE-R076 now has case (a) every `K`,
+  `V`, `T` (`default()` and `new()` compile, `len()` 0, `is_empty()` true) and case (b)
+  `Hash + Eq` types (iteration yields nothing; same results after the same operations). §10
+  names the test for each case. `with_capacity`, `iter`, `clear` and the rest keep their bounds
+  (not in the item's list).
+- Item 4: `spec_version` 2 → 3 with a history row.
+
+Check of acceptance criterion 2 (every CORE requirement in exactly one task): the union of the
+`requirements` frontmatter of M1-T013 (R001–R013, R030–R040), M1-T014 (R050–R057, R060, R061,
+R070–R076, R090–R098, R110–R114, R130–R133) and this task (R041) equals the ID column of spec
+§6, with no ID twice; compared by script, see the journal.
+
+Not done: nothing in scope. CORE-R076 has no test yet (M1-T014, as the task says).
+
+Traps:
+- M1-T014 must put `new`, `len`, `is_empty` in unbounded `impl` blocks; a single
+  `impl<K: Hash + Eq, V>` block as in spec v2 no longer matches the spec.
+- `Result<Handle<T>, CoreError>` is not `Copy`: bind the unwrapped handle before comparing twice.
+
+Next step: a session reviews M1-T059. Then M1-T014 can start.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T059-review.md`). First review of this task. Rules read from `main` at
+`5e0a1ea` (`AGENTS.md`, `docs/process/REVIEW.md` §1, ADR-0029). **Outcome: no blocking finding;
+`done`.**
+
+Checked:
+- Criterion 1: `cargo xtask trace --crate liminal_core` lists CORE-R041 with
+  `crates/liminal_core/tests/handles.rs`. Mutations run by the reviewer, both reverted:
+  `HandleAllocator::default()` = `with_slot_limit(0)` fails 2 tagged tests
+  (`default_allocator_is_in_the_state_of_new`, `default_allocator_issues_0v1_first`) and the
+  CORE-R037 test; `HandleMap::default()` = `with_slot_limit(0)` fails 4 tagged tests (the
+  handoff says 3; `default_map_exists_for_a_value_type_without_default_or_debug` fails too)
+  and the CORE-R039 test.
+- Criterion 2: reviewer's own script over spec §6 and the `requirements` frontmatter of every
+  task file: 60 IDs in the spec's requirement tables, 60 in §6, 60 in the frontmatter of
+  M1-T013 (24), M1-T014 (35), M1-T059 (1); the same set, no ID twice.
+- Criterion 3: CORE-R076 case (a) (`default()`, `new()` compile; `len()` 0; `is_empty()`) is
+  observable for every type because §5.4 now has `new`, `len`, `is_empty` in `impl` blocks
+  without bounds; case (b) uses only methods bounded by `Hash + Eq`. §5.4, the paragraph below
+  it, CORE-R076 and the §10 row agree. No other spec text states bounds for these methods.
+  M1-T014's task file names no `impl` layout, so it needs no edit.
+- Criterion 4: `spec_version` 3, history row present, the two sentences in §9 and §10 say 3.
+- Criterion 5: `cargo xtask ci` on `2366b2a`: pass, 11 steps, none skipped; again on the merge
+  of `main` (`5e0a1ea`) with the review edits: pass, 11 steps. macOS 27.2 (arm64). Branch CI
+  run 42876422340 on `2366b2a`: success.
+- Tests: each of the five tests asserts values named by CORE-R041 (count 0, `0v1`, `Debug`
+  equal to `new()` and to `with_slot_limit(u32::MAX)`, the impl for `Opaque` / `Large`). No
+  library code, oracle, floor or baseline changed; no test weakened or removed. No `unsafe`,
+  no dependency, no workflow file touched. M1-T013: only the frontmatter list and one dated
+  handoff line changed.
+- Session boundaries: author is an implementation sub-agent of the same parent, reviewer a
+  fresh review sub-agent (ADR-0029 Decision 1.2). The parent's journal entry is "in progress"
+  and its sub-agent table is not written yet, so the listing of author and reviewer there
+  could not be checked.
+
+Not verified: Windows and Linux locally (the branch CI run covers them); the CI run of the
+review commits was not waited for.
+
+Backlog: 1 entry in `docs/BACKLOG.md` under "M1-T059 — review 2026-11-10" (the doc comment of
+the CORE-R040 test now sits on the first CORE-R041 test). Follow-up task: none.
