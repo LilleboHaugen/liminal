@@ -74,7 +74,7 @@ const QUALIFIERS: &[&str] = &[
 
 /// The name and line of the function whose header starts the item after the annotation: comments
 /// and outer attributes are skipped; then qualifiers (`pub`, `pub(…)`, `const`, `async`,
-/// `unsafe`, `extern "ABI"`, …) and `fn name`. `None` if the next item is something else.
+/// `unsafe`, `extern "ABI"`, …; a string literal only directly after `extern`) and `fn name`. `None` if the next item is something else.
 fn next_function(tokens: &[Token]) -> Option<(String, usize)> {
     let mut index = 0;
     // Comments and outer attributes.
@@ -90,11 +90,21 @@ fn next_function(tokens: &[Token]) -> Option<(String, usize)> {
     // Qualifiers.
     loop {
         match &tokens.get(index)?.kind {
-            Kind::Comment(_) | Kind::Str(_) => index += 1,
+            Kind::Comment(_) => index += 1,
             Kind::Ident(word) if QUALIFIERS.contains(&word.as_str()) => {
                 index += 1;
                 if word == "pub" && tokens.get(index)?.kind == Kind::Punct('(') {
                     index = after_group(tokens, index)?;
+                }
+                if word == "extern" {
+                    // The optional ABI string, after comments; a string anywhere else ends the
+                    // header.
+                    while matches!(tokens.get(index)?.kind, Kind::Comment(_)) {
+                        index += 1;
+                    }
+                    if matches!(tokens.get(index)?.kind, Kind::Str(_)) {
+                        index += 1;
+                    }
                 }
             }
             _ => break,

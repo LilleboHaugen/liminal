@@ -3,7 +3,7 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 22
+spec_version: 23
 last_reviewed: 2026-11-09
 adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
 ---
@@ -124,7 +124,7 @@ Summary details (added in `spec_version` 2):
 | XTASK-R011 | MUST | `xtask` has no dependency on any `liminal_*` crate. |
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
-| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 22; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
+| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 23; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
 
 ### `check-docs` (R020–R029)
 
@@ -220,7 +220,7 @@ In `ci`, a native check step (one that runs inside xtask, without spawning a pro
 findings in the step's `findings`. An internal error makes the step `fail`, with the error message
 as `output_tail` in both output modes.
 
-`test-features-off` details (R014; added in `spec_version` 22):
+`test-features-off` details (R014; added in `spec_version` 23):
 
 - Packages and their features come from `cargo metadata --format-version 1 --no-deps --offline`
   run in the repository root (the `check-arch` loader). A package "has a feature" if its
@@ -337,6 +337,12 @@ as `output_tail` in both output modes.
   literals of every form, other literals, line and nested block comments). It is not a parser.
   Comments, string contents and code are told apart exactly, so patterns inside string literals
   are never findings, and `trace` and `hygiene` need no exclusion for xtask's own source.
+  A numeric literal (`spec_version` 22) is its digits, letters and `_`; a `+` or `-` directly
+  after a decimal exponent `e`/`E` (before any other letter) and followed by a digit; and one `.`
+  in a decimal literal before any letter, unless that `.` is followed by `.`, `_` or a letter, or
+  the literal directly follows a `.` that is not part of `..` (a tuple field index). So `1.5e3`,
+  `1_000u32`, `0x1F` and `1e-3` are one literal each; `0..n`, `1.max(2)`, `x.0.1` and `0x1E-3`
+  split.
 - Requirements (R040). Section 6 is the text from the level-2 heading that starts with `6.` or
   `6 ` up to the next level-1 or level-2 heading, outside fenced code. A row whose first cell is a
   requirement ID but whose second cell is not MUST, SHOULD or MAY, or whose third cell is empty,
@@ -350,7 +356,8 @@ as `output_tail` in both output modes.
   not match `\s*ID(\s*,\s*ID)*\s*`, the line is an R041 finding (malformed). It is attached to the
   item that follows, after comments and outer attributes (`#[…]`, any number of lines): that item
   must start with qualifiers (`pub`, `pub(…)`, `const`, `async`, `unsafe`, `safe`, `extern` with an
-  optional ABI string, `default`) and `fn <name>`, otherwise the annotation is an R041 finding (not
+  optional ABI string, `default`) and `fn <name>`; a string literal anywhere but directly after
+  `extern` (comments between are allowed) ends the header (`spec_version` 22), otherwise the annotation is an R041 finding (not
   attached). This replaces the M0-T005 note's "within 10 lines" heuristic: the token rule is exact.
   A test is reported at the line of its function name. A function that names an ID twice is listed
   once.
@@ -376,7 +383,9 @@ as `output_tail` in both output modes.
   `done` if that file's frontmatter says `status: done`. A task file with unreadable frontmatter
   exists and is not `done`.
 - Ignore attributes (R050, R051): `ignore` as a meta item inside an outer or inner attribute
-  (directly after `[`, `(` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). Without
+  (directly after `[` or `,`, e.g. `#[ignore]`, `#[cfg_attr(miri, ignore)]`). `(` was removed in
+  `spec_version` 22: no test-ignore attribute puts `ignore` directly after `(` (the first argument
+  of `cfg_attr` is its predicate), so it matched only non-test attributes such as `#[foo(ignore)]`. Without
   `= "reason"`, or with a reason that contains no task ID, it is R050. Every task ID in the reason
   must exist (R051); its status does not matter.
 - Locations: `path:line`. For R040, R044 and R045 the spec row; for R041 and R043 the annotation
@@ -651,4 +660,5 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 19 | 2026-11-09 | `coverage`: a crate with no measured lines and a floor above 0.0 is an R061 error; workspace member entries are normalized (`./name`, `a/./b`) | M1-T005 |
 | 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
 | 21 | 2026-11-10 | §2 and §12: OQ-004 is resolved by ADR-0023; benchmark commands come with M1-T017 (text only, no requirement change) | M1-T054 |
-| 22 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
+| 22 | 2026-11-09 | Lexing: numeric literals end at `..`, `.` + identifier and after a tuple-field `.`; R041: a string literal counts only directly after `extern`; R050: `ignore` counts only directly after `[` or `,` (not `(`) | M1-T004 |
+| 23 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |

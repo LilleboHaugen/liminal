@@ -33,5 +33,9 @@ const T: &str = "
 /// Verifies: DEMO-R003
 pub extern "C" fn f() {}
 /// Verifies: DEMO-R001
+pub "x" fn g() {}
+/// Verifies: DEMO-R001
+extern /* ABI */ "C" fn h() {}
+/// Verifies: DEMO-R001
 mod m {}
 /// Verifies: DEMO-R001

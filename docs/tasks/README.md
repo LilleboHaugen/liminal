@@ -86,3 +86,4 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
 | [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |
 | [M2-T004](M2-T004-reference-module-rule-follow-ups.md) | Reference-module rule follow-ups from the M1-T054 review |
+| [M2-T005](M2-T005-rust-lexer-number-follow-ups.md) | Rust lexer numeric literal follow-ups from the M1-T004 review |
