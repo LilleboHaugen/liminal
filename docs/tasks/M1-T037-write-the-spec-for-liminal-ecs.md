@@ -2,7 +2,7 @@
 id: M1-T037
 title: Write the spec for liminal_ecs
 milestone: M1
-status: todo
+status: in-progress
 crates: [liminal_ecs]
 depends_on: [M1-T030, M1-T034]
 requirements: []

@@ -49,7 +49,7 @@
 | [M1-T034](tasks/M1-T034-write-the-spec-for-liminal-jobs.md) | Write the spec for liminal_jobs | done | M1-T027 |
 | [M1-T035](tasks/M1-T035-implement-liminal-jobs-pool-work-stealing-deques.md) | Implement liminal_jobs — pool, work-stealing deques, scoped tasks | todo | M1-T034, M1-T028, M1-T018 |
 | [M1-T036](tasks/M1-T036-implement-liminal-jobs-parallel-for-and-job-grap.md) | Implement liminal_jobs — parallel-for and job graphs; reach usable | todo | M1-T035, M1-T017 |
-| [M1-T037](tasks/M1-T037-write-the-spec-for-liminal-ecs.md) | Write the spec for liminal_ecs | todo | M1-T030, M1-T034 |
+| [M1-T037](tasks/M1-T037-write-the-spec-for-liminal-ecs.md) | Write the spec for liminal_ecs | in-progress | M1-T030, M1-T034 |
 | [M1-T038](tasks/M1-T038-implement-liminal-ecs-entities-archetype-storage.md) | Implement liminal_ecs — entities, archetype storage, reference world | todo | M1-T037, M1-T032 |
 | [M1-T039](tasks/M1-T039-implement-liminal-ecs-queries-and-archetype-move.md) | Implement liminal_ecs — queries and archetype moves | todo | M1-T038 |
 | [M1-T040](tasks/M1-T040-implement-liminal-ecs-resources-events-commands.md) | Implement liminal_ecs — resources, events, commands, change detection | todo | M1-T039 |
@@ -83,7 +83,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 60 | 42 | 0 | 0 | 0 | 18 |
+| M1 (Headless core) | 60 | 41 | 1 | 0 | 0 | 18 |
 | M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates
