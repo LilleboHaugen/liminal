@@ -32,11 +32,11 @@ requirements: []
 
 - [ ] `docs/specs/liminal_testkit.md` exists, follows `docs/specs/_TEMPLATE.md` (all sections), with
       `maturity: planned`, `spec_version: 1` and `adrs` listing every ADR it implements.
-- [ ] Every requirement has an ID `TK-Rnnn`, an RFC 2119 level and a testable statement with
+- [ ] Every requirement has an ID `TKIT-Rnnn`, an RFC 2119 level and a testable statement with
       units, ranges and failure behaviour. No vague words ("fast", "robust", "efficient").
 - [ ] §5 Public API covers the scope below and is consistent with `docs/ARCHITECTURE.md` and the
       specs of the crates it depends on.
-- [ ] Error codes `LIM-TK-NNNN` are listed with message and `help` (ADR-0017), or the spec says
+- [ ] Error codes `LIM-TKIT-NNNN` are listed with message and `help` (ADR-0017), or the spec says
       why the crate has no recoverable errors.
 - [ ] The test plan names the test kinds that apply (TESTING.md) and, for every optimized path, the
       reference implementation it is checked against (AGENTS.md rule 4).
