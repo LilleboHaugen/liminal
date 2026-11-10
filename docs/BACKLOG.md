@@ -1,0 +1,134 @@
+# Backlog
+
+Minor review findings that are not worth a task of their own (ADR-0029 Decision 2). A reviewer
+appends its non-blocking, non-contract-changing findings here. Findings that change a contract a
+pending task implements go into a follow-up task instead (`docs/process/REVIEW.md`).
+
+Rules:
+- One heading per review: `## <task ID> — review YYYY-MM-DD`. One list item per finding: what is
+  wrong and the file it concerns, in one to three lines.
+- An implementation task MAY fix entries in files it changes anyway. It deletes the entry and
+  says so in its handoff.
+- Milestone kickoff and exit reviews work through the file: each entry becomes a task or is
+  deleted, with a one-line reason in that session's journal entry.
+- On merge, keep both sides' entries.
+
+Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T007) stay tasks.
+
+## M1-T013 — review 2026-11-10
+
+- `crates/liminal_core/tests/handles.rs`: no test fails when `HandleMap::new()` uses a slot
+  limit other than `u32::MAX` (mutant `u32::MAX - 1` survives). Compare its `Debug` form with
+  `with_slot_limit(u32::MAX)`, as the allocator test does.
+- `crates/liminal_core/src/error/code.rs`: the `compile_fail` doc test for CORE-R003 passes on
+  any compile error, not only the const panic. No stable way to match the message; say so in
+  the spec's test plan or add a UI test when a harness for one exists.
+- `crates/liminal_core/tests/error_model.proptest-regressions`, `handles.proptest-regressions`:
+  four committed seeds whose causes `docs/journal/2026-11-10-M1-T013.md` does not explain (it
+  says no regression file was kept). Record what each seed found, or delete seeds that came
+  from test bugs.
+- `docs/specs/liminal_core.md` §7 INV-1 says `debug_assert!` in `allocate` and `free`;
+  `crates/liminal_core/src/handle/allocator.rs` asserts the slot state only in `allocate`
+  (`free` has the INV-2 count check). Add the assertion or correct the spec sentence.
+- `docs/specs/liminal_core.md` CORE-R012 "the first repeated key" has two readings for keys
+  `a, b, b, a`. Code and tests use "the first field whose key occurred earlier" (`b`). State
+  that reading in the requirement.
+
+## M1-T055 — review 2026-11-10
+
+- `docs/specs/liminal_core.md` §5.1, §5.6: `ErrorContext`, `Tick` and `TickDuration` derive
+  `Default`, and no requirement states the value (empty context; count 0). The derived values
+  are the only reasonable ones and `ErrorContext::default()` is already tested as empty; add
+  the statement to CORE-R007 / CORE-R111 when those rows are next edited, or leave it.
+- `docs/process/DOCUMENTATION.md`, `docs/specs/_TEMPLATE.md`: the spec frontmatter field
+  `last_reviewed` has no stated meaning (date of the last spec review, or of the last change?).
+  `docs/specs/liminal_core.md` v2 keeps 2026-11-09, the review date of v1. Define the field.
+
+## M1-T019 — review 2026-11-10
+
+- `docs/specs/liminal_math.md` §3, MATH-R004, §12 item 10: written while M1-T011 was `todo`.
+  M1-T011 is `done` (mechanism: the crate's own `clippy.toml`, CODE_STYLE.md "Lints"); the
+  wider ban list for other deterministic crates has no owner task (M2-T006 covers other
+  M1-T011 follow-ups). Update the wording and name a task for item 10.
+- `docs/specs/liminal_math.md` MATH-R004: the banned intrinsics exist on one architecture only
+  (`_mm_rsqrt_ps` on x86_64, `vrsqrteq_f32` on aarch64). Unverified: whether clippy with
+  `-D warnings` rejects a `disallowed-methods` path that does not resolve on the host. M1-T020
+  must check this on macOS and on a CI x86_64 runner before relying on the requirement.
+- `docs/specs/liminal_math.md` §12 item 7: says the `liminal_reflect` spec (M1-T030) resolves
+  reflection of math types. M1-T030 is `done` and left it open (`docs/specs/liminal_reflect.md`
+  §12 item 1). Point both items at one resolving task or milestone.
+- `docs/specs/liminal_math.md` §12 items 8 and 9: the review accepted the `reference` item
+  names (`mat4_mul`, `mat4_mul_vec4`, `quat_mul`, `affine3_transform_points`).
+  `docs/process/PERFORMANCE.md` rule 1 ("same name and signature") needs one sentence for
+  operator counterparts. Item 9 (an ADR for handedness, axes, matrix layout, angle unit, clip
+  depth before the M3 kickoff) is the owner's decision and is still open.
+- `docs/specs/liminal_math.md` MATH-R155: does not say that `Sphere::center()` and `radius()`
+  return the constructor arguments (MATH-R150 and MATH-R165 say it for `Aabb` and `Ray`).
+- `docs/specs/liminal_math.md` MATH-R049: a finite `up` with components near 1e30 makes
+  `f.cross(up).normalize()` fail with a non-finite length, reported as LIM-MATH-0005 ("`up`
+  is zero or parallel to `direction`"). Report LIM-MATH-0002 for it or widen the message.
+- `docs/specs/liminal_math.md` §5.8, §10 "Validation errors": `MathError` derives `PartialEq`
+  and holds `f32` fields, so `SingularMatrix { determinant: NaN }` is unequal to itself; the
+  planned "hand-written expected `MathError` values" need `matches!` for NaN cases. Say so.
+- `docs/specs/liminal_math.md` MATH-R166: an origin on the plane can return `Some(-0.0)`
+  (`−0.0 ÷ denominator`), which the `geometry_queries` workload hashes by bits. Deterministic,
+  but state it or return `+0.0`.
+- `docs/tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md`: scope "Out" says
+  geometry and `det` only; the spec also moves `perspective`, `from_axis_angle` and `slerp` to
+  M1-T021. Only M1-T021's "Notes" record it; add the same line to M1-T020's "Notes".
+
+## M1-T059 — review 2026-11-10
+
+- `crates/liminal_core/tests/handles.rs`: the five CORE-R041 tests were inserted between the
+  doc comment of `operations_on_many_slots_do_not_scan` ("CORE-R040 is a SHOULD …") and that
+  function. The paragraph now heads `default_allocator_is_in_the_state_of_new`, and the
+  CORE-R040 test has only its `Verifies:` line. Move the paragraph back. Trace output is correct.
+
+## M1-T034 — review 2026-11-10
+
+- `docs/specs/liminal_jobs.md` §10 (JOBS-R024, JOBS-R064): a process-wide allocation counter
+  with "one lock" does not isolate tests in one libtest binary: the harness thread allocates
+  when it reports a finished test, while the next test is already counting. Require one
+  `#[test]` per allocation binary (as JOBS-R064 words it), or a counter that ignores the
+  harness thread.
+- `docs/specs/liminal_jobs.md` JOBS-R064: a worker that ran no job during the 10 warm-up calls
+  can do its first lazy per-thread initialization in the measured calls. Say that workers
+  initialize their per-thread state before `ThreadPool::new` returns, or that the warm-up
+  must reach every worker.
+- `docs/specs/liminal_jobs.md` JOBS-R087, §12 item 10: with §3 (`graph` forbids `unsafe` and
+  is built on `scope`) and §5.1 (`Scope::spawn` allocates once per call), `run_graph`
+  allocates per node. Running ready nodes in waves on `join` avoids that but breaks the order
+  of JOBS-R085. Record this in open question 10 before the SHOULD becomes a MUST.
+- `docs/specs/liminal_jobs.md` JOBS-R082, JOBS-R083: `add_dependency(x, x)` with `x` out of
+  range matches both. State that the range check comes first (`DependencyCycle` needs names
+  that do not exist).
+- `docs/specs/liminal_jobs.md` §3, JOBS-R120, JOBS-R122: the loop functions and `run_graph`
+  are "built on `scope`", and the public `scope` records `jobs.scope`. State that they use an
+  entry without a span, so that each call records exactly one span.
+- `docs/specs/liminal_jobs.md` JOBS-R011: checked in review only. The number of park calls can
+  be asserted through the private park function (unit test or the loom model of JOBS-R010).
+  JOBS-R004: "the third worker of five" does not say whether `threads` is 5 or 6.
+- `docs/specs/liminal_jobs.md` §12 items 4, 5, 7, 12: resolved "at the `stable` promotion",
+  which is neither a task nor a milestone (`_TEMPLATE.md` §12). Name the milestone.
+- `docs/specs/liminal_jobs.md` frontmatter: `adrs` omits ADR-0024, whose Decision 2
+  (`tests/determinism.rs`, two runs in one process) JOBS-R111 and §11 follow.
+- `docs/specs/liminal_jobs.md` §4 "Panic rule", JOBS-R100 to JOBS-R104: nothing says what
+  holds under `panic = "abort"` (the process aborts; the requirements apply to unwinding
+  builds only). §4 "Helping": spans of an unrelated job run by a waiting thread nest under
+  that thread's open span; say so for readers of traces.
+
+## M1-T060 — review 2026-11-10
+
+- `docs/specs/liminal_math.md` §10 "Validation errors": the row lists the vectors for MATH-R160,
+  MATH-R165 and MATH-R175 together. As frustum plane coefficients `(1e-30, 0, 0)` gives
+  LIM-MATH-0014, not LIM-MATH-0001, and the accepted boundary `(2^−63, 0, 0)` needs a matrix
+  whose other five planes are valid; MATH-R175 states neither case, and MATH-R165 does not
+  list `(2^−64, 0, 0)` and `(1e-30, 0, 0)`. State the cases per constructor.
+- `docs/specs/liminal_math.md` MATH-R160: `Plane::from_points` with finite points whose
+  difference or edge cross product overflows (edge lengths above about 1.8e19) reports
+  LIM-MATH-0013, whose message says the points are collinear or too close. Same class as the
+  MATH-R049 entry under "M1-T019 — review 2026-11-10"; decide both together.
+- `docs/specs/liminal_math.md` MATH-R073, MATH-R049: `Quat::from_axis_angle` and `Mat4::look_to`
+  normalize without the `length_squared() < f32::MIN_POSITIVE` check of MATH-R160, so an axis
+  such as `(1e-22, 5e-23, 0)` gives `Ok` with a quaternion of length about 0.9956. No invariant
+  covers them and their property domains use unit vectors. Reject as in MATH-R160 or state it.

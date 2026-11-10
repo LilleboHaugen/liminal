@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_jobs]
 depends_on: [M1-T034, M1-T028, M1-T018]
-requirements: []
+requirements: [JOBS-R001, JOBS-R002, JOBS-R003, JOBS-R004, JOBS-R005, JOBS-R006, JOBS-R007, JOBS-R008, JOBS-R009, JOBS-R010, JOBS-R020, JOBS-R021, JOBS-R022, JOBS-R023, JOBS-R024, JOBS-R025, JOBS-R026, JOBS-R027, JOBS-R028, JOBS-R040, JOBS-R041, JOBS-R042, JOBS-R043, JOBS-R044, JOBS-R101, JOBS-R102, JOBS-R140]
 ---
 
 # M1-T035: Implement `liminal_jobs`: pool, work-stealing deques, scoped tasks
@@ -42,7 +42,7 @@ Requirements in frontmatter; differential, loom, Miri.
 
 ## Notes
 
-_None._
+Requirements written by M1-T034 (spec §6 "Assignment"). Scope additions made by M1-T034, with reasons: (1) the panic rules of `scope` and `join` (JOBS-R101, JOBS-R102) are in this task, not M1-T036: both are unsound unless they wait for their jobs when a closure panics, so they cannot ship without the panic path. (2) The deque is public (`liminal_jobs::deque`) and its locked reference is the public module `liminal_jobs::reference` (PERFORMANCE.md "Reference implementations reachable from benchmarks"); the differential test is `tests/deque_differential.rs` (JOBS-R028). (3) This task adds the `liminal_telemetry` dependency but records no span (JOBS-R120 is M1-T036's). JOBS-R011 (SHOULD, parking) is implemented here. `unsafe` only in `deque`, `job`, `pool` (spec §3). JOBS-R002 and JOBS-R004 are tested through the private worker-start function.
 
 ## Handoff
 

@@ -3,9 +3,9 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 23
+spec_version: 24
 last_reviewed: 2026-11-09
-adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0010, ADR-0011, ADR-0018]
+adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
 ---
 
 # Spec: `xtask`
@@ -124,7 +124,7 @@ Summary details (added in `spec_version` 2):
 | XTASK-R011 | MUST | `xtask` has no dependency on any `liminal_*` crate. |
 | XTASK-R012 | MUST | The `clippy` step runs `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`. The `doc` step runs `cargo doc --workspace --no-deps --all-features --locked` with `RUSTDOCFLAGS=-D warnings`. The `test` step runs `cargo test --workspace --all-features --locked`. The `fmt` step runs `cargo fmt --all --check`. (`--all-features` is revisited at M3 kickoff, when backend and GPU-test features exist; see OQ-007.) |
 | XTASK-R013 | SHOULD | The xtask-native checks (`check-arch`, `check-docs`, `trace`, `hygiene`, `status-check`) complete in under 5 seconds in total on the reference machine for the repository at its current size. |
-| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 23; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
+| XTASK-R014 | MUST | The `test-features-off` step runs `cargo test --package <name> --no-default-features --locked` once for each workspace package that has at least one Cargo feature, and for no other package. It passes if every such command passes, and also if no workspace package has a feature. (`spec_version` 24; the `test` step of R012 uses `--all-features`, which never compiles code under `cfg(not(feature = "…"))`.) |
 
 ### `check-docs` (R020–R029)
 
@@ -220,7 +220,7 @@ In `ci`, a native check step (one that runs inside xtask, without spawning a pro
 findings in the step's `findings`. An internal error makes the step `fail`, with the error message
 as `output_tail` in both output modes.
 
-`test-features-off` details (R014; added in `spec_version` 23):
+`test-features-off` details (R014; added in `spec_version` 24):
 
 - Packages and their features come from `cargo metadata --format-version 1 --no-deps --offline`
   run in the repository root (the `check-arch` loader). A package "has a feature" if its
@@ -259,6 +259,7 @@ as `output_tail` in both output modes.
 | XTASK-R036 | MUST | No crate in layers 0–4 depends, with any dependency kind, on a layer 5 crate. |
 | XTASK-R037 | MUST | Each violation is reported with the crate, the dependency (if any), the rule ID, and a `help` text saying how to fix it. |
 | XTASK-R038 | SHOULD | From M2: `liminal_engine` and crates under `games/` depend only on crates whose spec maturity is `usable` or higher (ADR-0011). |
+| XTASK-R039 | MUST | For every workspace crate registered with `deterministic = true`, the clippy configuration clippy applies to it (the nearest `.clippy.toml` or `clippy.toml`, see details) has a `disallowed-methods` list that contains every path of the banned list in `docs/process/CODE_STYLE.md` §Lints: `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln`, the same six for `f64`, `std::collections::HashMap::new` and `std::time::Instant::now` (ADR-0009 item 7; `spec_version` 23). |
 
 `check-arch` details (added in `spec_version` 8):
 
@@ -304,8 +305,22 @@ as `output_tail` in both output modes.
   order mark and a shebang line are skipped) is `forbid(…)` with `unsafe_code` as one of its
   comma-separated items. `#![cfg_attr(…, forbid(unsafe_code))]`, an inner attribute inside an
   inline module, and text in comments or string literals do not count.
+- R039. The effective configuration of a crate is found as clippy finds it: in the crate's
+  manifest directory, then in each parent directory up to and including the repository root,
+  the first directory containing `.clippy.toml` or `clippy.toml`; `.clippy.toml` wins within
+  a directory. Clippy does not merge files (verified with clippy 0.1.99, M1-T011 journal), so
+  the root `clippy.toml` counts only for a crate without a nearer file. Directories above the
+  repository root and `CLIPPY_CONF_DIR` are not considered. A `disallowed-methods` entry is a
+  string or a table whose string `path` is the banned path; paths are compared as exact strings,
+  and extra entries are allowed. A missing `disallowed-methods` key is an empty list. A file
+  that is not valid TOML, a `disallowed-methods` that is not an array, or an entry of another
+  shape is LIM-XTASK-0004. Only crates registered as deterministic (the first `[[crate]]` entry
+  of the name) are judged; the layer does not matter. One finding per crate: at
+  `<manifest directory>/Cargo.toml` if no file applies, else at the effective file, naming every
+  missing path in the list's order. The help names `<manifest directory>/clippy.toml`, the
+  crate's own file (CODE_STYLE.md §Lints).
 - R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034 and R036, the
-  crate root file for R035. Messages name the crate and, for R032–R034 and R036, the
+  crate root file for R035, R039 as above. Messages name the crate and, for R032–R034 and R036, the
   dependency and its kind. Identical findings (a dependency declared under two `cfg` targets)
   are reported once.
 
@@ -574,7 +589,7 @@ unparseable) use:
 | LIM-XTASK-0001 | File could not be read | Check the path and permissions |
 | LIM-XTASK-0002 | External tool output could not be parsed | Run `cargo xtask doctor`; tool version may be unsupported |
 | LIM-XTASK-0003 | `architecture.toml` is not valid TOML, or a field is missing, unknown or of the wrong TOML type (R030) | Fix the syntax at the reported line |
-| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
+| LIM-XTASK-0004 | Another TOML file (`Cargo.toml`, `ci/hygiene.toml`, `ci/coverage.toml`, the clippy configuration of a deterministic crate (R039)) is invalid, misses a field xtask needs, has an unknown field, or uses an unsupported workspace member pattern | Fix the file at the reported location |
 | LIM-XTASK-0005 | `cargo metadata` could not be started or failed (its stderr is in the message) | Run `cargo metadata --no-deps` in the repository root to see the error, and fix the `Cargo.toml` it names |
 | LIM-XTASK-0006 | `cargo llvm-cov` failed, for example because a test failed (the last 50 lines of its stderr are in the message when captured) | Run `cargo llvm-cov --workspace` in the repository root to see the error |
 
@@ -588,7 +603,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 |---|---|---|
 | Frontmatter parser | unit, property (round-trip of generated valid frontmatter; random invalid lines are rejected, never accepted) | Subset definition in DOCUMENTATION.md |
 | Each check rule | integration tests on fixture repositories in `xtask/tests/fixtures/<case>/` | One passing fixture plus one fixture per rule that must fail with exactly that rule ID |
-| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 (R038 from M2) |
+| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 and R039 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
 | `test-features-off` (R014) | unit tests with a fake command function; the real step on a workspace written to a temporary directory | Expected command lines; tests that exist only with a feature on or off |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
@@ -661,4 +676,5 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 20 | 2026-11-09 | §6 `check-docs` details: the file-name rule makes a spec's `crate` unique. `status` details: a second spec for one crate is R070 unreadable input; the spec cell links the spec's file name; an up-to-date file keeps its modification time | M1-T007 |
 | 21 | 2026-11-10 | §2 and §12: OQ-004 is resolved by ADR-0023; benchmark commands come with M1-T017 (text only, no requirement change) | M1-T054 |
 | 22 | 2026-11-09 | Lexing: numeric literals end at `..`, `.` + identifier and after a tuple-field `.`; R041: a string literal counts only directly after `extern`; R050: `ignore` counts only directly after `[` or `,` (not `(`) | M1-T004 |
-| 23 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
+| 23 | 2026-11-09 | New R039 (deterministic crates' clippy `disallowed-methods` configuration) with its details; LIM-XTASK-0004 covers that configuration; ADR-0009 in `adrs` | M1-T011 |
+| 24 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |

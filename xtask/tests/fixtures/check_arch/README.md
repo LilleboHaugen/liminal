@@ -17,7 +17,9 @@ reason.
 `valid/` covers: a proc-macro using a `build`-scope crate as a normal dependency, a
 `cfg(windows)` target-specific dependency, a build-dependency and a build script, an integration
 test (not a crate root), an `unsafe = "allow"` crate without the attribute, a same-layer
-dependency listed in `same_layer_deps`, a layer 5 crate with a library and a binary target and a
+dependency listed in `same_layer_deps`, a deterministic crate (`runtime`) with a complete
+`crates/runtime/clippy.toml` (XTASK-R039) next to a root `clippy.toml` that bans nothing, a layer 5
+crate with a library and a binary target and a
 `tool`-scope dev-dependency, and a registered crate that is not in the workspace (`planned`).
 
 | Case | Change against `valid/` | Rule |
@@ -29,3 +31,5 @@ dependency listed in `same_layer_deps`, a layer 5 crate with a library and a bin
 | `r034_dev_dependency` | `base` has a dev-dependency on `loom`, not in its `dev_external` | XTASK-R034 |
 | `r035_missing_forbid` | `peer` (`unsafe = "forbid"`) has no `#![forbid(unsafe_code)]` | XTASK-R035 |
 | `r036_tool_dependency` | `runtime` (layer 1) depends on `cli` (layer 5) | XTASK-R036 |
+| `r039_incomplete_clippy_config` | `crates/runtime/clippy.toml` does not ban `f64::ln` | XTASK-R039 |
+| `r039_missing_clippy_config` | `peer` is `deterministic = true` and has no clippy.toml of its own | XTASK-R039 |
