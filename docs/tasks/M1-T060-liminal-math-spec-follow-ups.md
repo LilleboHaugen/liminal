@@ -2,7 +2,7 @@
 id: M1-T060
 title: liminal_math spec follow-ups from the M1-T019 review
 milestone: M1
-status: review
+status: done
 crates: [liminal_math]
 depends_on: [M1-T019]
 requirements: []
@@ -142,4 +142,60 @@ boundary; the requirement compares `length_squared()` with `f32::MIN_POSITIVE` (
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T060-review.md`). First review of this task. Rules read from `main` at
+`bef9c95` (`AGENTS.md`, `docs/process/REVIEW.md` §1 and §2 for the changed spec rows, ADR-0029).
+**Outcome: no blocking finding; `done`.**
+
+Checked (numbers from the reviewer's own scratch program, `rustc -O` 1.99.1 on aarch64, `f32`
+arithmetic written as the spec's exact expressions, session scratchpad, not committed, not engine
+code):
+- Criterion 1, MATH-R023: 0 violations of "both NaN or equal under `==`" in 30,000,000 pairs of
+  arbitrary bit patterns and 10,000,000 pairs with magnitudes 1e-40 to 1e40, zeros and `a = b`.
+  `a = b = (0, 3e19, 3e19)` gives `(NaN, 0, 0)` against `(NaN, −0, −0)`: inside the clause.
+- Criterion 2, INV-3 to INV-5: with the constructor rule of MATH-R160/R165 (finite components,
+  finite non-zero `length()`, `length_squared() ≥ f32::MIN_POSITIVE`), the maximum of
+  `abs(length(v ÷ length(v)) − 1)` is `1.5 × f32::EPSILON` in each of four sets: 23,976,433
+  accepted vectors of arbitrary bit patterns; 52,901,047 with length 2^−65 to 2^−59 and component
+  ratios down to 2^−20; 79,374,814 with length 2^−64 to 2^64 and ratios down to 2^−60;
+  36,361,709 with length 2^62 to 2^64.2. Bound in the spec: 4. `d = −n.dot(point)` was never NaN
+  for an accepted normal and a finite point (30,000,000 pairs; 2 infinite, which MATH-R160
+  rejects). MATH-R175 as written (plane coefficients as the sum of two finite rows, the checks
+  on `s` and on `e ÷ l`): 0 accepted planes outside INV-3. The unit cases give what the spec
+  says: `(1e-22, 5e-23, 0)` (`length_squared` 1.3e-44), `(1e-21, 5e-22, 0)` (1.25e-42) and
+  `(2^−64, 0, 0)` (2.9e-39) are too short; `(1e-30, 0, 0)` has squared length 0; `(2^−63, 0, 0)`
+  has exactly `f32::MIN_POSITIVE` and normalizes to `(1, 0, 0)`; the cross product of the
+  triangle `(0,0,0), (1e-11,0,0), (0,1e-11,0)` has squared length 1e-44. The figures 0.9956 and
+  1 + 1.7e-5 quoted in §7 were re-measured: 0.99556 and 1.0000167. §7 names option (a) and the
+  reasons against (b) and (c); MATH-R160, MATH-R165, MATH-R175 and §10 name the two test cases.
+  Help texts: no vector with a length of at least 1.1e-19 was rejected (40,000,000 vectors with
+  length 1.1e-19 to 1.32e-19).
+- Criterion 3, MATH-R004: `f32 → f64`, `f64 → f32` with its rounding, `from_bits` are listed;
+  the stated `as` semantics are those of Rust.
+- Criterion 4: MATH-R072 says "for every finite `v`" (0 violations in 29,649,209 finite `v` of
+  arbitrary bit patterns); §4 "Stable case" has one varied shape per test of MATH-R157 and
+  MATH-R169.
+- Criterion 5: the set of requirement IDs in the spec's tables is the same at `5e0a1ea` and at
+  `9042dd5` (71 rows, same sorted list); no `requirements` frontmatter changed. `MathError` has
+  11 variants in §5.8 and 11 rows in §8; §6 already assigns all of `MathError` to M1-T020.
+- Criterion 6: `spec_version: 2`, history row. `cargo xtask ci` on `9042dd5`: pass, 11 steps,
+  none skipped; again on the merge of `main` (`bef9c95`) with the review edits: pass, 11 steps.
+  macOS 27.2 (arm64). Branch CI run 42878710604 on `9042dd5`: success.
+- Spec review of the changed rows (REVIEW.md §2): each new clause has a domain, a number or a
+  named error; LIM-MATH-0015 is in §5.7 doc comments, §5.8 and §8 with message, help and context;
+  no other file names the `MathError` codes or their count. M1-T020 and M1-T023 list this task
+  in `depends_on`.
+- No code, test, oracle, floor, baseline, dependency, `unsafe` or workflow file changed
+  (`git diff --stat 5e0a1ea 9042dd5`: the spec, this task, the journal entry, `docs/STATUS.md`).
+- Session boundaries: the author is implementation sub-agent 20 in the parent's journal table
+  ("impl template"); this reviewer is a fresh review sub-agent of the same parent (ADR-0029
+  Decision 1) and its prompt was the ADR-0026 review template verbatim. The parent's entry is
+  "in progress" and does not list this review yet.
+
+Not verified: the `4 × f32::EPSILON` bound is measured (twice, independently), not proven; the
+0-mismatch figures for MATH-R157 under the receiver-varied reading were not re-measured (the
+reading is a definition; M1-T023's tests measure it); Windows and Linux locally (the branch CI
+run covers them).
+
+Backlog: 3 entries in `docs/BACKLOG.md` under "M1-T060 — review 2026-11-10". Follow-up task:
+none.

@@ -3,7 +3,7 @@ crate: liminal_core
 req_prefix: CORE
 layer: 0
 maturity: planned
-spec_version: 2
+spec_version: 3
 last_reviewed: 2026-11-09
 adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0024]
 ---
@@ -321,8 +321,14 @@ impl core::hash::Hasher for DetHasher { /* … */ }
 #[derive(Clone, Debug)]
 pub struct DetHashMap<K, V> { /* … */ }
 
-impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
+/// No bounds on `K` or `V`: what `Default` needs, and what every `K`, `V` can observe (CORE-R076).
+impl<K, V> DetHashMap<K, V> {
     pub fn new() -> DetHashMap<K, V>;
+    pub fn len(&self) -> usize;
+    pub fn is_empty(&self) -> bool;
+}
+
+impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
     pub fn with_capacity(capacity: usize) -> DetHashMap<K, V>;
     /// New key: appended at the end. Existing key: value replaced in place, old value returned.
     pub fn insert(&mut self, key: K, value: V) -> Option<V>;
@@ -331,8 +337,6 @@ impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
     pub fn contains_key<Q>(&self, key: &Q) -> bool where K: Borrow<Q>, Q: Hash + Eq + ?Sized;
     /// Keeps the relative order of the remaining entries. O(len).
     pub fn remove<Q>(&mut self, key: &Q) -> Option<V> where K: Borrow<Q>, Q: Hash + Eq + ?Sized;
-    pub fn len(&self) -> usize;
-    pub fn is_empty(&self) -> bool;
     pub fn clear(&mut self);
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_;
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&K, &mut V)> + '_;
@@ -345,16 +349,20 @@ impl<K, V> Default for DetHashMap<K, V> { /* new() */ }
 #[derive(Clone, Debug)]
 pub struct DetHashSet<T> { /* … */ }
 
-impl<T: core::hash::Hash + Eq> DetHashSet<T> {
+/// No bounds on `T` (CORE-R076).
+impl<T> DetHashSet<T> {
     pub fn new() -> DetHashSet<T>;
+    pub fn len(&self) -> usize;
+    pub fn is_empty(&self) -> bool;
+}
+
+impl<T: core::hash::Hash + Eq> DetHashSet<T> {
     pub fn with_capacity(capacity: usize) -> DetHashSet<T>;
     /// `true` if the value was not present (it is appended). Present: no change, `false`.
     pub fn insert(&mut self, value: T) -> bool;
     pub fn contains<Q>(&self, value: &Q) -> bool where T: Borrow<Q>, Q: Hash + Eq + ?Sized;
     /// Keeps the relative order of the remaining values. O(len).
     pub fn remove<Q>(&mut self, value: &Q) -> bool where T: Borrow<Q>, Q: Hash + Eq + ?Sized;
-    pub fn len(&self) -> usize;
-    pub fn is_empty(&self) -> bool;
     pub fn clear(&mut self);
     pub fn iter(&self) -> impl Iterator<Item = &T> + '_;
 }
@@ -362,6 +370,10 @@ impl<T> Default for DetHashSet<T> { /* new() */ }
 ```
 
 `Borrow` is `core::borrow::Borrow`; `Hash` is `core::hash::Hash`.
+
+`new`, `len` and `is_empty` of both collections have no trait bounds (`spec_version` 3), so they
+and `Default::default()` exist for every `K`, `V` and `T`. Every other method requires
+`K: Hash + Eq` / `T: Hash + Eq`.
 
 ### 5.5 `liminal_core::rng`
 
@@ -513,7 +525,7 @@ impl TickDuration {
 | CORE-R073 | MUST | `DetHashMap` and `DetHashSet` iteration order depends only on the sequence of operations, not on capacity, `with_capacity`, hash values or the process. |
 | CORE-R074 | MUST | `DetHashSet` follows CORE-R070 to CORE-R073 for values: iteration in first-insertion order; `insert` of a present value returns `false` and changes nothing; `remove` keeps the order of the rest; same results as a `Vec<T>` linear-search reference model. |
 | CORE-R075 | SHOULD | `DetHashMap::insert`, `get`, `get_mut`, `contains_key` and `DetHashSet::insert`, `contains` take expected constant time (hash lookup, no linear scan). `remove` takes time linear in `len`. Checked by review. |
-| CORE-R076 | MUST | `DetHashMap::<K, V>::default()` and `DetHashSet::<T>::default()` return an empty collection in the same state as `new()`: `len()` 0, iteration yields nothing, and after the same operations both iterate in the same order with the same contents. Both `Default` impls hold for every `K`, `V` and `T`, including types that implement neither `Default` nor `Hash`. |
+| CORE-R076 | MUST | `DetHashMap::<K, V>::default()` and `DetHashSet::<T>::default()` return an empty collection in the same state as `new()`. Two cases, by what §5.4 lets a caller observe. (a) For every `K`, `V` and `T`, including types that implement none of `Default`, `Hash`, `Eq` and `Debug`: `Default::default()` and `new()` compile, and on the result of each `len()` is 0 and `is_empty()` is `true`. (b) For `K: Hash + Eq` / `T: Hash + Eq` in addition: iteration over the result of `default()` yields nothing, and after the same sequence of operations a collection from `default()` and one from `new()` give the same results, the same `len()` and iterate in the same order with the same contents. |
 
 ### RNG streams (R090–R109)
 
@@ -555,11 +567,14 @@ frontmatter.
 
 | Task | Requirements |
 |---|---|
-| M1-T013 (error model, handles) | CORE-R001 to CORE-R013, CORE-R030 to CORE-R041 |
+| M1-T013 (error model, handles) | CORE-R001 to CORE-R013, CORE-R030 to CORE-R040 |
+| M1-T059 (`Default` tests for the handle types) | CORE-R041 |
 | M1-T014 (hashing, RNG, collections, time, determinism) | CORE-R050 to CORE-R057, CORE-R060, CORE-R061, CORE-R070 to CORE-R076, CORE-R090 to CORE-R098, CORE-R110 to CORE-R114, CORE-R130 to CORE-R133 |
 
 M1-T013 implements all of `CoreError` (CORE-R013), including the variants whose producers come in
-M1-T014. M1-T014 implements the `StateHash` impls for handles (CORE-R054).
+M1-T014. M1-T014 implements the `StateHash` impls for handles (CORE-R054). The code for CORE-R041 is
+M1-T013's (written against `spec_version` 1, before the requirement existed); M1-T059 adds its
+`Verifies:` tests and owns the requirement.
 
 ## 7. Invariants
 
@@ -607,7 +622,7 @@ number in their group.
 ## 9. Performance budgets
 
 None yet: set at `stable` from baselines. `liminal_core` has no optimized paths in `spec_version`
-2. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
+3. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
 exists; no number is set before that measurement.
 
 | Scenario | Budget | Machine | Source of number |
@@ -623,7 +638,7 @@ yet) adds their scenarios and rows by a `spec_version` bump (open question 6).
 
 ## 10. Test plan
 
-No path in `spec_version` 2 is an optimized variant of another; each algorithm has one
+No path in `spec_version` 3 is an optimized variant of another; each algorithm has one
 implementation, checked against an external reference. If a later version adds an optimized path
 (SIMD XXH64, a faster map), the current implementation stays as its reference and a differential
 test is added (AGENTS.md rule 4).
@@ -636,7 +651,7 @@ test is added (AGENTS.md rule 4).
 | Handles (R030–R041) | unit, property (random operation sequences), integration, doc test | Model in `tests/common/`: list of every issued handle plus the set of live handles, checked by linear search. Generation wrap (R035) is tested in a unit test inside the module that sets a slot's generation to `u32::MAX - 1` directly, since 2^32 frees are too slow for a test |
 | `StateHasher` (R050–R057) | unit known-answer, property (R051 splits) | XXH64 reference vectors from the xxHash repository (sanity-test values or `xxhsum -H64` output, source named in the test); for R053/R054, the expected byte sequence written by hand and hashed with `write_bytes` |
 | `FixedState`, `DetHasher` (R060, R061) | unit, integration | XXH64 of hand-built little-endian byte sequences, as recorded literals, for fixed sequences of `Hasher` calls made directly on a `DetHasher` from `FixedState::build_hasher` (a literal recorded in an earlier process covers "in every process"; the first sequence is empty). `hash_one(&v)` of two `FixedState` instances is compared in-process only, never with a recorded literal, because the calls a std `Hash` impl makes may change with the Rust toolchain |
-| `DetHashMap`, `DetHashSet` (R070–R076) | property (differential), unit | `Vec<(K, V)>` / `Vec<T>` linear-search reference model |
+| `DetHashMap`, `DetHashSet` (R070–R076) | property (differential), unit | `Vec<(K, V)>` / `Vec<T>` linear-search reference model. CORE-R076 case (a): a unit test with a key, value and element type that implements no trait (it fails to compile if `Default`, `new`, `len` or `is_empty` gains a bound); case (b): the same operation sequence applied to `default()` and `new()` |
 | `Rng`, `StreamKey` (R090–R098) | unit known-answer, property (range of `below_*`, `[0, 1)` of floats) | Values from the reference C implementations `xoshiro256starstar.c` and `splitmix64.c` (prng.di.unimi.it), recorded in the test with the command that produced them; for power-of-two bounds `below_u32(2^k)` must equal `next_u32() >> (32 − k)` (no rejection occurs) |
 | Time (R110–R114) | unit, property (`ticks_from_millis` monotone; exact for multiples of 1000 / n) | Hand-computed values |
 | Determinism (R130–R133) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals |
@@ -731,3 +746,4 @@ checked by the session that reviews it.
 |---|---|---|---|
 | 1 | 2026-11-09 | Initial spec | M1-T012 |
 | 2 | 2026-11-10 | §5.2: `HandleAllocator` `Default` is a hand-written impl equal to `new()`, no longer derived (a derived one has slot limit 0). New CORE-R041, CORE-R057, CORE-R076: `Default::default()` equals `new()` for `HandleAllocator`, `HandleMap`, `StateHasher`, `DetHashMap`, `DetHashSet`. CORE-R060 and §10: recorded literals only for `Hasher` call sequences made on a `DetHasher` directly; `hash_one` values are not fixed across Rust releases. §9: the two scenario rows without a measuring task removed. §12 item 4 resolved; item 6 updated | M1-T055 |
+| 3 | 2026-11-10 | §5.4: `new`, `len` and `is_empty` of `DetHashMap` and `DetHashSet` moved into `impl` blocks without trait bounds (were `K: Hash + Eq` / `T: Hash + Eq`). CORE-R076 reworded into two cases, each naming what a test observes: every `K`, `V`, `T` (`default()` and `new()` compile, `len()` 0, `is_empty()`), and `Hash + Eq` types (iteration, same results after the same operations). §6 assignment: CORE-R041 moves from M1-T013 to M1-T059, which writes its `Verifies:` tests. §10: oracle for CORE-R076 | M1-T059 |

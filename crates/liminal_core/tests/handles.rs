@@ -1,5 +1,5 @@
 //! Integration tests of `liminal_core::handle` through the public API (spec §10, CORE-R030 to
-//! CORE-R040). Oracle: the linear-search model in `common/handle_model.rs`. The generation wrap
+//! CORE-R041). Oracle: the linear-search model in `common/handle_model.rs`. The generation wrap
 //! (CORE-R035) needs private access and is tested inside the crate.
 
 #[path = "common/handle_model.rs"]
@@ -516,6 +516,86 @@ fn map_insert_on_exhaustion_drops_the_value_and_changes_nothing() {
 /// unusable: with 200,000 slots, 800,000 operations would then visit about 10^11 slots and the
 /// test would run for minutes instead of well under a second.
 ///
+/// Verifies: CORE-R041
+#[test]
+fn default_allocator_is_in_the_state_of_new() {
+    let default = HandleAllocator::default();
+    assert_eq!(default.live_count(), 0);
+    assert_eq!(default.iter_live().count(), 0);
+    let debug = format!("{default:?}");
+    assert_eq!(debug, format!("{:?}", HandleAllocator::new()));
+    // Slot limit `u32::MAX`, not the 0 a derived `Default` would give.
+    assert_eq!(
+        debug,
+        format!("{:?}", HandleAllocator::with_slot_limit(u32::MAX))
+    );
+    assert_ne!(debug, format!("{:?}", HandleAllocator::with_slot_limit(0)));
+}
+
+/// Verifies: CORE-R041
+#[test]
+fn default_allocator_issues_0v1_first() {
+    let mut default = HandleAllocator::default();
+    let first = default.allocate().unwrap();
+    assert_eq!(first, handle(0, 1));
+    assert_eq!(first.to_string(), "0v1");
+    assert_eq!(default.live_count(), 1);
+
+    let mut new = HandleAllocator::new();
+    assert_eq!(new.allocate(), Ok(first));
+    assert_eq!(format!("{default:?}"), format!("{new:?}"));
+}
+
+/// Verifies: CORE-R041
+#[test]
+fn default_map_is_in_the_state_of_new() {
+    let default: HandleMap<String> = HandleMap::default();
+    assert_eq!(default.len(), 0);
+    assert!(default.is_empty());
+    assert_eq!(default.iter().count(), 0);
+    let debug = format!("{default:?}");
+    assert_eq!(debug, format!("{:?}", HandleMap::<String>::new()));
+    // Slot limit `u32::MAX`, not 0.
+    assert_eq!(
+        debug,
+        format!("{:?}", HandleMap::<String>::with_slot_limit(u32::MAX))
+    );
+    assert_ne!(
+        debug,
+        format!("{:?}", HandleMap::<String>::with_slot_limit(0))
+    );
+}
+
+/// Verifies: CORE-R041
+#[test]
+fn default_map_inserts_at_0v1_first() {
+    let mut default: HandleMap<String> = HandleMap::default();
+    let first = default.insert("a".to_string()).unwrap();
+    assert_eq!(first.raw(), handle(0, 1));
+    assert_eq!(default.len(), 1);
+
+    let mut new: HandleMap<String> = HandleMap::new();
+    assert_eq!(new.insert("a".to_string()), Ok(first));
+    assert_eq!(format!("{default:?}"), format!("{new:?}"));
+}
+
+/// Verifies: CORE-R041
+#[test]
+fn default_map_exists_for_a_value_type_without_default_or_debug() {
+    fn assert_default<D: Default>() {}
+    // `Opaque` and `Large` implement neither `Default` nor `Debug`: this compiles only if the
+    // impl has no bound on the value type.
+    assert_default::<HandleMap<Opaque>>();
+    assert_default::<HandleMap<Large>>();
+
+    let mut map = HandleMap::<Opaque>::default();
+    assert_eq!(map.len(), 0);
+    assert!(map.is_empty());
+    let first = map.insert(Opaque).map(Handle::raw);
+    assert_eq!(first, Ok(handle(0, 1)));
+    assert_eq!(map.len(), 1);
+}
+
 /// Verifies: CORE-R040
 #[test]
 fn operations_on_many_slots_do_not_scan() {

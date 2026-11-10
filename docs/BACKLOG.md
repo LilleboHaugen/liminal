@@ -76,3 +76,59 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `docs/tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md`: scope "Out" says
   geometry and `det` only; the spec also moves `perspective`, `from_axis_angle` and `slerp` to
   M1-T021. Only M1-T021's "Notes" record it; add the same line to M1-T020's "Notes".
+
+## M1-T059 — review 2026-11-10
+
+- `crates/liminal_core/tests/handles.rs`: the five CORE-R041 tests were inserted between the
+  doc comment of `operations_on_many_slots_do_not_scan` ("CORE-R040 is a SHOULD …") and that
+  function. The paragraph now heads `default_allocator_is_in_the_state_of_new`, and the
+  CORE-R040 test has only its `Verifies:` line. Move the paragraph back. Trace output is correct.
+
+## M1-T034 — review 2026-11-10
+
+- `docs/specs/liminal_jobs.md` §10 (JOBS-R024, JOBS-R064): a process-wide allocation counter
+  with "one lock" does not isolate tests in one libtest binary: the harness thread allocates
+  when it reports a finished test, while the next test is already counting. Require one
+  `#[test]` per allocation binary (as JOBS-R064 words it), or a counter that ignores the
+  harness thread.
+- `docs/specs/liminal_jobs.md` JOBS-R064: a worker that ran no job during the 10 warm-up calls
+  can do its first lazy per-thread initialization in the measured calls. Say that workers
+  initialize their per-thread state before `ThreadPool::new` returns, or that the warm-up
+  must reach every worker.
+- `docs/specs/liminal_jobs.md` JOBS-R087, §12 item 10: with §3 (`graph` forbids `unsafe` and
+  is built on `scope`) and §5.1 (`Scope::spawn` allocates once per call), `run_graph`
+  allocates per node. Running ready nodes in waves on `join` avoids that but breaks the order
+  of JOBS-R085. Record this in open question 10 before the SHOULD becomes a MUST.
+- `docs/specs/liminal_jobs.md` JOBS-R082, JOBS-R083: `add_dependency(x, x)` with `x` out of
+  range matches both. State that the range check comes first (`DependencyCycle` needs names
+  that do not exist).
+- `docs/specs/liminal_jobs.md` §3, JOBS-R120, JOBS-R122: the loop functions and `run_graph`
+  are "built on `scope`", and the public `scope` records `jobs.scope`. State that they use an
+  entry without a span, so that each call records exactly one span.
+- `docs/specs/liminal_jobs.md` JOBS-R011: checked in review only. The number of park calls can
+  be asserted through the private park function (unit test or the loom model of JOBS-R010).
+  JOBS-R004: "the third worker of five" does not say whether `threads` is 5 or 6.
+- `docs/specs/liminal_jobs.md` §12 items 4, 5, 7, 12: resolved "at the `stable` promotion",
+  which is neither a task nor a milestone (`_TEMPLATE.md` §12). Name the milestone.
+- `docs/specs/liminal_jobs.md` frontmatter: `adrs` omits ADR-0024, whose Decision 2
+  (`tests/determinism.rs`, two runs in one process) JOBS-R111 and §11 follow.
+- `docs/specs/liminal_jobs.md` §4 "Panic rule", JOBS-R100 to JOBS-R104: nothing says what
+  holds under `panic = "abort"` (the process aborts; the requirements apply to unwinding
+  builds only). §4 "Helping": spans of an unrelated job run by a waiting thread nest under
+  that thread's open span; say so for readers of traces.
+
+## M1-T060 — review 2026-11-10
+
+- `docs/specs/liminal_math.md` §10 "Validation errors": the row lists the vectors for MATH-R160,
+  MATH-R165 and MATH-R175 together. As frustum plane coefficients `(1e-30, 0, 0)` gives
+  LIM-MATH-0014, not LIM-MATH-0001, and the accepted boundary `(2^−63, 0, 0)` needs a matrix
+  whose other five planes are valid; MATH-R175 states neither case, and MATH-R165 does not
+  list `(2^−64, 0, 0)` and `(1e-30, 0, 0)`. State the cases per constructor.
+- `docs/specs/liminal_math.md` MATH-R160: `Plane::from_points` with finite points whose
+  difference or edge cross product overflows (edge lengths above about 1.8e19) reports
+  LIM-MATH-0013, whose message says the points are collinear or too close. Same class as the
+  MATH-R049 entry under "M1-T019 — review 2026-11-10"; decide both together.
+- `docs/specs/liminal_math.md` MATH-R073, MATH-R049: `Quat::from_axis_angle` and `Mat4::look_to`
+  normalize without the `length_squared() < f32::MIN_POSITIVE` check of MATH-R160, so an axis
+  such as `(1e-22, 5e-23, 0)` gives `Ok` with a quaternion of length about 0.9956. No invariant
+  covers them and their property domains use unit vectors. Reject as in MATH-R160 or state it.
