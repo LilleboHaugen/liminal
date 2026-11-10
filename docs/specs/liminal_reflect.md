@@ -637,8 +637,9 @@ checked by the session that reviews it.
 
 - [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
       review of M1-T030).
-- [ ] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T031).
+- [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
+      registered in `ci/coverage.toml` (evidence: M1-T031; `cargo xtask ci` pass on macOS arm64,
+      floor 98.8 %).
 - [ ] All MUST requirements traced: `cargo xtask trace` with `maturity: usable` applied on a
       scratch copy reports every REFL MUST tested (evidence: M1-T032).
 - [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T032).

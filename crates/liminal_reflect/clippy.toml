@@ -1,0 +1,24 @@
+# Clippy configuration of `liminal_reflect`, a deterministic crate (architecture.toml, ADR-0009).
+# Clippy reads only the nearest clippy.toml and does not merge it with the repository root's file
+# (docs/process/CODE_STYLE.md §Lints), so this file repeats the root settings and adds the
+# determinism list that `cargo xtask check-arch` requires (XTASK-R039).
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-print-in-tests = true
+
+disallowed-methods = [
+    { path = "f32::sin", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::cos", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::tan", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::powf", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::exp", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::ln", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::sin", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::cos", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::tan", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::powf", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::exp", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::ln", reason = "ADR-0009: use liminal_math::det" },
+    { path = "std::collections::HashMap::new", reason = "ADR-0009: use liminal_core::collections::DetHashMap" },
+    { path = "std::time::Instant::now", reason = "ADR-0009: simulation time is counted in ticks (liminal_core::time)" },
+]

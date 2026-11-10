@@ -1,0 +1,19 @@
+[package]
+name = "liminal_reflect"
+version = "0.0.0"
+description = "Liminal runtime reflection: type descriptors, stable type IDs, field access by name, a type registry and the canonical state encoding of reflected values (docs/specs/liminal_reflect.md)."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# Layer 0 (architecture.toml). `liminal_reflect_derive` is added by M1-T032.
+[dependencies]
+liminal_core = { path = "../liminal_core" }
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true
