@@ -302,13 +302,14 @@ mod tests {
             })
             .collect();
         assert_eq!(excluded, Vec::<&String>::new());
-        assert_eq!(
-            model
-                .members
+        // The real workspace gains a member per engine crate; check membership, not the exact
+        // list (M1-T013 added the first engine crate).
+        let members: Vec<&str> = model.members.iter().map(|m| m.name.as_str()).collect();
+        assert!(members.contains(&"xtask") && members.contains(&"liminal_core"));
+        assert!(
+            members
                 .iter()
-                .map(|m| m.name.as_str())
-                .collect::<Vec<_>>(),
-            ["xtask"]
+                .all(|name| *name == "xtask" || name.starts_with("liminal_"))
         );
         assert!(model.architecture.crates.iter().any(|c| c.name == "xtask"));
 
