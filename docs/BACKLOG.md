@@ -206,6 +206,15 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `docs/tasks/README.md` has no row for M1-T059, and `depends_on` of
   `docs/tasks/M1-T053-m1-exit-review.md` lists none of M1-T055 to M1-T061 (only M1-T062).
 
+## M1-T058 — review 2026-11-10
+
+- `docs/specs/liminal_memory.md` §5 intro and Q1 cite `docs/specs/liminal_core.md`
+  `spec_version` 1; `main` has v4 with the same names. Update the citation when M1-T025 next
+  touches the spec.
+- `docs/specs/liminal_memory.md` INV-2 ("live arena allocations lie within `[base, base +
+  used())`") holds for zero-size allocations only vacuously (§4: their address may lie outside
+  the base). Say so in INV-2 so the `debug_assert!`/property test does not check their address.
+
 ## M1-T061 — review 2026-11-10
 
 - `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is
