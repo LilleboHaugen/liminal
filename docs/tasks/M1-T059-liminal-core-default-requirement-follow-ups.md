@@ -2,7 +2,7 @@
 id: M1-T059
 title: liminal_core Default requirement follow-ups from the M1-T055 review
 milestone: M1
-status: review
+status: done
 crates: [liminal_core]
 depends_on: [M1-T055, M1-T013]
 requirements: [CORE-R041]
@@ -116,4 +116,43 @@ Next step: a session reviews M1-T059. Then M1-T014 can start.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T059-review.md`). First review of this task. Rules read from `main` at
+`5e0a1ea` (`AGENTS.md`, `docs/process/REVIEW.md` §1, ADR-0029). **Outcome: no blocking finding;
+`done`.**
+
+Checked:
+- Criterion 1: `cargo xtask trace --crate liminal_core` lists CORE-R041 with
+  `crates/liminal_core/tests/handles.rs`. Mutations run by the reviewer, both reverted:
+  `HandleAllocator::default()` = `with_slot_limit(0)` fails 2 tagged tests
+  (`default_allocator_is_in_the_state_of_new`, `default_allocator_issues_0v1_first`) and the
+  CORE-R037 test; `HandleMap::default()` = `with_slot_limit(0)` fails 4 tagged tests (the
+  handoff says 3; `default_map_exists_for_a_value_type_without_default_or_debug` fails too)
+  and the CORE-R039 test.
+- Criterion 2: reviewer's own script over spec §6 and the `requirements` frontmatter of every
+  task file: 60 IDs in the spec's requirement tables, 60 in §6, 60 in the frontmatter of
+  M1-T013 (24), M1-T014 (35), M1-T059 (1); the same set, no ID twice.
+- Criterion 3: CORE-R076 case (a) (`default()`, `new()` compile; `len()` 0; `is_empty()`) is
+  observable for every type because §5.4 now has `new`, `len`, `is_empty` in `impl` blocks
+  without bounds; case (b) uses only methods bounded by `Hash + Eq`. §5.4, the paragraph below
+  it, CORE-R076 and the §10 row agree. No other spec text states bounds for these methods.
+  M1-T014's task file names no `impl` layout, so it needs no edit.
+- Criterion 4: `spec_version` 3, history row present, the two sentences in §9 and §10 say 3.
+- Criterion 5: `cargo xtask ci` on `2366b2a`: pass, 11 steps, none skipped; again on the merge
+  of `main` (`5e0a1ea`) with the review edits: pass, 11 steps. macOS 27.2 (arm64). Branch CI
+  run 42876422340 on `2366b2a`: success.
+- Tests: each of the five tests asserts values named by CORE-R041 (count 0, `0v1`, `Debug`
+  equal to `new()` and to `with_slot_limit(u32::MAX)`, the impl for `Opaque` / `Large`). No
+  library code, oracle, floor or baseline changed; no test weakened or removed. No `unsafe`,
+  no dependency, no workflow file touched. M1-T013: only the frontmatter list and one dated
+  handoff line changed.
+- Session boundaries: author is an implementation sub-agent of the same parent, reviewer a
+  fresh review sub-agent (ADR-0029 Decision 1.2). The parent's journal entry is "in progress"
+  and its sub-agent table is not written yet, so the listing of author and reviewer there
+  could not be checked.
+
+Not verified: Windows and Linux locally (the branch CI run covers them); the CI run of the
+review commits was not waited for.
+
+Backlog: 1 entry in `docs/BACKLOG.md` under "M1-T059 — review 2026-11-10" (the doc comment of
+the CORE-R040 test now sits on the first CORE-R041 test). Follow-up task: none.
