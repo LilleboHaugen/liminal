@@ -1,0 +1,19 @@
+[package]
+name = "liminal_math"
+version = "0.0.0"
+description = "Liminal f32 math: vectors, matrices, quaternions, affine transforms, deterministic transcendental functions and geometry (docs/specs/liminal_math.md)."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# Layer 0; may depend on liminal_core only, no external runtime dependency (architecture.toml).
+[dependencies]
+liminal_core = { path = "../liminal_core" }
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

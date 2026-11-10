@@ -1,0 +1,83 @@
+# Clippy configuration of `liminal_math`, a deterministic crate (architecture.toml, ADR-0009).
+# Clippy reads only the nearest clippy.toml and does not merge it with the repository root's file
+# (docs/process/CODE_STYLE.md §Lints), so this file repeats the root settings, adds the
+# determinism list that `cargo xtask check-arch` requires (XTASK-R039), and extends it with the
+# paths of MATH-R004 (docs/specs/liminal_math.md). `tests/operation_set.rs` fails if a path of
+# MATH-R004 is missing here.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-print-in-tests = true
+
+disallowed-methods = [
+    # CODE_STYLE.md §Lints (XTASK-R039).
+    { path = "f32::sin", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::cos", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::tan", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::powf", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::exp", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f32::ln", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::sin", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::cos", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::tan", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::powf", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::exp", reason = "ADR-0009: use liminal_math::det" },
+    { path = "f64::ln", reason = "ADR-0009: use liminal_math::det" },
+    { path = "std::collections::HashMap::new", reason = "ADR-0009: use liminal_core::collections::DetHashMap" },
+    { path = "std::time::Instant::now", reason = "ADR-0009: simulation time is counted in ticks (liminal_core::time)" },
+    # MATH-R004: further platform-dependent or fused functions, for f32 and f64.
+    { path = "f32::mul_add", reason = "MATH-R004: fused multiply-add is not allowed" },
+    { path = "f32::sin_cos", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f32::asin", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f32::acos", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f32::atan", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f32::atan2", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f32::sinh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::cosh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::tanh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::asinh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::acosh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::atanh", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::powi", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::exp2", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::exp_m1", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::ln_1p", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::log", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::log2", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::log10", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::hypot", reason = "MATH-R004: platform-dependent" },
+    { path = "f32::cbrt", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::mul_add", reason = "MATH-R004: fused multiply-add is not allowed" },
+    { path = "f64::sin_cos", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f64::asin", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f64::acos", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f64::atan", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f64::atan2", reason = "MATH-R004: use liminal_math::det" },
+    { path = "f64::sinh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::cosh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::tanh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::asinh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::acosh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::atanh", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::powi", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::exp2", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::exp_m1", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::ln_1p", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::log", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::log2", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::log10", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::hypot", reason = "MATH-R004: platform-dependent" },
+    { path = "f64::cbrt", reason = "MATH-R004: platform-dependent" },
+    # MATH-R004: estimate and fused intrinsics. Each path exists on one architecture only, so
+    # `allow-invalid` keeps clippy from warning about it on the other.
+    { path = "core::arch::x86_64::_mm_rsqrt_ps", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::x86_64::_mm_rsqrt_ss", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::x86_64::_mm_rcp_ps", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::x86_64::_mm_rcp_ss", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::x86_64::_mm_fmadd_ps", reason = "MATH-R004: fused intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vrsqrteq_f32", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vrecpeq_f32", reason = "MATH-R004: estimate intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vfmaq_f32", reason = "MATH-R004: fused intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vfmsq_f32", reason = "MATH-R004: fused intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vmlaq_f32", reason = "MATH-R004: fused intrinsic", allow-invalid = true },
+    { path = "core::arch::aarch64::vmlsq_f32", reason = "MATH-R004: fused intrinsic", allow-invalid = true },
+]
