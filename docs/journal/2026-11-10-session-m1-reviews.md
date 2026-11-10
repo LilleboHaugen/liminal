@@ -19,6 +19,15 @@
   `2026-11-09-session-m1-subagents.md`, so this session's review sub-agents may review them
   (ADR-0026 Decision 5.1).
 
+- **Rule change during this session.** ADR-0029 was accepted on 2026-11-10 on the owner's
+  instruction and is on `main` since `c75a54e`. Its Decision 1 replaces ADR-0026 Decision 5.1:
+  a fresh review sub-agent MAY review a task that an implementation sub-agent of the same parent
+  wrote. `AGENTS.md`, `docs/process/WORKFLOW.md` and `docs/process/REVIEW.md` on `main` carry
+  the new wording. Task branches created before `c75a54e` still contain the old wording until
+  `main` is merged into them; the text on `main` is the one in force.
+- Tasks this session's implementation sub-agents wrote: M1-T013, T019, T034, T055, T056, T057,
+  T058. The parent itself implemented nothing on any task.
+
 ## Owner instructions that limit sub-agents (ADR-0026 Decision 1)
 
 - None at the start.
