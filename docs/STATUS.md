@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 15 of 59 tasks done.
+**M1** (Headless core): 16 of 60 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -31,11 +31,11 @@
 | [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | todo | M1-T015 |
 | [M1-T017](tasks/M1-T017-cargo-xtask-bench-and-the-first-wall-clock-basel.md) | cargo xtask bench and the first wall-clock baselines | todo | M1-T016 |
 | [M1-T018](tasks/M1-T018-miri-and-loom-in-ci.md) | Miri and loom in CI | todo | M1-T014, M1-T006 |
-| [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | review | M1-T001, M1-T054 |
-| [M1-T020](tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md) | Implement liminal_math — scalar vector, matrix and quaternion types | todo | M1-T019, M1-T014 |
+| [M1-T019](tasks/M1-T019-write-the-spec-for-liminal-math.md) | Write the spec for liminal_math | done | M1-T001, M1-T054 |
+| [M1-T020](tasks/M1-T020-implement-liminal-math-scalar-vector-matrix-and.md) | Implement liminal_math — scalar vector, matrix and quaternion types | todo | M1-T019, M1-T014, M1-T060 |
 | [M1-T021](tasks/M1-T021-implement-liminal-mathdet.md) | Implement liminal_math::det | todo | M1-T020 |
 | [M1-T022](tasks/M1-T022-implement-liminal-math-simd-paths.md) | Implement liminal_math SIMD paths | todo | M1-T021, M1-T017, M1-T018 |
-| [M1-T023](tasks/M1-T023-implement-liminal-math-geometry-reach-usable.md) | Implement liminal_math geometry; reach usable | todo | M1-T022 |
+| [M1-T023](tasks/M1-T023-implement-liminal-math-geometry-reach-usable.md) | Implement liminal_math geometry; reach usable | todo | M1-T022, M1-T060 |
 | [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | done | M1-T001 |
 | [M1-T025](tasks/M1-T025-implement-liminal-memory-arena-and-frame-allocat.md) | Implement liminal_memory — arena and frame allocators | todo | M1-T024, M1-T014, M1-T018 |
 | [M1-T026](tasks/M1-T026-implement-liminal-memory-pool-aligned-tracking-r.md) | Implement liminal_memory — pool, aligned, tracking; reach usable | todo | M1-T025, M1-T017 |
@@ -72,6 +72,7 @@
 | [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | todo | M1-T030 |
 | [M1-T058](tasks/M1-T058-liminal-memory-spec-follow-ups.md) | liminal_memory spec follow-ups from the M1-T024 review | todo | M1-T024 |
 | [M1-T059](tasks/M1-T059-liminal-core-default-requirement-follow-ups.md) | liminal_core Default requirement follow-ups from the M1-T055 review | todo | M1-T055, M1-T013 |
+| [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | todo | M1-T019 |
 
 ## Blocked tasks
 
@@ -82,7 +83,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 59 | 43 | 0 | 0 | 1 | 15 |
+| M1 (Headless core) | 60 | 44 | 0 | 0 | 0 | 16 |
 | M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates

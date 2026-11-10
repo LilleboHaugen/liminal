@@ -2,7 +2,7 @@
 id: M1-T019
 title: Write the spec for liminal_math
 milestone: M1
-status: review
+status: done
 crates: [liminal_math]
 depends_on: [M1-T001, M1-T054]
 requirements: []
@@ -128,4 +128,66 @@ conflict with other spec branches (keep both rows; regenerate STATUS.md).
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0029) of parent session
+`session/2026-11-10-m1-reviews` (journal `2026-11-10-session-m1-reviews.md`), fresh context,
+prompt: the ADR-0026 review template with worktree and task ID filled in. The author was an
+implementation sub-agent of the same parent; ADR-0029 Decision 1.2 (on `main` since `c75a54e`,
+merged into this branch before the review commit) allows that. This agent did no implementation
+work on M1-T019. macOS 27.2 (Darwin, arm64), worktree `liminal-worktrees/M1-T019-review`,
+reviewed commit `bf8c884`. Task review (REVIEW.md §1) plus spec review (REVIEW.md §2).
+
+Outcome: **done**, no blocking finding (B1–B5). Contract-changing follow-ups: M1-T060 (5 items;
+added to `depends_on` of M1-T020 and M1-T023). Backlog: 9 entries in `docs/BACKLOG.md`.
+
+Checked:
+- AC 1: 14 template sections in order; `maturity: planned`, `spec_version: 1`,
+  `adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0023, ADR-0024]`.
+- AC 2: 71 requirement rows, IDs unique, all MUST (script); a word search for "fast", "robust",
+  "efficient" and similar finds none in the spec.
+- AC 3: §5 covers every item of the task scope. Consistent with `docs/ARCHITECTURE.md` §2 (no
+  other document states a handedness, axis or matrix convention), `architecture.toml` (layer 0,
+  `same_layer_deps = ["liminal_core"]`, no external, dev `proptest`, `unsafe = "allow"`,
+  `deterministic = true`) and `docs/specs/liminal_core.md` (`EngineError`, `write_display`,
+  `validate_error`, `ContextValue::Float`/`Text`, CORE-R010 `null` for non-finite floats,
+  `StateHasher::write_f32` without canonicalization, context keys match `^[a-z][a-z0-9_]*$`).
+- AC 4: 10 codes with message, help and context.
+- AC 5: test kinds per area; the four SIMD paths name their `reference` item and differential
+  test (PERFORMANCE.md rules 1 to 4). Reference names accepted (spec §12 item 8).
+- AC 6: four workloads of `tests/determinism.rs`, each with the bit-identity claim; §11 says it
+  is not verified.
+- AC 7: budgets "none yet", scenarios on the reference machine, measuring tasks M1-T022 and
+  M1-T051 named (both exist).
+- AC 8: the 71 spec IDs equal the union of the `requirements` frontmatter of M1-T020 (35),
+  M1-T021 (14), M1-T022 (3), M1-T023 (19), no ID twice (script); §6 table agrees.
+- AC 9: 12 open questions, each with a resolving task or milestone.
+- AC 10: `docs/specs/README.md` row; `cargo xtask ci` on `bf8c884`: pass, 11 of 11 steps, none
+  skipped; branch CI run 42863576835 on `bf8c884` green.
+- Mathematics, by derivation: quaternion product (R071) against the Hamilton product; rotation
+  formula (R072) against `v + 2w(u × v) + 2u × (u × v)`; `look_to` (R049), `perspective`
+  (R050: depth 0 at `z_near`, 1 at `z_far`) and `orthographic` (R051) against right-handed
+  0-to-1-depth matrices; `from_axis_angle` and the Rodrigues identity (R073); slerp (R074);
+  affine product and inverse (R092, R093); frustum plane extraction for column vectors and
+  depth 0 to 1, normals inward (R175); positive-vertex test (R176); sizes and alignments
+  (R001); determinant exactness bound `24 × 8^4 < 2^24` (R044); the `det` special-value table
+  row by row against the C99 Annex F / IEEE 754-2019 §9.2 cases; ULP definition (§4).
+- Numbers, with a scratch `rustc -O` program (aarch64, not committed): `2.3561945` is the
+  `f32` nearest to 3π/4; `ln(f32::MAX) = 88.7228`, `ln(2^−150) = −103.97` (R107 thresholds);
+  `tan` of half the largest `f32` below `PI` is finite and positive (R050); the two
+  counterexamples of M1-T060 items 1 and 2.
+- No fake progress, oracle changes: none. Docs: STATUS.md regenerated; scope changes to
+  M1-T021 and M1-T022 are in their "Notes".
+- Session boundaries: the journal entry names its parent; that parent's journal is "in
+  progress" on its session branch and its sub-agent table is not written yet, so the listing
+  is not verifiable here. The journal records no spawn and no install. The owner's instruction
+  behind ADR-0029 is known to this review only from the ADR text on `main`.
+- ADR-0028: no workflow change in the task's commit; no credentials or personal data.
+
+Follow-up task M1-T060 (contract-changing, each changes a requirement or invariant that
+M1-T020 or M1-T023 implements): MATH-R023 antisymmetry false for finite inputs whose products
+overflow; INV-3 to INV-5 broken by inputs that MATH-R160, R165, R175 accept; MATH-R004 omits
+`f32`/`f64` conversion; MATH-R072 identity clause without domain; "stable case" undefined for
+two shapes.
+
+Not verified by this review: every claim about code that does not exist (the 1.0 ULP bound,
+cross-platform identity, Miri support, SIMD speed); the journal's prototype numbers (the
+prototype is not in the repository).
