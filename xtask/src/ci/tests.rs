@@ -157,6 +157,7 @@ fn step_table_follows_the_final_order_in_the_spec() {
             "fmt",
             "clippy",
             "test",
+            "test-features-off",
             "doc",
             "check-arch",
             "check-docs",
@@ -584,6 +585,9 @@ fn real_steps_do_not_modify_the_repository() {
             (_, Action::Coverage) => {
                 assert!(crate::repo::coverage::LLVM_COV_ARGS.contains(&"--locked"));
             }
+            (_, Action::FeaturesOff) => {
+                assert!(crate::features_off::test_args("x").contains(&"--locked"));
+            }
             (_, Action::Check(_)) => {}
         }
     }
@@ -599,7 +603,7 @@ fn real_steps_run_the_exact_commands_of_the_spec() {
             Action::Cargo(invocation) => {
                 Some((step.name, invocation.args.to_vec(), invocation.env.to_vec()))
             }
-            Action::Check(_) | Action::Coverage => None,
+            Action::Check(_) | Action::Coverage | Action::FeaturesOff => None,
         })
         .collect();
     assert_eq!(
@@ -702,6 +706,16 @@ fn native_check_steps_are_registered_by_name() {
         .map(|step| step.name)
         .collect();
     assert_eq!(coverage, ["coverage"]);
+    let features_off: Vec<usize> = STEPS
+        .iter()
+        .enumerate()
+        .filter(|(_, step)| matches!(step.action, Action::FeaturesOff))
+        .map(|(index, _)| index)
+        .collect();
+    // XTASK-R014: one step, directly after `test`.
+    assert_eq!(features_off, [3]);
+    assert_eq!(STEPS[2].name, "test");
+    assert_eq!(STEPS[3].name, "test-features-off");
     assert_eq!(STEPS.last().map(|step| step.name), Some("deny"));
 }
 
@@ -737,6 +751,28 @@ fn human_mode_names_native_steps_and_prints_an_internal_error() {
     assert!(
         out.contains("  check-x  FAIL (")
             && out.contains("\n      LIM-XTASK-0001: docs: could not be read\n"),
+        "{out}"
+    );
+}
+
+/// Verifies: XTASK-R014
+#[test]
+fn human_mode_shows_the_features_off_command_form() {
+    const STEPS: &[Step] = &[Step {
+        name: crate::features_off::NAME,
+        action: Action::FeaturesOff,
+    }];
+    let root = TempRoot::new("ci-features-off-human");
+    let mut runner = FakeRunner::default();
+    let mut out = Vec::new();
+    let result = execute(&[], &mut out, root.path(), STEPS, &mut runner);
+    assert!(matches!(result, Ok(Exit::Success)));
+    let out = String::from_utf8(out).unwrap();
+    assert!(
+        out.starts_with(
+            "==> test-features-off: cargo test --package <crate> --no-default-features --locked \
+             (once per workspace crate with features)\n"
+        ),
         "{out}"
     );
 }

@@ -23,13 +23,18 @@ criterion is met and verified. No dates are promised.
 
 M0 and M1 have detailed task files today (M1's were written by its kickoff, M1-T001). When a
 milestone starts, its first task is **kickoff**: resolve the open questions due at that milestone,
-and write detailed task files (`docs/tasks/`) from the work items below. These include one "write spec for `<crate>`" task per new
-crate. Specs are written by those tasks, not by the kickoff itself. Plans for later milestones are refined at kickoff, when the facts are known.
+and write detailed task files (`docs/tasks/`) from the work items below. A task covers a spec
+section, its code and its tests; kickoffs write no spec-only task (ADR-0030 Decision 5). Specs
+are written by those tasks, not by the kickoff itself. Each task SHOULD fit one sub-agent in
+about 20 minutes. Plans for later milestones are refined at kickoff, when the facts are known.
 
 Parallel tracks: after M1's `liminal_core` and `liminal_math` reach `usable`, the GPU track (M3) can run
 in parallel with M1/M2 work if separate agents are available. A parallel track starts only when the
 project owner records it in `docs/STATUS_NOTES.md`. Until then, the pick rule in AGENTS.md (current
-milestone only) applies.
+milestone only) applies. The owner recorded the M3 track on 2026-11-10 (ADR-0030 Decision 11): it
+starts with the M3 kickoff once both crates are `usable`, M1 tasks keep priority for slots, and
+the M3 kickoff orders its tasks so that a window with a triangle and then a rotating cube on
+Metal come first. No M3 work item or exit criterion is dropped.
 
 ---
 

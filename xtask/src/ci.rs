@@ -1,5 +1,5 @@
 //! The `ci` command: runs the quality steps in order, writes the JSON summary and sets the exit code
-//! (`docs/specs/xtask.md` §5, XTASK-R003 … R008, R010, R012).
+//! (`docs/specs/xtask.md` §5, XTASK-R003 … R008, R010, R012, R014).
 //!
 //! Orchestration ([`run_steps`]) is separated from process spawning through [`StepRunner`], so it is
 //! tested with a fake runner; [`crate::process::RealRunner`] is the real one.
@@ -30,8 +30,8 @@ const SYNOPSIS: &str = "usage: cargo xtask ci [--json] [--fail-fast] [--only <st
 
 /// Every step `ci` runs, in run order (XTASK-R003).
 ///
-/// The final order (spec §5) is `fmt, clippy, test, doc, check-arch, check-docs, trace, hygiene,
-/// status-check, coverage, deny`. Each task adds its step at its place in that order; a step that
+/// The final order (spec §5) is `fmt, clippy, test, test-features-off, doc, check-arch,
+/// check-docs, trace, hygiene, status-check, coverage, deny`. Each task adds its step at its place in that order; a step that
 /// does not exist yet is absent, never stubbed as a pass.
 pub(crate) const STEPS: &[Step] = &[
     Step {
@@ -74,6 +74,10 @@ pub(crate) const STEPS: &[Step] = &[
             env: &[],
             requires: None,
         }),
+    },
+    Step {
+        name: crate::features_off::NAME,
+        action: Action::FeaturesOff,
     },
     Step {
         name: "doc",
@@ -147,6 +151,9 @@ pub(crate) enum Action {
     /// `coverage`: runs `cargo llvm-cov`, then checks the floors inside xtask (XTASK-R060 … R064).
     /// Skipped if `cargo-llvm-cov` is missing; never updates floors.
     Coverage,
+    /// `test-features-off`: runs `cargo test --package <crate> --no-default-features --locked`
+    /// for each workspace crate that has Cargo features (XTASK-R014).
+    FeaturesOff,
 }
 
 /// A `cargo` command line (the program itself is chosen by the runner).
@@ -387,6 +394,7 @@ pub(crate) fn run_steps(
                     None => format!("xtask {}", step.name),
                 },
                 Action::Coverage => crate::repo::coverage::LLVM_COV_ARGS.join(" "),
+                Action::FeaturesOff => crate::features_off::DESCRIPTION.to_string(),
             };
             writeln!(out, "==> {}: cargo {command}", step.name)?;
             // The child writes to the same stdout; our line must come first.

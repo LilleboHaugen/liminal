@@ -3,7 +3,7 @@ crate: liminal_telemetry
 req_prefix: TELE
 layer: 0
 maturity: planned
-spec_version: 1
+spec_version: 2
 last_reviewed: 2026-11-10
 adrs: [ADR-0016, ADR-0017, ADR-0018, ADR-0023]
 ---
@@ -60,12 +60,14 @@ engine crate, including the deterministic ones, can record into it, and so that 
 - Engine crates: `liminal_core` (`architecture.toml`: layer 0, `same_layer_deps =
   ["liminal_core"]`). Used items: `liminal_core::error::{ErrorCode, EngineError, ErrorContext,
   ContextValue, write_display}` (the error model, ADR-0017) and `liminal_core::time::Tick`. These
-  are specified in `docs/specs/liminal_core.md` (M1-T012).
+  are specified in [`docs/specs/liminal_core.md`](liminal_core.md) (M1-T012).
 - External crates: none at runtime (`external = []`). Dev-dependencies `proptest` and `loom`
   (`dev_external`, ADR-0010, ADR-0018).
 - `unsafe = "allow"` (ADR-0018): `unsafe` is allowed only in the per-thread ring buffer (module
   `buffer`, private). Every block has a `// SAFETY:` comment; the module is tested under Miri and
-  loom (§10). Every other module declares `#![forbid(unsafe_code)]` at its top.
+  loom (§10). Every other module declares `#![forbid(unsafe_code)]` at its top. Why ADR-0018's
+  benchmark clause asks for no benchmark of the ring against a safe buffer: §10 "Ring buffer and
+  its reference".
 - `deterministic = false`: the crate reads `std::time::Instant`. The determinism lint
   configuration of CODE_STYLE.md does not apply to it.
 - Cargo features: `telemetry` (off by default, TELE-R001). Engine crates depend on
@@ -79,11 +81,20 @@ engine crate, including the deterministic ones, can record into it, and so that 
 ## 4. Concepts
 
 - **Record:** one entry in a thread buffer: a span record, a counter record, a gauge record or a
-  log record. A record has a fixed size of at most 48 bytes (TELE-R056); a log record keeps its
-  fields on the heap.
+  log record. A record has a fixed size of at most 48 bytes (TELE-R056). Span, counter and gauge
+  records are stored inline. A log record is stored as one pointer to one heap allocation (a
+  `Box`) that holds the whole log payload: level, target, message, time and the field list. In
+  the buffer it therefore occupies one pointer plus the record tag, whatever its fields are.
+  (Storing `target`, `message`, `time_ns` and `level` inline would already need more than 48
+  bytes.) Whoever discards a log record frees its payload (TELE-R052, TELE-R061).
 - **Active:** recording is active while a `Collector` is installed in the process (from `install`
   returning `Ok` until that collector is dropped). While inactive, the macros record nothing and
   evaluate none of their arguments (TELE-R010). The check is one relaxed atomic load.
+- **Collector identity:** every successful `install` takes the next value of a process-wide
+  `u64` counter that starts at 1 and is never reused; 0 stands for "no collector". The value the
+  active check loads is the identity of the installed collector (or 0), so the check stays one
+  relaxed load. A recording span guard keeps the identity it loaded in `span!` and records only
+  if the same identity is installed when it is dropped (TELE-R011).
 - **Thread buffer:** a ring of `THREAD_BUFFER_CAPACITY` (16,384) records owned by one thread
   (the producer) and drained by the collector (the consumer). A thread gets its buffer on its
   first record while active. It is registered once in a process-wide registry (a mutex taken
@@ -112,9 +123,19 @@ engine crate, including the deterministic ones, can record into it, and so that 
   macOS, Windows and Linux monotonic clocks are system-wide). Nothing in this spec depends on
   it except how timelines line up in a trace viewer.
 - **Frame:** the interval between two `Collector::end_frame` calls (the first frame starts at
-  `install`). `liminal_app` calls `end_frame` once per main-loop iteration, after rendering
-  (ARCHITECTURE.md §4); a frame then contains zero or more simulation steps, which the caller
-  reports in `FrameInfo`.
+  `install`). The crate does not know what a caller's interval is; "frame" in this spec always
+  means this interval. Two ways of calling are intended:
+  - Once per main-loop iteration, after rendering (ARCHITECTURE.md §4). A frame then contains
+    zero or more simulation steps, which the caller reports as a count in `FrameInfo`.
+  - Once after each simulation step, with `FrameInfo { sim_steps: 1, last_tick: Some(tick) }`,
+    and once after rendering, with `FrameInfo { sim_steps: 0, last_tick: None }`. Each call
+    returns its own frame record, so there is one record per simulation step and one per
+    rendered frame (ADR-0016 Decision: records "for each simulation step and rendered frame").
+    `index` then counts records, not rendered frames, and the exporters treat every record
+    alike (one `frame` event each in the Chrome trace; `frame_ns` in the summary is over all
+    records).
+
+  Which of the two `liminal_app` uses is decided by its spec (open question 11).
 - **Frame record:** what `end_frame` returns: every record drained in that call, ordered and
   aggregated (TELE-R062), plus frame timing.
 - **Span depth:** the number of spans open on the same thread when the span was entered (0 for
@@ -308,7 +329,7 @@ The disabled expansions are compiled in every build, so the tests of TELE-R002 r
 | TELE-R001 | MUST | The crate has a Cargo feature `telemetry` that is not in `default`. The feature changes only which expansion the four macros and `SpanGuard` use (§5.5). `Level`, `THREAD_BUFFER_CAPACITY`, `Collector`, `FrameInfo`, `FrameRecord` and its element types, `export` and `TelemetryError` exist with the same signatures and behave as specified with the feature on or off. |
 | TELE-R002 | MUST | The disabled expansions `__private::off::{span, counter, gauge, log}` evaluate none of their argument expressions (an argument with a side effect, such as incrementing a `Cell`, leaves it unchanged after 1,000 calls of each macro), perform no heap allocation (0 allocations counted by a counting global allocator in the test binary over those calls), and record nothing: with a `Collector` installed before the calls, which run on a newly spawned thread, the next `end_frame` returns a frame record with empty `spans`, `counters`, `gauges` and `logs`, `dropped_records == 0`, and no thread in `threads` that was not registered before the calls. `__private::off::SpanGuard` has `size_of == 0` and `needs_drop == false`. |
 | TELE-R003 | MUST | The disabled expansions type-check their arguments with the same types as the enabled ones (`&'static str` names and messages, `u64` delta, `f64` value, `Level`, `Into<ContextValue>` field values), and every variable named in an argument counts as used: a crate that compiles without warnings with the feature on also compiles without warnings with it off, as far as the macros are concerned. A `compile_fail` doc test shows that `counter!("x", 1.5_f64)` is rejected through the disabled expansion. |
-| TELE-R004 | MUST | With the feature off, `liminal_telemetry::SpanGuard` is `__private::off::SpanGuard` and the root macros expand exactly as the `__private::off` macros. Checked by a test compiled only under `cfg(not(feature = "telemetry"))`; `cargo test -p liminal_telemetry --no-default-features` and `cargo test -p liminal_telemetry --features telemetry` both pass without warnings (open question 2: running the first in CI). |
+| TELE-R004 | MUST | With the feature off, `liminal_telemetry::SpanGuard` is `__private::off::SpanGuard` and the root macros expand exactly as the `__private::off` macros. Checked by a test compiled only under `cfg(not(feature = "telemetry"))`; `cargo test -p liminal_telemetry --no-default-features` and `cargo test -p liminal_telemetry --features telemetry` both pass without warnings. `cargo xtask ci` runs the first in its `test-features-off` step (XTASK-R014) and covers the second with the `--all-features` `test` step. |
 | TELE-R005 | MUST | The macros name every item they use through `$crate` paths, so a caller needs only a dependency on `liminal_telemetry` and no `use` statement for the expansion to compile (field values are converted with a `$crate`-reachable path to `ContextValue`). Checked by an integration test module with no `use` items. |
 | TELE-R006 | MUST | With the feature on and recording active, every argument expression of a macro call is evaluated at most once per call (side-effect counters in a test show exactly one evaluation per recorded call). |
 
@@ -317,7 +338,7 @@ The disabled expansions are compiled in every build, so the tests of TELE-R002 r
 | ID | Level | Requirement |
 |---|---|---|
 | TELE-R010 | MUST | Recording is active exactly while a `Collector` exists (TELE-R060). While inactive, `span!` returns a guard that records nothing when dropped, and `counter!`, `gauge!` and `log!` record nothing; none of the four evaluates any argument expression. |
-| TELE-R011 | MUST | A span records only if recording was active both when `span!` was called and when its guard is dropped. A span entered while inactive records nothing even if a collector is installed before the guard is dropped; a span whose collector is dropped before the guard records nothing. |
+| TELE-R011 | MUST | A span records only if recording was active both when `span!` was called and when its guard is dropped. A span entered while inactive records nothing even if a collector is installed before the guard is dropped; a span whose collector is dropped before the guard records nothing. A span also records only into the collector it was entered under: if that collector is dropped and another one is installed before the guard is dropped, the span records nothing (the guard compares collector identities, §4), so no frame record holds a span with a `start_ns` before its collector's `install`. Test: enter a span under collector A, drop A, install B, drop the guard; B's next frame record has no span of that name. A guard entered while active restores the thread's open-span count when it is dropped (TELE-R021) whether or not it records; a span entered under B inside such a guard therefore has depth 1 although its parent is never recorded. |
 | TELE-R012 | MUST | No recording call panics. A record that cannot be stored is either counted as dropped (buffer full, TELE-R052) or, if the calling thread's thread-local storage is already destroyed (a call from another thread-local destructor during thread exit), discarded without being counted. |
 
 ### Spans (R020–R029)
@@ -351,11 +372,11 @@ The disabled expansions are compiled in every build, so the tests of TELE-R002 r
 |---|---|---|
 | TELE-R050 | MUST | The first record a thread appends while active registers a buffer for it, with the next thread index (1 for the first thread in the process; indices are never reused, also across collectors) and the thread's name at that moment (`std::thread::current().name()`, `None` if unnamed). Every frame record lists the registered threads in `threads`, ascending index. |
 | TELE-R051 | MUST | A thread buffer holds up to `THREAD_BUFFER_CAPACITY` = 16,384 records. `end_frame` removes every record from every buffer and places it in the returned frame record (TELE-R062). Records of one thread keep the order in which they were appended wherever this spec orders by "order of appending". |
-| TELE-R052 | MUST | When a thread's buffer holds 16,384 records, a further record from that thread is discarded and counted; records already in the buffer are kept. `dropped_records` of a frame record is the number of records discarded this way on all threads since the previous `end_frame` (or since `install`). Test: 16,385 spans on one thread without `end_frame` give 16,384 `SpanRecord`s (the first 16,384) and `dropped_records == 1`; the next frame has `dropped_records == 0`. |
+| TELE-R052 | MUST | When a thread's buffer holds 16,384 records, a further record from that thread is discarded and counted; records already in the buffer are kept. `dropped_records` of a frame record is the number of records discarded this way on all threads since the previous `end_frame` (or since `install`). Test: 16,385 spans on one thread without `end_frame` give 16,384 `SpanRecord`s (the first 16,384) and `dropped_records == 1`; the next frame has `dropped_records == 0`. A log record discarded this way has its payload (§4) freed before the `log!` call returns. Test: with a full buffer, 100 further `log!` calls with two fields each leave the number of live heap allocations of the calling thread unchanged (counting global allocator: allocations minus deallocations). |
 | TELE-R053 | MUST | Records appended by a thread that has exited are returned by the next `end_frame`, which lists the thread in `threads`; frame records after that one do not list it. |
 | TELE-R054 | MUST | Recording from several threads concurrently with `end_frame` loses and duplicates nothing: every record appended while active appears in exactly one frame record of that collector or is counted in `dropped_records`, or the collector is dropped before draining it. Tested (a) by loom models of the ring buffer (push against drain, full buffer, producer exit) with a small capacity, and (b) by a stress test: 4 threads × 100,000 `counter!("n", 1)` calls while the main thread calls `end_frame` in a loop; the sum of all `n` totals plus all `dropped_records` after the threads are joined and a final `end_frame` equals 400,000. |
 | TELE-R055 | MUST | After a thread's buffer is registered, `span!` (including the guard's drop), `counter!` and `gauge!` on that thread perform no heap allocation (0 allocations counted by a counting global allocator over 10,000 calls of each, with recording active and the buffer drained between batches). |
-| TELE-R056 | MUST | One buffered record occupies at most 48 bytes (`size_of` of the private record type ≤ 48, checked by a unit test), so one thread buffer occupies at most 16,384 × 48 = 786,432 bytes. The buffer is allocated once, at registration. |
+| TELE-R056 | MUST | One buffered record occupies at most 48 bytes (`size_of` of the private record type ≤ 48, checked by a unit test), so one thread buffer occupies at most 16,384 × 48 = 786,432 bytes. The buffer is allocated once, at registration. A log record's payload is boxed as a whole (§4) and is not part of the 48 bytes or of the buffer's size; `log!` is the only recording call that allocates (TELE-R055). |
 | TELE-R057 | MUST | The ring buffer has a reference implementation, a `Mutex<VecDeque<_>>` with the same capacity and drop rule, and a differential property test: for generated single-threaded sequences of push and drain operations (including full-buffer cases), both return the same records in the same order and the same dropped counts (AGENTS.md rule 4). |
 
 ### Collector and frame records (R060–R079)
@@ -363,11 +384,11 @@ The disabled expansions are compiled in every build, so the tests of TELE-R002 r
 | ID | Level | Requirement |
 |---|---|---|
 | TELE-R060 | MUST | `Collector::install` returns `Ok` when no other `Collector` exists in the process, and `Err(TelemetryError::CollectorAlreadyInstalled)` (LIM-TELE-0001) otherwise, leaving the existing collector unchanged. After a collector is dropped, `install` succeeds again. Recording is active from `install` returning `Ok` until the collector is dropped. |
-| TELE-R061 | MUST | `install` discards every record that is in a thread buffer when it runs, resets the dropped counts, and removes the buffers of threads that have exited. Test (one thread): records appended under a first collector that is dropped without `end_frame` do not appear in the first frame record of a second collector, whose `dropped_records` is 0. |
+| TELE-R061 | MUST | `install` discards every record that is in a thread buffer when it runs (freeing the payload of each discarded log record, §4), resets the dropped counts, and removes the buffers of threads that have exited. Test (one thread): records appended under a first collector that is dropped without `end_frame` do not appear in the first frame record of a second collector, whose `dropped_records` is 0. |
 | TELE-R062 | MUST | `end_frame` returns every record appended since the previous `end_frame` (or `install`) and not dropped, as follows: `spans` sorted by (thread, `start_ns`, `depth`), stable with respect to order of appending; `counters` and `gauges` as in TELE-R030 and TELE-R031; `logs` sorted by (`time_ns`, thread), stable with respect to order of appending; `threads` as in TELE-R050. |
 | TELE-R063 | MUST | The first `end_frame` after `install` returns `index` 0, and each further call returns the previous `index` + 1. `start_ns` of frame 0 is the timestamp read in `install`; `start_ns` of frame k > 0 equals `end_ns` of frame k − 1; `end_ns` is read once per call, after all buffers are drained, so `start_ns <= end_ns`. |
 | TELE-R064 | MUST | `end_frame(info)` copies `info.sim_steps` and `info.last_tick` into the frame record unchanged. |
-| TELE-R065 | MUST | Dropping the `Collector` makes recording inactive before the drop returns. Records not yet drained are not returned by any later call (they are discarded by the next `install`, TELE-R061). |
+| TELE-R065 | MUST | Dropping the `Collector` makes recording inactive before the drop returns. Records not yet drained are not returned by any later call (they are discarded by the next `install`, TELE-R061). Until then they stay in their buffers, log payloads included: at most 16,384 records per registered thread, reachable from the process-wide registry (assumption: Miri's leak check does not report memory reachable from a `static`). |
 
 ### Chrome-trace export (R080–R089)
 
@@ -379,18 +400,18 @@ decimal digits of `ns / 1000` (integer division, no leading zeros, `0` for zero)
 |---|---|---|
 | TELE-R080 | MUST | `chrome_trace(frames)` returns one JSON object (RFC 8259) without whitespace outside strings and without a trailing newline: `{"displayTimeUnit":"ns","traceEvents":[` the events of TELE-R081, separated by `,`, then `]}`. |
 | TELE-R081 | MUST | The events are, in this order: (1) `{"name":"process_name","ph":"M","pid":1,"tid":0,"args":{"name":"liminal"}}`; (2) `{"name":"thread_name","ph":"M","pid":1,"tid":0,"args":{"name":"frames"}}`; (3) for each thread index in the union of all frames' `threads`, ascending: `{"name":"thread_name","ph":"M","pid":1,"tid":I,"args":{"name":N}}` with `N` the name from the first frame (in slice order) that lists index `I`, or `thread-I` if that name is `None`; (4) for each frame in slice order: the frame event `{"name":"frame","cat":"frame","ph":"X","ts":T(start_ns),"dur":T(end_ns − start_ns, saturating at 0),"pid":1,"tid":0,"args":{"index":INDEX,"sim_steps":STEPS}}`, then one event per span in `spans` order `{"name":NAME,"cat":"span","ph":"X","ts":T(start_ns),"dur":T(duration_ns),"pid":1,"tid":THREAD}`, then one per log in `logs` order `{"name":MESSAGE,"cat":"log","ph":"i","s":"t","ts":T(time_ns),"pid":1,"tid":THREAD,"args":{"level":LEVEL,"target":TARGET,"fields":{K:V,…}}}` (fields in order, `{}` when none, repeated keys written as they are), then one per counter `{"name":NAME,"cat":"counter","ph":"C","ts":T(end_ns),"pid":1,"tid":0,"args":{"value":TOTAL}}`, then one per gauge in the same form with `"cat":"gauge"` and the gauge value. |
-| TELE-R082 | MUST | Strings are escaped exactly as `liminal_core` CORE-R009 specifies for `render_json`. Integers are decimal without sign or leading zeros. Field values and gauge values are written as CORE-R010 specifies for `ContextValue` (`Float` and gauge values: finite as Rust's `Display` for `f64`, non-finite as `null`). Timestamps and durations use `T`. |
+| TELE-R082 | MUST | Strings are escaped exactly as CORE-R009 of the [`liminal_core` spec](liminal_core.md) specifies for `render_json`. The integers this crate itself writes (frame and thread indices, counts, counter totals, `sim_steps`, nanosecond values; all unsigned) are decimal without sign or leading zeros. Log field values are written as CORE-R010 specifies for `ContextValue`, so a negative `Int` has a leading `-`; gauge values are written as CORE-R010 specifies for `Float` (finite: Rust's `Display` for `f64`; NaN and infinities: `null`). Timestamps and durations use `T`. |
 | TELE-R083 | MUST | `chrome_trace` is a pure function of its input: equal slices give identical bytes in every call, process and supported platform. An empty slice gives the two metadata events of items (1) and (2) only. |
-| TELE-R084 | SHOULD | A trace written by `chrome_trace` from a real run (several threads, nested spans, logs, counters) loads in the Perfetto UI (ui.perfetto.dev) and shows one track per thread with nested spans and the frame track. Checked by hand once per format change, result recorded in the journal (M1-T029). |
+| TELE-R084 | SHOULD | A trace written by `chrome_trace` from a real run (several threads, nested spans, logs, counters) loads in the Perfetto UI (ui.perfetto.dev) and shows one track per thread with nested spans and the frame track. The same check covers two points this spec assumes but has not checked in a viewer (open question 12): a counter and a gauge with the same name, and a gauge event with `"value":null`. Checked by hand once per format change, result recorded in the journal (M1-T029). |
 
 ### Summary export (R090–R099)
 
 | ID | Level | Requirement |
 |---|---|---|
-| TELE-R090 | MUST | `summary(frames, top_spans)` returns one JSON object without whitespace outside strings and without a trailing newline, with exactly these members in this order: `version` (`1`), `frame_count`, `first_frame` and `last_frame` (the `index` of the first and last frame in slice order, `null` for an empty slice), `frame_ns` (TELE-R091; `null` for an empty slice), `sim_steps` (sum of `sim_steps`), `top_spans` (TELE-R092), `counters` and `gauges` (TELE-R093), `logs` (TELE-R094), `dropped_records` (sum of `dropped_records`, saturating at `u64::MAX`). Escaping and number formats as in TELE-R082. |
+| TELE-R090 | MUST | `summary(frames, top_spans)` returns one JSON object without whitespace outside strings and without a trailing newline, with exactly these members in this order: `version` (`1`), `frame_count`, `first_frame` and `last_frame` (the `index` of the first and last frame in slice order, `null` for an empty slice), `frame_ns` (TELE-R091; `null` for an empty slice), `sim_steps` (the sum of the frames' `sim_steps`, computed as `u64`, saturating at `u64::MAX`; the sum of fewer than 2^32 `u32` values cannot reach it), `top_spans` (TELE-R092), `counters` and `gauges` (TELE-R093), `logs` (TELE-R094), `dropped_records` (sum of `dropped_records`, saturating at `u64::MAX`). Escaping and number formats as in TELE-R082. |
 | TELE-R091 | MUST | `frame_ns` is `{"min":…,"p50":…,"p95":…,"max":…,"mean":…}` over the frame durations `d = end_ns − start_ns` (saturating at 0) of all frames. With the durations sorted ascending as `s[0..n]`, `pK = s[ceil(K × n / 100) − 1]` (nearest rank; in integers `s[(K × n + 99) / 100 − 1]`), `min = s[0]`, `max = s[n − 1]`, `mean` = floor(sum / n) with the sum computed without overflow (`u128`). |
 | TELE-R092 | MUST | `top_spans` aggregates all spans of all frames by `name`: `count`, `total_ns` (sum of `duration_ns`, saturating), `mean_ns` = floor(`total_ns` / `count`), `max_ns`. Entries are sorted by `total_ns` descending, then `name` ascending byte order; the first `top_spans` entries are written, each as `{"name":…,"count":…,"total_ns":…,"mean_ns":…,"max_ns":…}`. |
-| TELE-R093 | MUST | `counters` has one entry `{"name":…,"total":…}` per counter name in any frame, total = sum over frames, saturating; `gauges` has one entry `{"name":…,"last":…,"min":…,"max":…}` per gauge name, `last` = its value in the last frame (slice order) that has it, `min` and `max` over the non-NaN values of all frames (`null` if all are NaN). Both lists are sorted by name, ascending byte order. |
+| TELE-R093 | MUST | `counters` has one entry `{"name":…,"total":…}` per counter name in any frame, total = sum over frames, saturating; `gauges` has one entry `{"name":…,"last":…,"min":…,"max":…}` per gauge name, `last` = its value in the last frame (slice order) that has it, written as TELE-R082 writes a gauge value (`null` if it is NaN or infinite); `min` and `max` are taken over the finite values of all frames only, so NaN and infinities never take part, and both are `null` exactly when the gauge has no finite value. Both lists are sorted by name, ascending byte order. |
 | TELE-R094 | MUST | `logs` is `{"error":…,"warn":…,"info":…,"debug":…,"trace":…}`: the number of log records of each level over all frames. |
 | TELE-R095 | MUST | `summary` is a pure function of its input: equal arguments give identical bytes in every call, process and supported platform. |
 
@@ -407,13 +428,14 @@ Every MUST requirement is assigned to exactly one task; the IDs are in the tasks
 
 | Task | Requirements |
 |---|---|
-| M1-T028 (recording, buffers, collector) | TELE-R001 to TELE-R006, TELE-R010 to TELE-R012, TELE-R020 to TELE-R023, TELE-R030, TELE-R031, TELE-R040 to TELE-R043, TELE-R050 to TELE-R057, TELE-R060 to TELE-R062, TELE-R065, TELE-R100 |
-| M1-T029 (frame timing, export, benchmark) | TELE-R063, TELE-R064, TELE-R080 to TELE-R083, TELE-R090 to TELE-R095 |
+| M1-T028 (recording, buffers, collector) | TELE-R001 to TELE-R006, TELE-R010 to TELE-R012, TELE-R020 to TELE-R023, TELE-R030, TELE-R031, TELE-R040 to TELE-R043, TELE-R050 to TELE-R057, TELE-R060 to TELE-R065, TELE-R100 |
+| M1-T029 (export, benchmark) | TELE-R080 to TELE-R083, TELE-R090 to TELE-R095 |
 
 TELE-R084 (SHOULD) is done by M1-T029 (its acceptance criteria require the Perfetto check).
-M1-T028 implements `Collector::end_frame` with the record contents (TELE-R062), because its tests
-read records only through it; it may fill `index`, `start_ns`, `end_ns`, `sim_steps` and
-`last_tick` provisionally, and M1-T029 makes them meet TELE-R063 and TELE-R064 with tests.
+M1-T028 implements `Collector::end_frame` completely, with the record contents (TELE-R062), frame
+index and timing (TELE-R063) and the `FrameInfo` fields (TELE-R064), each with its tests, because
+its own tests read records only through `end_frame`. No field of a frame record is provisional in
+any task (changed in `spec_version` 2; AGENTS.md rule 1).
 
 ## 7. Invariants
 
@@ -457,16 +479,46 @@ single-threaded unless stated. Benchmark case IDs: `liminal_telemetry/<group>/<c
 | `counter!` active (ns per call) | none yet | Reference | M1-T029, case `liminal_telemetry/counter/active` |
 | `log!` filtered out by level (ns per call) | none yet | Reference | M1-T029, case `liminal_telemetry/log/filtered` |
 | `log!` active with two fields (`u64`, `&str`) (ns per call) | none yet | Reference | M1-T029, case `liminal_telemetry/log/two_fields` |
-| `end_frame` draining 10,000 spans from each of 4 threads (µs per call) | none yet | Reference | Not scheduled; added with the `stable` promotion |
-| `chrome_trace` of 600 frames × 100 spans (ms) | none yet | Reference | Not scheduled; added with the `stable` promotion |
 
 The span-overhead budget required by ADR-0016 is the first row. Until it is measured, this spec
 makes no claim about recording cost beyond the operation counts of §4 and TELE-R055.
 
+No task measures the cost of `end_frame` (for example draining 10,000 spans from each of 4
+threads) or of the exporters (for example `chrome_trace` of 600 frames × 100 spans), so they have
+no row (two "Not scheduled" rows were removed in `spec_version` 2). The task that prepares the
+`stable` promotion of `liminal_telemetry` (not written yet) adds their scenarios here first.
+
+The table has no case that compares the ring buffer with its `Mutex<VecDeque<_>>` reference; the
+reason is in §10 "Ring buffer and its reference".
+
 ## 10. Test plan
 
-The one optimized path is the lock-free ring buffer. Its reference is a `Mutex<VecDeque<_>>`
-buffer with the same capacity and drop rule (TELE-R057), kept in the crate's test code.
+**Ring buffer and its reference.** The one optimized path is the lock-free ring buffer. Its
+reference is a `Mutex<VecDeque<_>>` buffer with the same capacity and drop rule (TELE-R057). The
+reference is private test code (`#[cfg(test)]`), not a `liminal_telemetry::reference` item: the
+ring is private too, so no benchmark or test outside the crate can name either, and
+PERFORMANCE.md "Reference implementations reachable from benchmarks" item 3 keeps a reference
+that only the crate's own tests use private. §5 therefore lists no `reference` module.
+
+ADR-0018 says: "Unsafe for performance requires a benchmark showing the safe version is
+insufficient, referenced in the commit or spec." This spec lists no such benchmark, for this
+reason: the ring's `unsafe` is not there to make a safe buffer that meets the contract faster.
+ADR-0016 decides "lock-free per-thread buffers", and §4 and INV-5 fix the recording path (no
+lock, no read-modify-write atomic). The safe buffers in `std` do not meet that:
+
+| Safe candidate | Why it does not meet the contract |
+|---|---|
+| `Mutex<VecDeque<_>>` (the reference) | Takes a lock on every record. |
+| `std::sync::mpsc::sync_channel` with `try_send` | No mutex on the send path, but a compare-and-swap loop on the tail position (read in Rust 1.99.1, `library/std/src/sync/mpmc/array.rs`; an implementation detail, not a documented guarantee), which INV-5 excludes. |
+
+Assumption (not proven here): a single-producer single-consumer ring without `unsafe` would need
+a safe cell that two threads can access without a lock and that holds a whole record, and `std`
+has none (its atomics hold one machine word). The comparison with `sync_channel` is by reading
+its source, not by measurement, and the "no read-modify-write atomic" rule of INV-5 is this
+spec's choice, not ADR-0016's wording. The absolute recording cost is measured (§9,
+`span/active`). If a later change adds `unsafe` only to make recording faster than a safe
+version that meets the contract, ADR-0018's clause applies to that change and it needs the
+benchmark.
 
 | Area | Test kinds | Oracle |
 |---|---|---|
@@ -476,7 +528,7 @@ buffer with the same capacity and drop rule (TELE-R057), kept in the crate's tes
 | Counters, gauges, logs (R030–R043) | unit, integration, property (counter totals equal the saturating sum of generated deltas; gauge last value) | Reference computation over the generated sequence in the test |
 | Thread buffers (R050–R057) | unit, property (differential), loom, Miri, stress integration | `Mutex<VecDeque>` reference buffer; loom exhaustive interleavings with capacity 2 to 4; count conservation (R054) |
 | Collector and frames (R060–R065) | integration | Hand-written expectations; frame tiling checked over 100 frames |
-| Chrome trace (R080–R084) | snapshot, unit, manual check | Approved snapshot `crates/liminal_telemetry/tests/snapshots/chrome_trace.json` built from hand-made frame records (2 frames, 2 threads one unnamed, nested spans, a log with every `ContextValue` variant and characters that need escaping, counters, a NaN gauge); unit tests of `T(ns)` with hand-computed values (0, 5, 999, 1000, 1_234_567, `u64::MAX`); Perfetto load (R084) |
+| Chrome trace (R080–R084) | snapshot, unit, manual check | Approved snapshot `crates/liminal_telemetry/tests/snapshots/chrome_trace.json` built from hand-made frame records (2 frames, 2 threads one unnamed, nested spans, a log with every `ContextValue` variant, a negative `Int` among them, and characters that need escaping, counters, a NaN gauge, a gauge with the values `+∞` and 1.5 in the two frames, a counter and a gauge with the same name); unit tests of `T(ns)` with hand-computed values (0, 5, 999, 1000, 1_234_567, `u64::MAX`); Perfetto load (R084) |
 | Summary (R090–R095) | snapshot, unit | Approved snapshot `crates/liminal_telemetry/tests/snapshots/summary.json` from the same frames; percentile unit tests with hand-computed values for n = 1, 2, 20, 21 |
 | Errors (R100) | unit | `liminal_core::error::validate_error`; §8 text |
 
@@ -485,9 +537,20 @@ parser available on the machine (for example `python3 -m json.tool`; nothing is 
 ADR-0022) and the result is recorded in the journal; if none is available, the journal says it
 was not checked.
 
-Tests that install a `Collector` in one test binary MUST serialize on a shared lock in
-`tests/common/` (one collector per process, TELE-R060), and assert only on records of threads
-they created or on the calling thread's own records, because the test harness may reuse threads.
+Tests that install a `Collector` MUST serialize on one lock per test binary, because a test
+binary is one process and a process has at most one collector (TELE-R060):
+
+| Tests | Process | Lock |
+|---|---|---|
+| Integration tests in `crates/liminal_telemetry/tests/*.rs` | One per file | A `static` mutex in `tests/common/mod.rs`, included by each file with `mod common;` |
+| Unit tests in `src/` | One for the whole crate (the lib test binary) | One `#[cfg(test)]` `static` mutex in the crate, used by every unit test that installs a collector |
+| Doc tests | One per doc test | None needed |
+| Test binaries of other crates that install a `Collector` | One per binary | Their own `static` mutex per binary. This crate exports no lock; whether `liminal_testkit` provides one is for its spec (M1-T047) |
+
+A test that panics while it holds the lock poisons it; the lock helper takes the guard out of
+the poison error, so one failing test does not fail the others. Such tests assert only on
+records of threads they created or on the calling thread's own records, because the test
+harness may reuse threads.
 
 **Miri** runs the whole test suite (`cargo +nightly miri test -p liminal_telemetry`, set up by
 M1-T018). Expected exceptions, each to be listed with its reason by M1-T028: the stress test of
@@ -522,14 +585,14 @@ claimed to be reproducible across runs.
 
 1. **Requirement and error prefix.** M1-T027's task text names the prefix `TEL`; the reserved
    prefix in `docs/specs/README.md` is `TELE`, and CORE-R012 requires the error area to equal the
-   spec's `req_prefix`. Resolved here: `TELE` (also `liminal_core` spec open question 4).
-2. **Feature-off build in CI.** `cargo xtask ci` builds and tests with `--all-features` only
-   (XTASK-R012), so a build without `telemetry` is not checked automatically. TELE-R002 tests the
-   disabled expansions in every build; TELE-R004 needs a `--no-default-features` run. Resolve:
-   a task that adds a feature-off build and test of crates with features to `cargo xtask ci`
-   (CODE_STYLE.md "Every feature must build alone"), to be written before M1-T029 is reviewed;
-   reported in M1-T027's handoff. Until then M1-T028 and M1-T029 run it by hand and record the
-   result.
+   spec's `req_prefix`. Resolved here: `TELE` (also open question 4 of the
+   [`liminal_core` spec](liminal_core.md)).
+2. **Feature-off build in CI.** Resolved by M1-T056 (`spec_version` 2): the `test-features-off`
+   step of `cargo xtask ci` (XTASK-R014 in [`docs/specs/xtask.md`](xtask.md)) runs `cargo test
+   --package <name> --no-default-features --locked` for every workspace package with features,
+   so the test of TELE-R004 runs in CI once the crate exists. Still not checked by any command:
+   each feature built alone (CODE_STYLE.md "Every feature must build alone"); with one feature
+   in this crate, `--all-features` is that build.
 3. **Buffer capacity.** 16,384 records per thread is fixed (assumption: at 60 frames per second
    it allows about 983,000 records per second per thread, more than any M1 workload is expected
    to produce). Make it configurable only if `dropped_records > 0` shows up in `headless_boids`
@@ -554,6 +617,22 @@ claimed to be reproducible across runs.
    `liminal_cli` spec (M2).
 10. **Cross-thread clock comparability.** Assumed in §4, unverified. Only trace display depends on
     it. Check by inspection of a multithreaded trace in Perfetto (M1-T029, TELE-R084).
+11. **One record per simulation step.** ADR-0016 asks for records "for each simulation step and
+    rendered frame". This crate supports both ways of calling `end_frame` described in §4
+    "Frame". Whether `liminal_app` calls it once per main-loop iteration (simulation steps as a
+    count) or after every step and after rendering is decided by the `liminal_app` spec
+    (M1-T044). If per-step records need a field that tells a step record from a render record
+    beyond `sim_steps`, that spec asks for it here with a `spec_version` bump.
+12. **Counter tracks in the Chrome trace.** A counter and a gauge with the same name are both
+    written as `"ph":"C"` events with the same `pid` and `name` and different `cat` (TELE-R081).
+    Assumption (not checked in a viewer): the trace event format keys counter tracks by process,
+    name and `id`, not by `cat`, so the two series would share one track. Also unchecked: how
+    Perfetto shows a counter event with `"value":null` (a NaN or infinite gauge). M1-T056 could
+    not check either: no code writes a trace yet, and the agent that did M1-T056 had no trace
+    viewer. M1-T029 checks both with TELE-R084. If the series share a track, M1-T029 adds an
+    `"id"` member (`"counter"` or `"gauge"`) or a name prefix to these events in TELE-R081; if
+    a `null` value breaks the track, it omits the event for a non-finite gauge. Either change
+    bumps `spec_version`, and the snapshot is approved with it.
 
 ## 13. Maturity
 
@@ -573,7 +652,7 @@ and M1-T029 and checked by the session that reviews M1-T029 (MATURITY.md "Promot
       `unsafe` block has a `SAFETY:` comment a reviewer has checked; loom tests of the ring buffer
       pass (ROADMAP M1 exit criterion).
 - [ ] Feature-off build: `cargo test -p liminal_telemetry --no-default-features` passes
-      (TELE-R004; open question 2).
+      (TELE-R004); run by the `test-features-off` step of `cargo xtask ci` (XTASK-R014).
 - [ ] Span overhead measured and written into §9 (ADR-0016; evidence: M1-T029).
 - [ ] At least one example or dependent crate uses it. Open item: `liminal_jobs` (M1-T036) and
       `liminal_app` (M1-T046) are the first users; M1-T029 either adds a runnable example under
@@ -584,3 +663,4 @@ and M1-T029 and checked by the session that reviews M1-T029 (MATURITY.md "Promot
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-10 | Initial spec | M1-T027 |
+| 2 | 2026-11-10 | Follow-ups of the M1-T027 review. TELE-R063 and TELE-R064 move to M1-T028 (no provisional frame fields). §4: log payload boxed as a whole; collector identity; two ways of calling `end_frame` (per-step records). TELE-R011: a span records only into the collector it was entered under. TELE-R052, R056, R061, R065: discarded log records free their payload. TELE-R082: unsigned-integer rule limited to this crate's integers. TELE-R090: `sim_steps` sum is `u64`, saturating. TELE-R093: gauge `min`/`max` over finite values only. TELE-R004 and open question 2: feature-off test runs in `cargo xtask ci` (XTASK-R014). TELE-R084 and open question 12: counter-track checks. §9: two unscheduled rows removed. §10: ADR-0018 benchmark clause, private reference, collector lock per test binary. Open question 11 (per-step records in `liminal_app`). Links to the `liminal_core` spec | M1-T056 |

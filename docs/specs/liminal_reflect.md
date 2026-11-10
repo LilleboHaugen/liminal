@@ -3,7 +3,7 @@ crate: liminal_reflect
 req_prefix: REFL
 layer: 0
 maturity: planned
-spec_version: 1
+spec_version: 2
 last_reviewed: 2026-11-10
 adrs: [ADR-0003, ADR-0009, ADR-0017, ADR-0018, ADR-0024]
 ---
@@ -20,7 +20,8 @@ components and to compute `World::state_hash()` (ADR-0008, ADR-0009 item 6); lat
 `liminal_serial` (M2), `liminal_scene` and `liminal_probe` use it to serialize, generate schemas and
 expose state to agents (ADR-0013, ADR-0019). It is a separate layer 0 crate so that every crate
 from layer 0 up can make its types reflectable without depending on the ECS. Its derive macro lives
-in `liminal_reflect_derive` (specified in `docs/specs/liminal_reflect_derive.md`), because Rust
+in `liminal_reflect_derive` (specified in
+[`docs/specs/liminal_reflect_derive.md`](liminal_reflect_derive.md)), because Rust
 requires procedural macros to be in a crate of their own.
 
 ## 2. Scope
@@ -43,25 +44,29 @@ requires procedural macros to be in a crate of their own.
 
 **Out of scope / non-goals:**
 - The derive macro's parsing, accepted input and diagnostics: `liminal_reflect_derive`
-  (`docs/specs/liminal_reflect_derive.md`, prefix `REFLD`). This crate only re-exports it.
+  ([`docs/specs/liminal_reflect_derive.md`](liminal_reflect_derive.md), prefix `REFLD`). This crate
+  only re-exports it.
 - Hashing a whole world (which entities and components, in which order): `liminal_ecs`
   (`World::state_hash()`), which calls `hash::write_reflect` per component.
 - Serialization, deserialization and schema generation: `liminal_serial` (M2, OQ-002).
 - Constructing values from reflection (`Default`, "from reflect"), changing an enum's variant, and
-  inserting into or removing from lists through reflection: not in `spec_version` 1 (§12 item 4).
+  inserting into or removing from lists through reflection: not in `spec_version` 2 (§12 item 4).
 - Reflection of maps, sets, tuples, `()`, `Box<T>`, references, function pointers and trait
-  objects: not in `spec_version` 1 (§12 item 3).
+  objects: not in `spec_version` 2 (§12 item 3).
 - `Reflect` impls for `liminal_math` and `liminal_core` types (§12 items 1 and 2).
-- Field paths across several levels (`"a.b[2]"`) and method reflection: not in `spec_version` 1
+- Field paths across several levels (`"a.b[2]"`) and method reflection: not in `spec_version` 2
   (§12 item 5).
 - `no_std`. 32-bit targets (ADR-0005: supported targets are 64-bit; `usize` is encoded as 64 bits).
 
 ## 3. Dependencies
 
-- Engine crates: `liminal_core` (for `hash::StateHasher` and `error::EngineError`) and
-  `liminal_reflect_derive` (re-exported), both allowed by `same_layer_deps` in
-  `architecture.toml`. The dependency on `liminal_reflect_derive` is added by M1-T032; M1-T031
-  builds the crate without it.
+- Engine crates: `liminal_core` (for `hash::StateHasher` and `error::EngineError`; spec:
+  [`docs/specs/liminal_core.md`](liminal_core.md)) and `liminal_reflect_derive` (re-exported),
+  both allowed by `same_layer_deps` in `architecture.toml`. The dependency on
+  `liminal_reflect_derive` is added by M1-T032; M1-T031 builds the crate without it.
+  This spec cites CORE-R050, CORE-R053, CORE-R054, CORE-R056 and CORE-R098. Their text was
+  compared with the core spec at `spec_version` 1 and at `spec_version` 2 (M1-T055); it is the
+  same in both. A later core `spec_version` that changes one of them needs a bump here.
 - External crates: none at runtime (`external = []`). Dev-dependency `proptest` only
   (`dev_external`, ADR-0010). The derive's `syn`, `quote` and `proc-macro2` (ADR-0003) are
   dependencies of `liminal_reflect_derive` only.
@@ -104,17 +109,33 @@ requires procedural macros to be in a crate of their own.
   (`"0"`, `"1"`, …). Field indices are 0-based positions among the reflected fields; fields skipped
   with `#[reflect(ignore)]` have no index and no name.
 - **Variant index:** the 0-based declaration position of an enum variant (not its discriminant).
+- **Visibility:** reflection does not follow Rust's field visibility. A derived impl reflects every
+  field that is not marked `#[reflect(ignore)]`, private fields included (REFLD-R004). Any code in
+  any crate that holds a `&dyn Reflect` of a value can read those fields, and with a
+  `&mut dyn Reflect` it can write them (`field_mut`, `ReflectFields::field_at_mut`), without going
+  through the type's own methods. A type that keeps an invariant between its fields therefore
+  either marks those fields `#[reflect(ignore)]` (the only way to keep a field out; an ignored
+  field is also absent from the descriptor and the state encoding, REFLD-R034), or does not
+  implement `Reflect`. §12 item 2 is this point for `liminal_core` types.
 - **Canonical state encoding:** the byte sequence that `hash::write_reflect` appends for a value
   (REFL-R100). It contains values only: no type paths, IDs or field names. For one type it is
   injective (REFL-R103). The "canonical order" of ADR-0009 item 6, inside a value, is field
   declaration order, variant index, and list order.
 
+Example (the types exist only in this example; `Mode` is not the `State<T>` of the derive spec):
+
 ```
-value: Boid { position: [f32; 2], state: State::Fleeing { from: 7u32 }, tags: vec![3u8] }
-bytes: 02 00 00 00 00 00 00 00 | bits(x) | bits(y)        position: Array, len as u64, elements
-       01 00 00 00             | 07 00 00 00              state: variant index as u32, its fields
-       01 00 00 00 00 00 00 00 | 03                       tags: List, len as u64, elements
+struct Boid { position: [f32; 2], mode: Mode, tags: Vec<u8> }
+enum Mode { Idle, Fleeing { from: u32 } }        // variant index: Idle = 0, Fleeing = 1
+
+value: Boid { position: [x, y], mode: Mode::Fleeing { from: 7 }, tags: vec![3] }
+bytes: 02 00 00 00 00 00 00 00 | bits(x) | bits(y)        position: len 2 as u64, then elements
+       01 00 00 00             | 07 00 00 00              mode: variant index 1 as u32, then `from`
+       01 00 00 00 00 00 00 00 | 03                       tags: len 1 as u64, then elements
 ```
+
+`bits(v)` is the 4 bytes of `v.to_bits()` in little-endian order. All integers are little-endian.
+The encoding is 33 bytes long.
 
 ## 5. Public API
 
@@ -280,27 +301,46 @@ pub fn validate_reflect(value: &dyn Reflect) -> Result<(), ReflectError>;
 // i32, i64, i128, isize, f32, f64, char, String; Vec<T>, [T; N] (every N), Option<T>, for T: Typed.
 ```
 
-Example of intended use (normative for the behaviour it shows, not for formatting):
+Example of intended use (normative for the behaviour it shows, not for formatting). It uses `?`,
+so it runs in a function that returns `Result<(), ReflectError>`; as the `# Examples` doc test of
+`Reflect` (§10) that function is the doc test's `main`.
 
 ```rust
+use liminal_reflect::error::ReflectError;
 use liminal_reflect::value::Reflect;
 
 #[derive(Reflect)]
 struct Velocity { x: f32, y: f32 }
 
-let mut v = Velocity { x: 1.0, y: 2.0 };
-let r: &mut dyn Reflect = &mut v;
-*r.field_mut("y")?.downcast_mut::<f32>()? = 5.0;
-assert_eq!(*r.field("y")?.downcast_ref::<f32>()?, 5.0);
-assert_eq!(r.field("z").unwrap_err().code().to_string(), "LIM-REFL-0010");
+fn main() -> Result<(), ReflectError> {
+    let mut v = Velocity { x: 1.0, y: 2.0 };
+    let r: &mut dyn Reflect = &mut v;
+    *r.field_mut("y")?.downcast_mut::<f32>()? = 5.0;
+    assert_eq!(*r.field("y")?.downcast_ref::<f32>()?, 5.0);
+    // LIM-REFL-0010.
+    assert!(matches!(r.field("z"), Err(ReflectError::NoSuchField { .. })));
+    assert_eq!(v.y, 5.0);
+    Ok(())
+}
 ```
+
+`dyn Reflect` does not implement `core::fmt::Debug` (a reflected type need not), so
+`unwrap_err`, `expect_err` and `assert_eq!` on a `Result<&dyn Reflect, ReflectError>` do not
+compile (E0277: they need `&dyn Reflect: Debug`). Code that needs the error uses `matches!`, a
+`match`, or `.err()` (`Result::err` has no `Debug` bound). `ReflectError::code()` is a method of
+the trait `liminal_core::error::EngineError`; calling it needs that trait in scope, which the
+example avoids so that it names no crate other than `liminal_reflect` (REFL-R120).
 
 ### 5.3 `liminal_reflect::registry`
 
 ```rust
 /// Type descriptors by stable type ID.
-#[derive(Clone, Debug, Default)]  // Default = new()
+#[derive(Clone, Default)]  // Default = new() (empty maps)
 pub struct TypeRegistry { /* BTreeMap<StableTypeId, (TypeInfo, core::any::TypeId)> + path index */ }
+
+/// Not derived: a derived impl would print the stored `core::any::TypeId` values, whose `Debug`
+/// output differs between builds. Prints the descriptors only (REFL-R065).
+impl core::fmt::Debug for TypeRegistry { /* … */ }
 
 impl TypeRegistry {
     pub fn new() -> TypeRegistry;
@@ -372,7 +412,7 @@ impl core::fmt::Display for ReflectError { /* liminal_core::error::write_display
 | REFL-R040 | MUST | `reflect_ref` returns: for a primitive value `v`, `Primitive(p)` where `p` is the `PrimitiveRef` variant of its kind referring to `v` (`p.kind()` equals the kind of REFL-R003); for `Vec<T>` and `[T; N]`, `List`; for `Option<T>`, `Enum` with `variant_index` 0 and `variant_name` `"None"` and no fields for `None`, and `variant_index` 1, `variant_name` `"Some"` and one field named `"0"` referring to the contained value for `Some`. `reflect_mut` returns the same variant (`Primitive` with the kind) with mutable access. |
 | REFL-R041 | MUST | `ReflectFields`: `field_name(i)`, `field_at(i)` and `field_at_mut(i)` return `Some` exactly for `i < field_count()` and `None` otherwise. A change made through `field_at_mut(i)` is visible through `field_at(i)` and in the original value, and changes no other field. |
 | REFL-R042 | MUST | `ReflectList` for `Vec<T>` and `[T; N]`: `len()` is the vector's length or `N`; `is_empty()` is `len() == 0`; `get(i)` and `get_mut(i)` return element `i` for `i < len()` and `None` otherwise. A change made through `get_mut(i)` changes element `i` only. |
-| REFL-R043 | MUST | `<dyn Reflect>::field(name)` and `field_mut(name)` compare `name` byte-wise with the field names (case-sensitive; tuple fields are `"0"`, `"1"`, …). On a `Struct` value they return the field with that name, or `Err(NoSuchField)` (LIM-REFL-0010). On an `Enum` value they return the field of the current variant with that name; if the current variant has none, `Err(FieldNotInVariant)` (LIM-REFL-0013) if another variant has a field with that name, else `Err(NoSuchField)`. On a `List` or `Primitive` value they return `Err(NoFields)` (LIM-REFL-0012) with `shape` `"list"` or `"primitive"`. Error contexts carry the value's type path, the requested name and, for 0013, the current variant's name. |
+| REFL-R043 | MUST | `<dyn Reflect>::field(name)` and `field_mut(name)` compare `name` byte-wise with the field names (case-sensitive; tuple fields are `"0"`, `"1"`, …). On a `Struct` value they return the field with that name, or `Err(NoSuchField)` (LIM-REFL-0010). On an `Enum` value they return the field of the current variant with that name; if the current variant has none, `Err(FieldNotInVariant)` (LIM-REFL-0013) if another variant has a field with that name, else `Err(NoSuchField)`. On a `List` or `Primitive` value they return `Err(NoFields)` (LIM-REFL-0012) with `shape` `"list"` or `"primitive"`. Error contexts carry the value's type path, the requested name and, for 0013, the current variant's name (`variant_name()`). Lookup order: the result is `field_at(i)` (`field_at_mut(i)` for `field_mut`) for the lowest `i < field_count()` with `field_name(i) == Some(name)`; "another variant has a field with that name" means that any variant in the value's `reflect_type_info()` lists the name. An impl that breaks REFL-R041 does not make these functions panic: an index whose `field_name(i)` is `None` matches no name, and if the matching index's `field_at(i)` (`field_at_mut(i)`) is `None`, the result is `Err(NoSuchField)` (LIM-REFL-0010), on a `Struct` and on an `Enum` value. `validate_reflect` is the check that reports such an impl (REFL-R080). Unit test: a hand-written struct impl with `field_count() == 2`, `field_name(1) == Some("y")` and `field_at(1)`, `field_at_mut(1)` returning `None`; `field("y")` and `field_mut("y")` return LIM-REFL-0010. |
 | REFL-R044 | MUST | `<dyn Reflect>::downcast_ref::<T>()` and `downcast_mut::<T>()` return `Ok` exactly when the value's concrete type is `T` (`core::any::Any` check, not the stable ID), else `Err(TypeMismatch)` (LIM-REFL-0011) with `expected = T::type_path()` and `actual` the value's type path. |
 | REFL-R045 | MUST | Field round trip: for every reflected field `f` of a value (named struct, tuple struct, enum variant field; hand-written test types in M1-T031) and every generated value `x` of the field's type, `*value.field_mut(f)?.downcast_mut()? = x` followed by `value.field(f)?.downcast_ref()?` returns a value equal to `x`, and every other field compares equal to its value before the write (property test). |
 
@@ -380,23 +420,24 @@ impl core::fmt::Display for ReflectError { /* liminal_core::error::write_display
 
 | ID | Level | Requirement |
 |---|---|---|
-| REFL-R060 | MUST | `TypeRegistry::register::<T>()` validates `T::type_info()` (REFL-R061), stores it and returns `Ok(T::stable_type_id())`. Registering the same Rust type again returns the same `Ok` and leaves the registry unchanged. A new registry is empty; `Default` equals `new()`. |
-| REFL-R061 | MUST | `register` checks, in this order, and returns the first violation: the type path is not empty (else `EmptyTypePath`, LIM-REFL-0004); `id == StableTypeId::of_path(type_path)` (else `TypeIdMismatch`, LIM-REFL-0002); within each struct's field list, each variant's field list and an enum's variant list, no name occurs twice (else `DuplicateName`, LIM-REFL-0003, naming the first repeated name in declaration order, struct fields first, then variants in order with their fields). On error the registry is unchanged. |
-| REFL-R062 | MUST | Registering a Rust type whose `core::any::TypeId` differs from that of the type already stored under the same stable type ID returns `Err(TypeIdCollision)` (LIM-REFL-0001) with the ID, the stored type's path and the new type's path, and leaves the registry unchanged. This covers two types with the same type path and two paths with the same hash. |
+| REFL-R060 | MUST | `TypeRegistry::register::<T>()` validates `T::type_info()` (REFL-R061), then checks the stable type ID against the stored types (REFL-R062), stores the descriptor and returns `Ok(T::stable_type_id())`. Registering the same Rust type again returns the same `Ok` and leaves the registry unchanged. A new registry is empty; `Default` equals `new()`. |
+| REFL-R061 | MUST | `register` checks, in this order, and returns the first violation: the type path is not empty (else `EmptyTypePath`, LIM-REFL-0004); `id == StableTypeId::of_path(type_path)` (else `TypeIdMismatch`, LIM-REFL-0002); within a struct's field list, each variant's field list and an enum's variant list, no name occurs twice (else `DuplicateName`, LIM-REFL-0003). A name is repeated when it equals the name of an earlier entry of the same list. The reported name is the first repeated name met in one walk in declaration order: for a struct, its fields in order; for an enum, variant by variant, each variant's name (compared with the earlier variants' names) and then that variant's fields in order (compared with the earlier fields of that variant), before the next variant. Examples (descriptors built by hand-written impls): `enum E { A { x, x }, B, A }` reports `x`; `enum F { A, A { x, x } }` reports `A`. `Primitive`, `List` and `Array` shapes have no names to check. On error the registry is unchanged. |
+| REFL-R062 | MUST | Registering a Rust type whose `core::any::TypeId` differs from that of the type already stored under the same stable type ID returns `Err(TypeIdCollision)` (LIM-REFL-0001) with the ID, the stored type's path and the new type's path, and leaves the registry unchanged. This check runs after all checks of REFL-R061 have passed: a descriptor that fails REFL-R061 returns that error (0004, 0002 or 0003) even if its ID is already stored for another type. The rule covers two cases through one code path (the comparison of the stored `TypeId` under the ID): two Rust types with the same type path, and two different paths with the same hash. The test covers the first case only (two hand-written test types that return one path; the second registration fails in both orders). The second case cannot be built in a test: REFL-R061 rejects a descriptor whose `id` is not the hash of its path before this check runs, and no pair of type paths with equal XXH64 (seed 0) is known. |
 | REFL-R063 | MUST | `get(id)` and `get_by_path(path)` return the stored descriptor of a registered type and `None` otherwise. `len` counts registered types. `iter` yields every registered descriptor once, in ascending order of `id.value()`; the same set of registered types gives the same sequence for every registration order. |
 | REFL-R064 | SHOULD | `register`, `get` and `get_by_path` take time logarithmic in `len` (ordered map lookup, no linear scan), plus the cost of building and validating the descriptor in `register`. Checked by review. |
+| REFL-R065 | MUST | `TypeRegistry`'s `Debug` impl is hand-written and its output contains no `core::any::TypeId` (whose `Debug` output differs between builds). The output is exactly that of `f.debug_struct("TypeRegistry").field("types", &types).finish()`, where `types` is a `Vec<&TypeInfo>` of the registered descriptors in `iter()` order (ascending `id.value()`): without the alternate flag, `TypeRegistry { types: [` + the descriptors' derived `Debug` output joined by `, ` + `] }`. It depends only on the set of registered descriptors: two registries with the same types registered in different orders give the same output (unit test with the expected string built from `iter()`, for an empty registry and for one with three types registered in two orders). |
 
 ### Consistency checking (R080–R099)
 
 | ID | Level | Requirement |
 |---|---|---|
-| REFL-R080 | MUST | `validate_reflect(v)` visits `v` and every value reachable through `field_at` and `ReflectList::get`, depth-first in field and element order, and for each value `x` with `info = x.reflect_type_info()` checks, in this order: `info` passes the checks of REFL-R061 (same errors); `reflect_ref` agrees with `info.shape` (`Primitive` with the same kind; `Struct` with `field_count == fields.len()`, `field_name(i) == fields[i].name` and `field_at(i)` returning `Some` for every `i`; `Enum` with `variant_index < variants.len()`, `variant_name` equal to that variant's name and fields agreeing with that variant's fields as for `Struct`; `List` for `Shape::List`; `List` with `len() == len` for `Shape::Array`); each field's and element's `reflect_type_info().id` equals the `TypeRef.id` in `info`. The first violation returns `Err(ShapeMismatch)` (LIM-REFL-0005) with `type_path` of `x`, `at` the location from the root (`""` for the root, `.name` per field, `[i]` per element, e.g. `.items[2].0`), and `expected`/`actual` short descriptions (`"struct with 2 fields"`, `"list"`, `"u32"`). Otherwise `Ok(())`. |
+| REFL-R080 | MUST | `validate_reflect(v)` visits `v` and every value reachable through `field_at` and `ReflectList::get`, depth-first in field and element order, and for each value `x` with `info = x.reflect_type_info()` checks, in this order: `info` passes the checks of REFL-R061 (same errors); `reflect_ref` agrees with `info.shape` (`Primitive` with the same kind; `Struct` with `field_count == fields.len()`, `field_name(i) == fields[i].name` and `field_at(i)` returning `Some` for every `i`; `Enum` with `variant_index < variants.len()`, `variant_name` equal to that variant's name and fields agreeing with that variant's fields as for `Struct`; `List` for `Shape::List`; `List` with `len() == len` for `Shape::Array`; for both, `get(i)` returning `Some` for every `i < len()`); each field's and element's `reflect_type_info().id` equals the `TypeRef.id` in `info`. The first violation returns `Err(ShapeMismatch)` (LIM-REFL-0005) with `type_path` of `x`, `at` the location of `x` from the root, and `expected`/`actual` short descriptions (`"struct with 2 fields"`, `"list"`, `"u32"`). `at` is `(root)` when `x` is the root value `v`; otherwise it is the concatenation of `.name` per field and `[i]` per element on the way from the root to `x`, with no prefix (`.items[2].0`). A field or element that is counted but missing (`field_at(i)` or `get(i)` returns `None` for `i` below `field_count()` or `len()`) is a violation at `x` with `expected` `"field "` + the field's name from `info` (`"field y"`) or `"element "` + `i` in decimal (`"element 1"`), and `actual` `"no value"`; the test of this case uses the deliberately wrong impls of REFL-R043 and REFL-R100. Otherwise `Ok(())`. `validate_reflect` calls `reflect_type_info()` once per visited value, list elements included, so it builds one `TypeInfo` (heap allocations for the path, the field list and each `TypeRef`) per value: time and number of allocations are linear in the number of reachable values (§9). |
 
 ### State hashing (R100–R119)
 
 | ID | Level | Requirement |
 |---|---|---|
-| REFL-R100 | MUST | `write_reflect(v, h)` appends exactly these bytes, by `reflect_ref` of `v`: `Primitive` the bytes of the matching `StateHasher` typed write (CORE-R053: integers little-endian at natural width, `usize`/`isize` as 8 bytes, `bool` one byte, `char` as `u32`, `f32`/`f64` the bits of `to_bits()` without canonicalization, `String` its byte length as `u64` then its UTF-8 bytes); `Struct` the encoding of each field `field_at(0)` … `field_at(field_count() − 1)` in order, with no prefix; `Enum` `variant_index()` as `u32` little-endian, then the current variant's fields as for `Struct`; `List` `len()` as `u64` little-endian, then each element `get(0)` … in order. Nothing else is written (no type paths, IDs or field names). |
+| REFL-R100 | MUST | `write_reflect(v, h)` appends exactly these bytes, by `reflect_ref` of `v`: `Primitive` the bytes of the matching `StateHasher` typed write (CORE-R053: integers little-endian at natural width, `usize`/`isize` as 8 bytes, `bool` one byte, `char` as `u32`, `f32`/`f64` the bits of `to_bits()` without canonicalization, `String` its byte length as `u64` then its UTF-8 bytes); `Struct` the encoding of each field `field_at(0)` … `field_at(field_count() − 1)` in order, with no prefix; `Enum` `variant_index()` as `u32` little-endian, then the current variant's fields as for `Struct`; `List` `len()` as `u64` little-endian, then each element `get(0)` … in order. Nothing else is written (no type paths, IDs or field names). An impl that breaks REFL-R041 or REFL-R042 does not make `write_reflect` panic: for an index `i` below `field_count()` or `len()` whose `field_at(i)` or `get(i)` returns `None`, nothing is written for that index, and the indices after it are written as usual; the variant index and the length prefix are written as the impl reports them. Such an encoding is not canonical (REFL-R103 and INV-4 hold for values that pass `validate_reflect`, which is the check that reports the impl, REFL-R080). Unit test: a hand-written struct impl with `field_count() == 2` and `field_at(1) == None`, and a hand-written list impl with `len() == 3` and `get(1) == None`; the expected bytes are written by hand. |
 | REFL-R101 | MUST | `reflect_state_hash(v)` equals `finish()` of a new `StateHasher` after `write_reflect(v, &mut hasher)`. |
 | REFL-R102 | MUST | For every primitive value `p` and for `Vec<T>` and `[T; N]` of primitive `T`, `write_reflect(&p, h)` appends the same bytes as `liminal_core::hash::StateHash::state_hash(&p, h)` (CORE-R054), so `reflect_state_hash(&p) == liminal_core::hash::state_hash_of(&p)`. `Option<T>` is the exception: its reflected encoding has a 4-byte variant index (REFL-R100), CORE-R054 a 1-byte tag. |
 | REFL-R103 | MUST | For one type, values with different reflected content have different encodings: two values of the same type whose encodings differ in any primitive's bits, any variant index or any list length give different `reflect_state_hash` results (property test over generated pairs of `Vec<Option<[i16; 3]>>`, `Option<Vec<String>>` and a hand-written struct type; the test accepts the 2^-64 collision probability). Values with equal reflected content give equal hashes regardless of `Vec` capacity, memory address or process. |
@@ -406,7 +447,7 @@ impl core::fmt::Display for ReflectError { /* liminal_core::error::write_display
 
 | ID | Level | Requirement |
 |---|---|---|
-| REFL-R120 | MUST | `liminal_reflect::value::Reflect` names both the trait and the derive macro of `liminal_reflect_derive`: a crate that depends on `liminal_reflect` only (not on `liminal_reflect_derive` or `liminal_core`) compiles `use liminal_reflect::value::Reflect; #[derive(Reflect)] struct S { a: u8 }` and can call `reflect_state_hash` and `TypeRegistry::register::<S>()` on it (integration test plus doc test). |
+| REFL-R120 | MUST | `liminal_reflect::value::Reflect` names both the trait and the derive macro of `liminal_reflect_derive`: code that names no crate other than `liminal_reflect` (and `core` / `std`) compiles `use liminal_reflect::value::Reflect; #[derive(Reflect)] struct S { a: u8 }` and can call `reflect_state_hash` and `TypeRegistry::register::<S>()` on it. Tested by one integration test file in `crates/liminal_reflect/tests/` and one doc test, neither of which contains a path, `use` or `extern crate` that names `liminal_reflect_derive`, `liminal_core`, `proptest` or any other crate (checked by review of the two; the file's module doc states the rule). This shows that a user's source needs to name `liminal_reflect` only. It does not show that a dependency is absent: an integration test is compiled with every dependency and dev-dependency of `liminal_reflect` available. That the generated code names no other crate is checked on the expansion itself (REFLD-R003). |
 
 ### Determinism (R130–R139)
 
@@ -429,12 +470,13 @@ frontmatter.
 
 | Task | Requirements |
 |---|---|
-| M1-T031 (type info, stable IDs, field access, hand-written impls) | REFL-R001 to REFL-R005, REFL-R020, REFL-R021, REFL-R040 to REFL-R045, REFL-R060 to REFL-R064, REFL-R080, REFL-R100 to REFL-R104, REFL-R140 |
-| M1-T032 (derive, determinism, `usable` evidence) | REFL-R120, REFL-R130 to REFL-R132; all of `REFLD` (`docs/specs/liminal_reflect_derive.md`) |
+| M1-T031 (type info, stable IDs, field access, hand-written impls) | REFL-R001 to REFL-R005, REFL-R020, REFL-R021, REFL-R040 to REFL-R045, REFL-R060 to REFL-R065, REFL-R080, REFL-R100 to REFL-R104, REFL-R140 |
+| M1-T032 (derive, determinism, `usable` evidence) | REFL-R120, REFL-R130 to REFL-R132; all of `REFLD` ([`docs/specs/liminal_reflect_derive.md`](liminal_reflect_derive.md)) |
 
 M1-T031 writes its tests against hand-written impls of test types in `crates/liminal_reflect/tests/`
 (the derive does not exist yet). M1-T032 keeps those hand-written impls as the reference of the
-differential test REFLD-R033.
+differential test REFLD-R033 and changes their `type_path()` to return the path of the derived
+twin (REFLD-R033).
 
 ## 7. Invariants
 
@@ -444,9 +486,10 @@ differential test REFLD-R033.
   `reflect_type_info().shape` as defined in REFL-R080. (Property test REFL-R021.)
 - INV-3: A `TypeRegistry` holds at most one descriptor per stable type ID, every stored descriptor
   passes REFL-R061, and the path index and the ID map contain the same types.
-  (`debug_assert!` after `register`; unit tests of REFL-R060 to REFL-R063.)
-- INV-4: `write_reflect` writes a byte sequence that depends only on the value's reflected content
-  (REFL-R100, REFL-R104). (Known-answer and property tests.)
+  (`debug_assert!` after `register`; unit tests of REFL-R060 to REFL-R063 and REFL-R065.)
+- INV-4: For a value that passes `validate_reflect`, `write_reflect` writes a byte sequence that
+  depends only on the value's reflected content (REFL-R100, REFL-R104). (Known-answer and property
+  tests.)
 
 ## 8. Error codes
 
@@ -467,26 +510,37 @@ Context values are `Text` (`StableTypeId` as its `Display` form).
 | LIM-REFL-0012 | `NoFields` | type `{type_path}` is a {shape} and has no fields. | read list elements through `ReflectRef::List`, and primitive values with `downcast_ref`. | `type_path`, `shape` |
 | LIM-REFL-0013 | `FieldNotInVariant` | field `{field}` of type `{type_path}` does not exist in the current variant `{variant}`. | check `ReflectEnum::variant_name` before accessing a variant's fields. | `type_path`, `variant`, `field` |
 
-Each message ends with `.` (LIM-REFL-0010's help ends with `…` and is not a message). Codes 0006 to
+In LIM-REFL-0005, `{at}` is `(root)` for the root value (REFL-R080), so the message never contains
+an empty pair of backticks. Each message ends with `.` (LIM-REFL-0010's help ends with `…` and is not a message). Codes 0006 to
 0009 and 0014 onward are unassigned; new codes take the next free number in their group (0001–0009
 descriptors and registry, 0010–0019 access).
 
 ## 9. Performance budgets
 
 None yet: set at `stable` from baselines. `liminal_reflect` has no optimized paths in
-`spec_version` 1. No number is set before a measurement on the reference machine (PERFORMANCE.md).
+`spec_version` 2. No number is set before a measurement on the reference machine (PERFORMANCE.md).
 
 | Scenario | Budget | Machine | Source of number |
 |---|---|---|---|
-| `reflect_state_hash` of a `Vec` of 10,000 values of a 4-field struct (`f32` × 3, `u32`), compared with a hand-written `StateHash` of the same data (ratio) | none yet | Reference | Not scheduled; added with the `stable` promotion (`liminal_benches`, ADR-0023) |
-| 1,000,000 × `field("y")` + `downcast_ref::<f32>()` on a 4-field struct | none yet | Reference | Not scheduled; added with the `stable` promotion |
-| `TypeRegistry::register` of 1,000 distinct types | none yet | Reference | Not scheduled; added with the `stable` promotion |
 
-`World::state_hash()` cost is budgeted in the ECS spec (M1-T037), which measures it in M1-T043.
+The table lists only scenarios that a task measures, and no existing task measures one for this
+crate, so it has no row (three "Not scheduled" rows were removed in `spec_version` 2:
+`reflect_state_hash` of 10,000 four-field structs against a hand-written `StateHash`; 1,000,000 ×
+`field` + `downcast_ref`; `TypeRegistry::register` of 1,000 types). The task that prepares the
+`stable` promotion of `liminal_reflect` (not written yet) adds scenarios and rows by a
+`spec_version` bump. `World::state_hash()` cost is budgeted in the ECS spec (M1-T037), which
+measures it in M1-T043.
+
+Known cost, not budgeted: `validate_reflect` builds one `TypeInfo` per reachable value, list
+elements included (REFL-R080). Its time is linear in the number of reachable values, with one
+group of heap allocations (type path, field list, one `TypeRef` per field) per value; a `Vec` of
+10,000 four-field structs costs 50,001 descriptors (1 for the list, 10,000 for the structs, 40,000
+for the field values). It is meant for tests and debug checks, not for per-tick use.
+`write_reflect` does not use `reflect_type_info()` (REFL-R104).
 
 ## 10. Test plan
 
-No path in `spec_version` 1 is an optimized variant of another; the derive's generated impls are
+No path in `spec_version` 2 is an optimized variant of another; the derive's generated impls are
 checked against hand-written reference impls (REFLD-R033), and the state encoding against
 hand-built byte sequences.
 
@@ -494,12 +548,12 @@ hand-built byte sequences.
 |---|---|---|
 | Type paths, stable IDs (R001–R005) | unit known-answer, property (`of_path` equals hashing the bytes with `StateHasher`), integration | XXH64 literals recorded in the test, produced by `liminal_core::hash::StateHasher` and cross-checked with `xxhsum -H64` output (command named in the test); hand-written expected paths |
 | Descriptors (R020, R021) | unit, property (generated nested values) | Hand-written expected `TypeInfo` values; `validate_reflect` |
-| Value access (R040–R045) | unit, property (round trip, R045), integration, doc test | Direct field access on the concrete value (the test reads `value.y` after writing through reflection) |
-| Registry (R060–R064) | unit (one test type per error), property (iteration order independent of registration order: shuffled registration sequences) | Hand-written expected errors; sorted `Vec` of IDs |
-| `validate_reflect` (R080) | unit (one deliberately wrong hand-written impl per check, e.g. `field_count` off by one, wrong field ID, `variant_index` out of range) | Hand-written expected `at`, `expected`, `actual` |
-| State encoding (R100–R104) | unit known-answer, property | Expected byte sequence written by hand and hashed with `StateHasher::write_bytes`; `liminal_core::hash::state_hash_of` (R102) |
+| Value access (R040–R045) | unit, property (round trip, R045), integration, doc test; one deliberately wrong hand-written impl for the missing-value case of R043 | Direct field access on the concrete value (the test reads `value.y` after writing through reflection); hand-written expected error code |
+| Registry (R060–R065) | unit (one test type per error; the two `enum` examples of R061; an invalid descriptor whose ID is already stored, R062; `Debug` output, R065), property (iteration order independent of registration order: shuffled registration sequences) | Hand-written expected errors; sorted `Vec` of IDs; `Debug` string built from `iter()` |
+| `validate_reflect` (R080) | unit (one deliberately wrong hand-written impl per check, e.g. `field_count` off by one, wrong field ID, `variant_index` out of range, `field_at(1)` or `get(1)` returning `None` below the count; one violation at the root to check `(root)`) | Hand-written expected `at`, `expected`, `actual` |
+| State encoding (R100–R104) | unit known-answer (including the two wrong impls of R100), property | Expected byte sequence written by hand and hashed with `StateHasher::write_bytes`; `liminal_core::hash::state_hash_of` (R102) |
 | Errors (R140) | unit, snapshot (`crates/liminal_reflect/tests/snapshots/reflect_errors.txt`: text and JSON form of one value per variant) | `liminal_core::error::validate_error`; approved snapshot |
-| Derive re-export (R120) | integration, doc test | Compiles and runs |
+| Derive re-export (R120) | integration (a file that names no crate other than `liminal_reflect`), doc test | Compiles and runs; review of the file for other crate names |
 | Determinism (R130–R132) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals |
 
 Every requirement's verifying test carries `/// Verifies: REFL-Rnnn`. Primary entry points with
@@ -512,8 +566,11 @@ Every requirement's verifying test carries `/// Verifies: REFL-Rnnn`. Primary en
 
 - It reads no clock, no environment and no OS randomness.
 - Stable type IDs depend only on type path strings (REFL-R001, REFL-R005). `core::any::TypeId` is
-  used only for equality inside one process (`downcast_*`, REFL-R062), never stored, hashed, ordered
-  or printed.
+  used only for equality inside one process (`downcast_*`, REFL-R062). A `TypeRegistry` keeps the
+  `TypeId` of each registered type in memory for that comparison. A `TypeId` is never persisted,
+  never written into a hasher or a state hash, never used as a map key or for ordering, and never
+  printed: `TypeRegistry`'s `Debug` output leaves it out (REFL-R065), and no error context carries
+  one.
 - `TypeRegistry` iterates in ascending stable ID order (REFL-R063); it uses an ordered map, no
   randomly seeded hasher.
 - The state encoding uses integer bytes and float bits only; it performs no floating-point
@@ -567,8 +624,11 @@ verified when M1-T032's tests pass on the three CI operating systems.
    to another module. If saved data stores IDs (scenes, replays), derived types that are saved may
    need a mandatory `type_path`. Resolve in the `liminal_serial` spec (M2).
 7. **Recursion depth.** `write_reflect` and `validate_reflect` recurse once per nesting level; a
-   value nested deeper than the thread's stack allows overflows it. Tests cover depths up to 1,000.
-   Revisit if a consumer reflects deep linked structures.
+   value nested deeper than the thread's stack allows overflows it. No requirement fixes a supported
+   depth and no test covers one in `spec_version` 2 (the sentence "Tests cover depths up to 1,000"
+   of `spec_version` 1 had no requirement behind it and was removed). Revisit if a consumer
+   reflects deep linked structures; that change adds the depth and its test to REFL-R021 and
+   REFL-R100.
 
 ## 13. Maturity
 
@@ -595,3 +655,4 @@ checked by the session that reviews it.
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-10 | Initial spec | M1-T030 |
+| 2 | 2026-11-10 | Follow-ups of the M1-T030 review. §5.2: the example compiles (no `unwrap_err` on `Result<&dyn Reflect, _>`, runs in a function returning `Result`). §5.3, §11, new REFL-R065: `TypeRegistry` `Debug` is hand-written and prints no `TypeId`; §11 says where a `TypeId` is kept. REFL-R043, REFL-R100, REFL-R080: behaviour for impls whose `field_at` / `get` return `None` below the count (no panic; LIM-REFL-0010; nothing written; reported by `validate_reflect`). REFL-R060 to REFL-R062: order of the `register` checks, order of the duplicate-name walk, which collision case the test covers. REFL-R080, §8: `at` is `(root)` for the root value and is the location of the value in violation. REFL-R120: reworded to what an integration test can show. §4: visibility of reflected fields; the byte example defines its types. §9: three rows without a measuring task removed; cost of `validate_reflect` stated. §12 item 7: untested depth claim removed. §3: link to the core spec, cited CORE requirements re-checked | M1-T057 |

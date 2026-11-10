@@ -276,10 +276,23 @@ mod tests {
         let paths: Vec<&str> = model.sources.iter().map(|s| s.path.as_str()).collect();
         assert!(paths.contains(&"xtask/src/lib.rs"));
         assert!(paths.contains(&"xtask/tests/cli.rs"));
-        assert!(paths.iter().all(|p| {
-            p.starts_with("xtask/") && Path::new(p).extension().is_some_and(|ext| ext == "rs")
+        assert!(paths.contains(&"crates/liminal_core/src/lib.rs"));
+        assert!(paths.contains(&"crates/liminal_core/tests/handles.rs"));
+        // Every source is a `.rs` file of the workspace crate whose directory contains it
+        // (M1-T013 added the first engine crate, under `crates/`).
+        assert!(model.sources.iter().all(|s| {
+            let directory = if s.crate_name == "xtask" {
+                "xtask/".to_string()
+            } else {
+                format!("crates/{}/", s.crate_name)
+            };
+            s.path.starts_with(&directory)
+                && Path::new(&s.path)
+                    .extension()
+                    .is_some_and(|ext| ext == "rs")
         }));
-        assert!(model.sources.iter().all(|s| s.crate_name == "xtask"));
+        assert!(model.sources.iter().any(|s| s.crate_name == "xtask"));
+        assert!(model.sources.iter().any(|s| s.crate_name == "liminal_core"));
         assert_eq!(model.config.hygiene[0].path, "xtask/tests/fixtures");
     }
 }

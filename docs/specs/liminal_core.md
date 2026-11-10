@@ -2,8 +2,8 @@
 crate: liminal_core
 req_prefix: CORE
 layer: 0
-maturity: planned
-spec_version: 1
+maturity: usable
+spec_version: 4
 last_reviewed: 2026-11-09
 adrs: [ADR-0009, ADR-0017, ADR-0018, ADR-0024]
 ---
@@ -221,7 +221,7 @@ impl<T> Handle<T> {
 }
 
 /// Issues and frees raw handles (no values stored).
-#[derive(Clone, Debug, Default)]  // Default = new()
+#[derive(Clone, Debug)]
 pub struct HandleAllocator { /* … */ }
 
 impl HandleAllocator {
@@ -238,6 +238,8 @@ impl HandleAllocator {
     /// Live handles in ascending index order.
     pub fn iter_live(&self) -> impl Iterator<Item = RawHandle> + '_;
 }
+/// Not derived: a derived `Default` would set the slot limit to 0 (CORE-R041).
+impl Default for HandleAllocator { /* new() */ }
 
 /// Slot map: stores one `T` per live handle.
 #[derive(Clone, Debug)]
@@ -316,11 +318,19 @@ impl core::hash::Hasher for DetHasher { /* … */ }
 
 ```rust
 /// Hash map whose iteration order is the insertion order of its keys.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DetHashMap<K, V> { /* … */ }
+/// Writes `{key: value, …}` in iteration order (not derived: no internals in the output).
+impl<K: Debug, V: Debug> Debug for DetHashMap<K, V> { /* … */ }
+
+/// No bounds on `K` or `V`: what `Default` needs, and what every `K`, `V` can observe (CORE-R076).
+impl<K, V> DetHashMap<K, V> {
+    pub fn new() -> DetHashMap<K, V>;
+    pub fn len(&self) -> usize;
+    pub fn is_empty(&self) -> bool;
+}
 
 impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
-    pub fn new() -> DetHashMap<K, V>;
     pub fn with_capacity(capacity: usize) -> DetHashMap<K, V>;
     /// New key: appended at the end. Existing key: value replaced in place, old value returned.
     pub fn insert(&mut self, key: K, value: V) -> Option<V>;
@@ -329,8 +339,6 @@ impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
     pub fn contains_key<Q>(&self, key: &Q) -> bool where K: Borrow<Q>, Q: Hash + Eq + ?Sized;
     /// Keeps the relative order of the remaining entries. O(len).
     pub fn remove<Q>(&mut self, key: &Q) -> Option<V> where K: Borrow<Q>, Q: Hash + Eq + ?Sized;
-    pub fn len(&self) -> usize;
-    pub fn is_empty(&self) -> bool;
     pub fn clear(&mut self);
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> + '_;
     pub fn iter_mut(&mut self) -> impl Iterator<Item = (&K, &mut V)> + '_;
@@ -340,26 +348,38 @@ impl<K: core::hash::Hash + Eq, V> DetHashMap<K, V> {
 impl<K, V> Default for DetHashMap<K, V> { /* new() */ }
 
 /// Hash set whose iteration order is the insertion order.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct DetHashSet<T> { /* … */ }
+/// Writes `{value, …}` in iteration order.
+impl<T: Debug> Debug for DetHashSet<T> { /* … */ }
+
+/// No bounds on `T` (CORE-R076).
+impl<T> DetHashSet<T> {
+    pub fn new() -> DetHashSet<T>;
+    pub fn len(&self) -> usize;
+    pub fn is_empty(&self) -> bool;
+}
 
 impl<T: core::hash::Hash + Eq> DetHashSet<T> {
-    pub fn new() -> DetHashSet<T>;
     pub fn with_capacity(capacity: usize) -> DetHashSet<T>;
     /// `true` if the value was not present (it is appended). Present: no change, `false`.
     pub fn insert(&mut self, value: T) -> bool;
     pub fn contains<Q>(&self, value: &Q) -> bool where T: Borrow<Q>, Q: Hash + Eq + ?Sized;
     /// Keeps the relative order of the remaining values. O(len).
     pub fn remove<Q>(&mut self, value: &Q) -> bool where T: Borrow<Q>, Q: Hash + Eq + ?Sized;
-    pub fn len(&self) -> usize;
-    pub fn is_empty(&self) -> bool;
     pub fn clear(&mut self);
     pub fn iter(&self) -> impl Iterator<Item = &T> + '_;
 }
 impl<T> Default for DetHashSet<T> { /* new() */ }
 ```
 
-`Borrow` is `core::borrow::Borrow`; `Hash` is `core::hash::Hash`.
+`Borrow` is `core::borrow::Borrow`; `Hash` is `core::hash::Hash`; `Debug` is `core::fmt::Debug`.
+The `Debug` impls are hand-written (`spec_version` 4): they have the bounds a derive would have
+and write only the entries, as `std` collections do.
+
+`new`, `len` and `is_empty` of both collections have no trait bounds (`spec_version` 3), so they
+and `Default::default()` exist for every `K`, `V` and `T`. Every other method requires
+`K: Hash + Eq` / `T: Hash + Eq`.
 
 ### 5.5 `liminal_core::rng`
 
@@ -484,6 +504,7 @@ impl TickDuration {
 | CORE-R038 | MUST | `is_live(h)` is true exactly for handles returned by `allocate` and not yet freed. `live_count` is the number of such handles. `iter_live` yields each of them once, in ascending index order. |
 | CORE-R039 | MUST | `HandleMap<T>` issues handles by the rules of CORE-R033 to CORE-R035 and CORE-R037 (the same sequence of `insert` and live `remove` calls gives the same handle sequence as `allocate` and `free` on a `HandleAllocator` with the same slot limit). `get`, `get_mut` and `contains` return the stored value (or `true`) exactly for live handles and `None` (or `false`) otherwise. `remove` of a live handle returns its value and makes it stale; `remove` of a non-live handle returns `None` and leaves the map unchanged. `insert` on exhaustion returns LIM-CORE-0011 and leaves the map unchanged. `len` counts live entries; `iter` and `iter_mut` yield every live entry once, in ascending index order. |
 | CORE-R040 | SHOULD | `allocate`, `free`, `is_live`, `HandleMap::insert`, `get`, `get_mut`, `contains` and `remove` run in amortized constant time: they perform no scan over slots or live handles. Checked by review of the implementation. |
+| CORE-R041 | MUST | `HandleAllocator::default()` and `HandleMap::<T>::default()` return a value in the same state as `new()`: slot limit `u32::MAX` (not 0), no slot used, `live_count()` / `len()` 0. The first `allocate` / `insert` on it returns `Ok` with the handle `0v1`, and its `Debug` output equals that of `new()` (for `HandleMap<T>`, with `T: Debug`). `HandleMap<T>: Default` holds for every `T`, including types that do not implement `Default`. |
 
 ### State hasher and fixed-seed hasher (R050–R069)
 
@@ -496,7 +517,8 @@ impl TickDuration {
 | CORE-R054 | MUST | `StateHash` encodings: integers, `bool`, `char`, `f32`, `f64` and `str` as in CORE-R053; `String` as `str`; `[T]`, `Vec<T>` and `[T; N]` their length as `u64` followed by each element in order; `Option<T>` `0x00` for `None` and `0x01` followed by the value for `Some`; `&T` as `T`; tuples of 1 to 4 elements each element in order with no prefix; `RawHandle` and `Handle<T>` their `to_bits()` as `u64`; `DetHashMap` its length as `u64` followed by each key and value in iteration order; `DetHashSet` its length as `u64` followed by each value in iteration order; `Rng` its four state words as `u64` in order; `Tick` and `TickDuration` their count as `u64`; `TickRate` its ticks per second as `u32`; `StreamKey` its value as `u64`. |
 | CORE-R055 | MUST | `state_hash_of(v)` equals `finish()` of a new `StateHasher` after `v.state_hash(&mut hasher)`. |
 | CORE-R056 | MUST | `StateHasher` results are identical on every supported platform: a known-answer test with recorded literals (CORE-R050 vectors and one value per `StateHash` impl of CORE-R054) passes on the macOS arm64, Windows x86_64 and Linux x86_64 CI jobs. |
-| CORE-R060 | MUST | Every `DetHasher` built by `FixedState::build_hasher` starts in the same state (XXH64 seed 0, nothing written): for any value `v: Hash`, two `FixedState` instances, in one process or in two processes, give the same `hash_one(&v)`. |
+| CORE-R057 | MUST | `StateHasher::default()` returns a hasher in the same state as `StateHasher::new()`: nothing written, `finish` returns XXH64 (seed 0) of the empty input, and after the same writes both give the same `finish` value. |
+| CORE-R060 | MUST | Every `DetHasher` built by `FixedState::build_hasher` starts in the same state (XXH64 seed 0, nothing written), in every process and on every supported platform: with nothing written its `finish` returns XXH64 (seed 0) of the empty input, and the same sequence of `Hasher` calls made on it gives the same `finish` (CORE-R061). Therefore, within one process, two `FixedState` instances give the same `hash_one(&v)` for any value `v: Hash`. The value of `hash_one(&v)` is not part of this contract across Rust releases: which `Hasher` calls a `Hash` impl makes is decided by that impl, and std's impls are not guaranteed stable (§5.3). Tests compare `hash_one` results only with each other in the same process and record hash literals only for call sequences the test makes on a `DetHasher` directly. |
 | CORE-R061 | MUST | `DetHasher` overrides the integer write methods of `core::hash::Hasher` to append little-endian bytes, with `write_usize` and `write_isize` appending 8 bytes, so the same sequence of `Hasher` calls gives the same `finish` on every supported platform; `finish` is XXH64 seed 0 of the appended bytes. |
 
 ### Collections (R070–R089)
@@ -509,6 +531,7 @@ impl TickDuration {
 | CORE-R073 | MUST | `DetHashMap` and `DetHashSet` iteration order depends only on the sequence of operations, not on capacity, `with_capacity`, hash values or the process. |
 | CORE-R074 | MUST | `DetHashSet` follows CORE-R070 to CORE-R073 for values: iteration in first-insertion order; `insert` of a present value returns `false` and changes nothing; `remove` keeps the order of the rest; same results as a `Vec<T>` linear-search reference model. |
 | CORE-R075 | SHOULD | `DetHashMap::insert`, `get`, `get_mut`, `contains_key` and `DetHashSet::insert`, `contains` take expected constant time (hash lookup, no linear scan). `remove` takes time linear in `len`. Checked by review. |
+| CORE-R076 | MUST | `DetHashMap::<K, V>::default()` and `DetHashSet::<T>::default()` return an empty collection in the same state as `new()`. Two cases, by what §5.4 lets a caller observe. (a) For every `K`, `V` and `T`, including types that implement none of `Default`, `Hash`, `Eq` and `Debug`: `Default::default()` and `new()` compile, and on the result of each `len()` is 0 and `is_empty()` is `true`. (b) For `K: Hash + Eq` / `T: Hash + Eq` in addition: iteration over the result of `default()` yields nothing, and after the same sequence of operations a collection from `default()` and one from `new()` give the same results, the same `len()` and iterate in the same order with the same contents. |
 
 ### RNG streams (R090–R109)
 
@@ -532,7 +555,7 @@ impl TickDuration {
 | CORE-R111 | MUST | `dt_secs_f32` returns `1.0_f32 / n as f32` and `dt_secs_f64` returns `1.0_f64 / n as f64`, each one IEEE 754 division (correctly rounded), for tick rate `n`. |
 | CORE-R112 | MUST | `ticks_to_secs_f64(d)` returns `d.count() as f64 / n as f64` (Rust `as` conversion, round-to-nearest-even for counts above 2^53, then one IEEE 754 division). |
 | CORE-R113 | MUST | `ticks_from_millis(ms)` returns `(ms × n + 500) / 1000` computed in `u128` integer arithmetic (rounding to nearest, ties up). It does not overflow or panic for any `u64` input. |
-| CORE-R114 | MUST | `Tick::next` returns the tick with index + 1 and panics if the index is `u64::MAX`. `Tick::checked_add(d)` returns `None` on overflow. `t.since(e)` returns `Some(TickDuration::new(t.index() − e.index()))` if `t >= e`, else `None`. `Tick` and `TickDuration` order and compare by their counts. `TickDuration::checked_add` returns `None` on overflow. `Tick::ZERO` and `TickDuration::ZERO` have count 0. |
+| CORE-R114 | MUST | `Tick::next` returns the tick with index + 1 and panics if the index is `u64::MAX`. `Tick::checked_add(d)` returns `None` on overflow. `t.since(e)` returns `Some(TickDuration::new(t.index() − e.index()))` if `t >= e`, else `None`. `Tick` and `TickDuration` order and compare by their counts. `TickDuration::checked_add` returns `None` on overflow. `Tick::ZERO` and `TickDuration::ZERO` have count 0, and so have `Tick::default()` and `TickDuration::default()`. |
 
 ### Determinism (R130–R139)
 
@@ -551,10 +574,13 @@ frontmatter.
 | Task | Requirements |
 |---|---|
 | M1-T013 (error model, handles) | CORE-R001 to CORE-R013, CORE-R030 to CORE-R040 |
-| M1-T014 (hashing, RNG, collections, time, determinism) | CORE-R050 to CORE-R056, CORE-R060, CORE-R061, CORE-R070 to CORE-R075, CORE-R090 to CORE-R098, CORE-R110 to CORE-R114, CORE-R130 to CORE-R133 |
+| M1-T059 (`Default` tests for the handle types) | CORE-R041 |
+| M1-T014 (hashing, RNG, collections, time, determinism) | CORE-R050 to CORE-R057, CORE-R060, CORE-R061, CORE-R070 to CORE-R076, CORE-R090 to CORE-R098, CORE-R110 to CORE-R114, CORE-R130 to CORE-R133 |
 
 M1-T013 implements all of `CoreError` (CORE-R013), including the variants whose producers come in
-M1-T014. M1-T014 implements the `StateHash` impls for handles (CORE-R054).
+M1-T014. M1-T014 implements the `StateHash` impls for handles (CORE-R054). The code for CORE-R041 is
+M1-T013's (written against `spec_version` 1, before the requirement existed); M1-T059 adds its
+`Verifies:` tests and owns the requirement.
 
 ## 7. Invariants
 
@@ -602,7 +628,7 @@ number in their group.
 ## 9. Performance budgets
 
 None yet: set at `stable` from baselines. `liminal_core` has no optimized paths in `spec_version`
-1. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
+4. The scenarios below are measured on the reference machine (PERFORMANCE.md) once the harness
 exists; no number is set before that measurement.
 
 | Scenario | Budget | Machine | Source of number |
@@ -610,12 +636,15 @@ exists; no number is set before that measurement.
 | `StateHasher::write_bytes` over a 1 MiB buffer, then `finish` (throughput, GiB/s) | none yet | Reference | Baseline `ci/perf/<machine-id>/liminal_core.json` from M1-T016 / M1-T017 |
 | 1,000,000 × `Rng::next_u64` on one stream | none yet | Reference | Same baseline (M1-T016 / M1-T017) |
 | 1,000,000 × `Rng::below_u32(1000)` | none yet | Reference | Same baseline (M1-T016 / M1-T017) |
-| 1,000,000 × `HandleAllocator` allocate/free pairs | none yet | Reference | Not scheduled; added with the `stable` promotion |
-| 100,000 × `DetHashMap<u64, u64>::insert` then 100,000 × `get` | none yet | Reference | Not scheduled; added with the `stable` promotion |
+
+The table lists only scenarios that a task measures. `HandleAllocator` and `DetHashMap` have no
+scenario row: no existing task adds a benchmark for them (M1-T016's bench target covers the hasher
+and the RNG only). The task that prepares the `stable` promotion of `liminal_core` (not written
+yet) adds their scenarios and rows by a `spec_version` bump (open question 6).
 
 ## 10. Test plan
 
-No path in `spec_version` 1 is an optimized variant of another; each algorithm has one
+No path in `spec_version` 4 is an optimized variant of another; each algorithm has one
 implementation, checked against an external reference. If a later version adds an optimized path
 (SIMD XXH64, a faster map), the current implementation stays as its reference and a differential
 test is added (AGENTS.md rule 4).
@@ -625,13 +654,18 @@ test is added (AGENTS.md rule 4).
 | `ErrorCode` (R001–R004) | unit, property (round trip over generated valid codes; generated invalid strings rejected), doc test | Test-local predicate written from the CORE-R001 grammar |
 | `write_display`, `render_json` (R005–R011) | unit, snapshot (`crates/liminal_core/tests/snapshots/core_errors.txt`: Display and JSON of one value of every `CoreError` variant), property (string escaping round trip over generated strings including all of U+0000–U+001F) | Approved snapshot; test-local JSON string decoder in `tests/common/` |
 | `validate_error`, `CoreError` (R012, R013) | unit (one test error type per violation), integration | Hand-written expected codes |
-| Handles (R030–R040) | unit, property (random operation sequences), integration, doc test | Model in `tests/common/`: list of every issued handle plus the set of live handles, checked by linear search. Generation wrap (R035) is tested in a unit test inside the module that sets a slot's generation to `u32::MAX - 1` directly, since 2^32 frees are too slow for a test |
-| `StateHasher` (R050–R056) | unit known-answer, property (R051 splits) | XXH64 reference vectors from the xxHash repository (sanity-test values or `xxhsum -H64` output, source named in the test); for R053/R054, the expected byte sequence written by hand and hashed with `write_bytes` |
-| `FixedState`, `DetHasher` (R060, R061) | unit, integration | Recorded hash literals (a literal recorded in an earlier process covers "in two processes"); XXH64 of hand-built little-endian byte sequences |
-| `DetHashMap`, `DetHashSet` (R070–R075) | property (differential), unit | `Vec<(K, V)>` / `Vec<T>` linear-search reference model |
-| `Rng`, `StreamKey` (R090–R098) | unit known-answer, property (range of `below_*`, `[0, 1)` of floats) | Values from the reference C implementations `xoshiro256starstar.c` and `splitmix64.c` (prng.di.unimi.it), recorded in the test with the command that produced them; for power-of-two bounds `below_u32(2^k)` must equal `next_u32() >> (32 − k)` (no rejection occurs) |
-| Time (R110–R114) | unit, property (`ticks_from_millis` monotone; exact for multiples of 1000 / n) | Hand-computed values |
-| Determinism (R130–R133) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals |
+| Handles (R030–R041) | unit, property (random operation sequences), integration, doc test | Model in `tests/common/`: list of every issued handle plus the set of live handles, checked by linear search. Generation wrap (R035) is tested in a unit test inside the module that sets a slot's generation to `u32::MAX - 1` directly, since 2^32 frees are too slow for a test |
+| `StateHasher` (R050–R057) | unit known-answer, property (R051 splits) | XXH64 reference vectors from the xxHash repository: the seed-0 rows of `XSUM_XXH64_testdata` (`tests/sanity_test_vectors.h`, tag v0.8.3) for 121 lengths from 0 to 4160, copied into `tests/common/xxh64_vectors.rs`; for R053/R054, the expected byte sequence written by hand and hashed with `write_bytes`; for the R056 literals, XXH64 of those byte sequences computed by the independent Python implementation `tests/reference/kat.py` |
+| `FixedState`, `DetHasher` (R060, R061) | unit, integration | XXH64 of hand-built little-endian byte sequences, as recorded literals, for fixed sequences of `Hasher` calls made directly on a `DetHasher` from `FixedState::build_hasher` (a literal recorded in an earlier process covers "in every process"; the first sequence is empty). `hash_one(&v)` of two `FixedState` instances is compared in-process only, never with a recorded literal, because the calls a std `Hash` impl makes may change with the Rust toolchain |
+| `DetHashMap`, `DetHashSet` (R070–R076) | property (differential), unit | `Vec<(K, V)>` / `Vec<T>` linear-search reference model. CORE-R076 case (a): a unit test with a key, value and element type that implements no trait (it fails to compile if `Default`, `new`, `len` or `is_empty` gains a bound); case (b): the same operation sequence applied to `default()` and `new()` |
+| `Rng`, `StreamKey` (R090–R098) | unit known-answer, property (range of `below_*`, `[0, 1)` of floats, seeding against a test-local `SplitMix64`) | `next_u64` and `SplitMix64`: the published outputs of the reference C implementations `xoshiro256starstar.c` and `splitmix64.c` (prng.di.unimi.it) as recorded in the `reference` tests of `rand_xoshiro` (github.com/rust-random/rngs, commit 84683fca). Seeding (R091), `below_*` (R095), floats (R096) and the R098 literals: values computed by `tests/reference/kat.py`, an independent Python implementation of XXH64, `SplitMix64`, xoshiro256\*\* and Lemire's method that checks itself against the published vectors; the command is recorded at each literal. For power-of-two bounds `below_u32(2^k)` must equal `next_u32() >> (32 − k)` (no rejection occurs) |
+| Time (R110–R114) | unit, property (`ticks_from_millis` monotone; exact for whole seconds) | Hand-computed values; float bit patterns and the `u64::MAX` cases computed with Python (`kat.py time`) |
+| Determinism (R130–R133) | determinism (`tests/determinism.rs`, ADR-0024) | Run twice in-process; recorded hash literals (the `rng_streams` literal is also reproduced by `kat.py rng-streams`) |
+
+`tests/reference/kat.py` is not run by any test or by CI; it documents how the literals were
+produced and lets a reviewer reproduce them (`python3`, standard library only). The reference C
+files were not compiled for `spec_version` 4: the implementing session was not permitted to
+run downloaded code, so their outputs are taken from the published `rand_xoshiro` tests.
 
 Every requirement's verifying test carries `/// Verifies: CORE-Rnnn`. Primary entry points with
 `# Examples`: `ErrorCode`, `EngineError` (a complete small error enum), `render_json`,
@@ -659,13 +693,17 @@ operation mix) are fixed in the test; changing them changes the literal and is a
 
 | Workload | What it does | Cross-platform bit-identity claimed |
 |---|---|---|
-| `rng_streams` (CORE-R130) | For 3 world seeds × 3 stream keys (including one from `StreamKey::from_name`), 1,000 rounds of every `Rng` output method, each result hashed (floats by bits) | Yes (integer arithmetic; exact float conversions) |
-| `handle_churn` (CORE-R131) | 10,000 seeded insert/remove operations on a `HandleMap<u64>` with a small slot limit (exhaustion and stale removes included); every returned handle, value and error code hashed, then the final map | Yes (integer arithmetic) |
-| `det_map_churn` (CORE-R132) | 10,000 seeded insert/remove/get operations on `DetHashMap<u64, u64>` over a key space of a few hundred keys; the map's `StateHash` hashed every 100 operations | Yes (iteration order does not depend on hash values, CORE-R073) |
-| `time_conversions` (CORE-R133) | `dt_secs_f32`, `dt_secs_f64` for every tick rate 1..=1000; `ticks_to_secs_f64` and `ticks_from_millis` for fixed counts including 0, 2^53 + 1 and `u64::MAX`; results hashed by bits | Yes (one correctly rounded IEEE 754 division per value) |
+| `rng_streams` (CORE-R130) | For 3 world seeds × 3 stream keys (including one from `StreamKey::from_name`), 1,000 rounds of every `Rng` output method, each result hashed (floats by bits), then the generator's state | Yes (integer arithmetic; exact float conversions) |
+| `handle_churn` (CORE-R131) | 10,000 seeded insert/remove operations on a `HandleMap<u64>` with a slot limit of 48 (exhaustion and stale removes included; the workload asserts that each occurs more than 100 times); every returned handle, value and error code hashed, then the final map | Yes (integer arithmetic) |
+| `det_map_churn` (CORE-R132) | 10,000 seeded insert/remove/get operations on `DetHashMap<u64, u64>` over a key space of 300 keys; every result hashed, and the map's `StateHash` every 100 operations | Yes (iteration order does not depend on hash values, CORE-R073) |
+| `time_conversions` (CORE-R133) | `dt_secs_f32`, `dt_secs_f64` for every tick rate 1..=1000; `ticks_to_secs_f64` and `ticks_from_millis` for 10 fixed counts including 0, 2^53 + 1 and `u64::MAX`; results hashed by bits | Yes (one correctly rounded IEEE 754 division per value) |
 
-Cross-platform bit-identity has **not been verified yet**: it is claimed for all four workloads and
-verified when M1-T014's tests pass on the three CI operating systems.
+Cross-platform bit-identity is claimed for all four workloads and **verified** for the recorded
+literals on the three CI operating systems: GitHub Actions run 42882724790 (commit `9760608`,
+2026-11-10) passed `cargo xtask ci`, which runs `tests/determinism.rs` and the known-answer tests
+of CORE-R056 and CORE-R098, on `macos-latest` (arm64), `windows-latest` (x86_64) and
+`ubuntu-latest` (x86_64). Every later CI run repeats the check. Not verified: any other target
+(x86_64 macOS, aarch64 Linux or Windows).
 
 ## 12. Open questions
 
@@ -679,42 +717,65 @@ verified when M1-T014's tests pass on the three CI operating systems.
    checks that every code used in a crate is listed in its spec and vice versa. No task implements
    that check yet. Until one does, `validate_error` tests and review are the only check.
    Resolve: a task in M1 (to be written; reported in M1-T012's handoff).
-4. **Area names in other task files.** M1-T027 and M1-T047 name the error areas `TEL` and `TK`,
-   while `docs/specs/README.md` reserves the prefixes `TELE` and `TKIT`. CORE-R012 requires the
-   area to equal the spec's `req_prefix`. Resolve in M1-T027 and M1-T047 (use the reserved
-   prefix).
+4. **Area names in other task files.** Resolved (M1-T055, `spec_version` 2). M1-T027 and M1-T047
+   named the error areas `TEL` and `TK`, while `docs/specs/README.md` reserves the prefixes `TELE`
+   and `TKIT`, and CORE-R012 requires the area to equal the spec's `req_prefix`. The
+   `liminal_telemetry` spec written by M1-T027 uses `TELE` (scope note in that task); the M1-T047
+   task file now says `TKIT`.
 5. **Entities and handles.** Whether `liminal_ecs` builds `Entity` on `RawHandle` and
    `HandleAllocator` (including the LIFO reuse and retirement rules) or defines its own allocator
    is decided by the ECS spec (M1-T037). If ECS needs a different reuse order, this spec is not
    changed silently: either ECS owns its allocator or this spec gets a new requirement.
 6. **Order-preserving `remove` cost.** `DetHashMap::remove` is O(len) to keep insertion order. If a
    benchmark shows this matters, a `swap_remove` with its own defined order may be added. Resolve
-   at the `stable` promotion with the benchmarks of §9.
+   at the `stable` promotion. No benchmark of `DetHashMap` or `HandleAllocator` is scheduled; the
+   task that prepares that promotion adds their scenarios to §9 first.
 7. **Tick rate ceiling.** 1000 Hz is an assumption about the fastest fixed step any system needs
    (physics substeps are expected to run inside a tick). Revisit in the physics spec (M6, OQ-008).
 
 ## 13. Maturity
 
-Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T014 and
-checked by the session that reviews it.
+Current: `usable` (promoted from `planned` via `experimental` by the M1-T014 review,
+2026-11-10: every gate below re-checked by the reviewer, see the "Review" note in
+`docs/tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md`). Next target: `stable`.
+Evidence for `usable` prepared by M1-T014 (2026-11-10, measured on macOS 27.2 arm64, Rust 1.99.1).
 
-- [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
-      review of M1-T012).
-- [ ] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T013).
-- [ ] All MUST requirements traced: `cargo xtask trace --crate liminal_core` with
-      `maturity: usable` applied on a scratch copy reports every MUST tested (evidence: M1-T014).
-- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T014).
-- [ ] Every public item documented; the primary entry points of §10 have runnable `# Examples`.
-- [ ] Integration tests in `crates/liminal_core/tests/` use only the public API.
-- [ ] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
-      three CI operating systems.
-- [ ] At least one example or dependent crate uses it. Open item: no dependent crate exists when
-      M1-T014 finishes; `liminal_math` (M1-T020) is the first. M1-T014 either adds a runnable
-      example under `crates/liminal_core/examples/` or the promotion waits for M1-T020.
+- [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
+      review of M1-T012, 2026-11-09, "Review" note in
+      `docs/tasks/M1-T012-write-the-spec-for-liminal-core.md`; versions 2 and 3 reviewed with
+      M1-T055 and M1-T059; version 4 is reviewed with M1-T014).
+- [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
+      registered in `ci/coverage.toml` (evidence: `cargo xtask ci` passes, 11 steps, none skipped;
+      `crates/liminal_core/clippy.toml`; floor `liminal_core = 99.3`).
+- [x] All MUST requirements traced (evidence: `cargo xtask trace --crate liminal_core` on a
+      scratch copy of the repository with `maturity: usable` in this file: `tested: MUST 58/58,
+      SHOULD 1/2`, `trace: ok`. The untested SHOULD is CORE-R075, checked by review).
+- [x] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: `cargo xtask coverage`:
+      99.37 %, 1753 of 1764 lines. The 11 uncovered lines are in `error` and `handle` (panic
+      arms of test helpers and assertion messages); `hash`, `collections`, `rng` and `time` have
+      no uncovered line).
+- [x] Every public item documented; the primary entry points of §10 have runnable `# Examples`
+      (evidence: `missing_docs = "deny"` passes; `cargo test --doc -p liminal_core` runs 24 doc
+      tests, among them `StateHasher`, `state_hash_of`, `StateHash`, `FixedState`, `DetHasher`,
+      `DetHashMap`, `DetHashSet`, `Rng`, `StreamKey`, `TickRate`, `Tick`, `TickDuration`).
+- [x] Integration tests in `crates/liminal_core/tests/` use only the public API (evidence:
+      `error_model.rs`, `handles.rs`, `hashing.rs`, `collections.rs`, `rng.rs`, `time.rs`,
+      `determinism.rs`; 99 tests. Three behaviours need private access and are unit tests inside
+      the crate: the generation wrap, the private `splitmix64`, the lookup table).
+- [x] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
+      three CI operating systems (evidence: GitHub Actions run 42882724790 on `9760608`, §11).
+- [x] At least one example or dependent crate uses it (evidence:
+      `crates/liminal_core/examples/seeded_world.rs`, run with
+      `cargo run -p liminal_core --example seeded_world`; it uses `handle`, `hash`,
+      `collections`, `rng`, `time` and `error` and fails if two runs with one seed differ.
+      `cargo test` compiles it; no CI step runs it. `liminal_math` (M1-T020) will be the first
+      dependent crate).
 
 ## 14. History
 
 | spec_version | Date | Change | By task |
 |---|---|---|---|
 | 1 | 2026-11-09 | Initial spec | M1-T012 |
+| 2 | 2026-11-10 | §5.2: `HandleAllocator` `Default` is a hand-written impl equal to `new()`, no longer derived (a derived one has slot limit 0). New CORE-R041, CORE-R057, CORE-R076: `Default::default()` equals `new()` for `HandleAllocator`, `HandleMap`, `StateHasher`, `DetHashMap`, `DetHashSet`. CORE-R060 and §10: recorded literals only for `Hasher` call sequences made on a `DetHasher` directly; `hash_one` values are not fixed across Rust releases. §9: the two scenario rows without a measuring task removed. §12 item 4 resolved; item 6 updated | M1-T055 |
+| 3 | 2026-11-10 | §5.4: `new`, `len` and `is_empty` of `DetHashMap` and `DetHashSet` moved into `impl` blocks without trait bounds (were `K: Hash + Eq` / `T: Hash + Eq`). CORE-R076 reworded into two cases, each naming what a test observes: every `K`, `V`, `T` (`default()` and `new()` compile, `len()` 0, `is_empty()`), and `Hash + Eq` types (iteration, same results after the same operations). §6 assignment: CORE-R041 moves from M1-T013 to M1-T059, which writes its `Verifies:` tests. §10: oracle for CORE-R076 | M1-T059 |
+| 4 | 2026-11-10 | §5.4: `Debug` of `DetHashMap` and `DetHashSet` is a hand-written impl that writes the entries in iteration order (was derived). CORE-R114: `Tick::default()` and `TickDuration::default()` have count 0. §10: oracles as implemented (xxHash sanity vectors; published xoshiro256\*\* and `SplitMix64` outputs; the independent Python implementation `tests/reference/kat.py` instead of compiled reference C). §11: workload parameters and verification state. §13: evidence for the `usable` gates | M1-T014 |

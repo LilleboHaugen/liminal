@@ -1,10 +1,10 @@
 ---
 id: ADR-0021
 title: Review findings — blocking criteria, follow-up tasks and a round limit
-status: accepted
+status: superseded
 date: 2026-11-08
 supersedes: []
-superseded_by: []
+superseded_by: [ADR-0029]
 ---
 
 # ADR-0021: Review findings — blocking criteria, follow-up tasks and a round limit
