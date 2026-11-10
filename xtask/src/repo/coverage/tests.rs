@@ -228,7 +228,10 @@ fn the_measuring_command_is_the_one_the_spec_names() {
             "--all-features",
             "--locked",
             "--json",
-            "--summary-only"
+            "--summary-only",
+            "--no-default-ignore-filename-regex",
+            "--ignore-filename-regex",
+            IGNORE_FILENAME_REGEX
         ]
     );
     assert_eq!(LLVM_COV_PROBE, ["llvm-cov", "--version"]);
@@ -293,7 +296,10 @@ fn a_failing_llvm_cov_run_is_lim_xtask_0006_with_its_stderr_tail() {
     assert_eq!(error.code, "LIM-XTASK-0006");
     assert_eq!(
         error.path,
-        "cargo llvm-cov --workspace --all-features --locked --json --summary-only"
+        format!(
+            "cargo llvm-cov --workspace --all-features --locked --json --summary-only \
+             --no-default-ignore-filename-regex --ignore-filename-regex {IGNORE_FILENAME_REGEX}"
+        )
     );
     assert!(error.detail.starts_with("failed ("), "{}", error.detail);
     assert!(

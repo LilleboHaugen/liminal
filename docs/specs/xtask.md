@@ -3,9 +3,9 @@ crate: xtask
 req_prefix: XTASK
 layer: 5
 maturity: usable
-spec_version: 26
+spec_version: 27
 last_reviewed: 2026-11-09
-adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018]
+adrs: [ADR-0001, ADR-0003, ADR-0004, ADR-0009, ADR-0010, ADR-0011, ADR-0018, ADR-0023]
 ---
 
 # Spec: `xtask`
@@ -246,7 +246,7 @@ as `output_tail` in both output modes.
   package with a default-on feature has one always-failing test that exists only with the
   feature and one test that exists only without it.
 
-### `check-arch` (R030–R039)
+### `check-arch` (R030–R039, R090–R099)
 
 | ID | Level | Requirement |
 |---|---|---|
@@ -260,6 +260,7 @@ as `output_tail` in both output modes.
 | XTASK-R037 | MUST | Each violation is reported with the crate, the dependency (if any), the rule ID, and a `help` text saying how to fix it. |
 | XTASK-R038 | SHOULD | From M2: `liminal_engine` and crates under `games/` depend only on crates whose spec maturity is `usable` or higher (ADR-0011). |
 | XTASK-R039 | MUST | For every workspace crate registered with `deterministic = true`, the clippy configuration clippy applies to it (the nearest `.clippy.toml` or `clippy.toml`, see details) has a `disallowed-methods` list that contains every path of the banned list in `docs/process/CODE_STYLE.md` §Lints: `f32::sin`, `f32::cos`, `f32::tan`, `f32::powf`, `f32::exp`, `f32::ln`, the same six for `f64`, `std::collections::HashMap::new` and `std::time::Instant::now` (ADR-0009 item 7; `spec_version` 23). |
+| XTASK-R090 | MUST | No workspace crate registered in layers 0–4 has a target of kind `bench`, or any target whose root source file is under `<manifest directory>/benches/`: engine benchmarks live in `liminal_benches` (ADR-0023 Decision 1 and "Verification"; `spec_version` 27). |
 
 `check-arch` details (added in `spec_version` 8):
 
@@ -319,7 +320,14 @@ as `output_tail` in both output modes.
   `<manifest directory>/Cargo.toml` if no file applies, else at the effective file, naming every
   missing path in the list's order. The help names `<manifest directory>/clippy.toml`, the
   crate's own file (CODE_STYLE.md §Lints).
-- R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034 and R036, the
+- R090. Judged like R032–R036: only registered crates with a valid layer (the first
+  `[[crate]]` entry of the name); layer 5 crates are not checked. One finding per offending target,
+  at `<manifest directory>/Cargo.toml`, naming the crate, its layer and the target's root source
+  file; the help names `benches/benches/<crate>.rs` in `liminal_benches`. Target kinds come from
+  `cargo metadata` (`bench`, also for files cargo discovers in `benches/`); a target of any other
+  kind (for example an `example`) whose root file is under `benches/` is a finding too. Whether
+  the crate has a `benches/` directory without targets (`autobenches = false`) is not checked.
+- R037. Finding locations: `<manifest directory>/Cargo.toml` for R031–R034, R036 and R090, the
   crate root file for R035, R039 as above. Messages name the crate and, for R032–R034 and R036, the
   dependency and its kind. Identical findings (a dependency declared under two `cfg` targets)
   are reported once.
@@ -411,7 +419,7 @@ as `output_tail` in both output modes.
 
 | ID | Level | Requirement |
 |---|---|---|
-| XTASK-R060 | MUST | `coverage` runs `cargo llvm-cov --workspace --all-features --locked --json --summary-only` and computes line coverage per workspace crate. |
+| XTASK-R060 | MUST | `coverage` runs `cargo llvm-cov --workspace --all-features --locked --json --summary-only --no-default-ignore-filename-regex --ignore-filename-regex <pattern>` (pattern in "`coverage` details"; the last three arguments added in `spec_version` 27) and computes line coverage per workspace crate. |
 | XTASK-R061 | MUST | Each crate's coverage is compared with its floor in `ci/coverage.toml`. Coverage below `floor − 0.5` percentage points is an error naming the crate, the floor and the actual value. |
 | XTASK-R062 | MUST | A workspace crate without an entry in `ci/coverage.toml` is an error, with help text showing the line to add. |
 | XTASK-R063 | MUST | `--update-floors` sets each floor to `max(current floor, measured value rounded down to 0.1)` and never lowers a floor. |
@@ -420,7 +428,18 @@ as `output_tail` in both output modes.
 `coverage` details (added in `spec_version` 11):
 
 - Measuring (R060). `--locked` (added in `spec_version` 11) keeps `Cargo.lock` unchanged, as in
-  every other cargo step (R010). The tool is installed if `cargo llvm-cov --version` succeeds;
+  every other cargo step (R010). File filter (`spec_version` 27): cargo-llvm-cov's default
+  filter skips every `benches/` directory below the workspace root, so it skipped all of
+  `liminal_benches` (at `benches/`, ADR-0023). xtask replaces it with
+  `xtask::repo::coverage::IGNORE_FILENAME_REGEX`, which skips the same files as the default of
+  cargo-llvm-cov 0.9.1 (`rustc/<hash or version>/`, `tests/` and `examples/` directories,
+  `tests.rs`, `*_tests.rs` and `*-tests.rs` files, `target/`, `.cargo/registry/`, `.cargo/git/`,
+  `.rustup/toolchains/`), except that of `benches/` directories only `benches/benches/` (the
+  bench targets) is skipped. Separators match `/` and `\`. Unlike the default, the pattern is
+  not anchored at the workspace root: a checkout below a directory named `tests`, `examples` or
+  `target` measures no lines, which fails R061 for every crate with a floor above 0.0 (visible,
+  not silent). Measured on 2026-11-10 (M1-T016): `liminal_core` 1753/1764 and `xtask`
+  5940/6047 lines with both filters. The tool is installed if `cargo llvm-cov --version` succeeds;
   otherwise, or if `cargo` cannot be started, the result is `skipped` (R064). Doc tests are not
   measured. A crate's coverage is the sum of `summary.lines.covered` over the sum of
   `summary.lines.count` of the export's files below its manifest directory; a file below nested
@@ -640,7 +659,7 @@ None yet beyond XTASK-R013. Set at `stable` from measurements.
 |---|---|---|
 | Frontmatter parser | unit, property (round-trip of generated valid frontmatter; random invalid lines are rejected, never accepted) | Subset definition in DOCUMENTATION.md |
 | Each check rule | integration tests on fixture repositories in `xtask/tests/fixtures/<case>/` | One passing fixture plus one fixture per rule that must fail with exactly that rule ID |
-| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037 and R039 (R038 from M2) |
+| `check-arch` | unit tests on a hand-built repo model; integration on fixture `cargo metadata` JSON saved in fixtures | Rules R030–R037, R039 and R090 (R038 from M2) |
 | `ci` orchestration | unit tests with a fake step runner (steps are a trait; real runner spawns processes) | Order, continue-on-failure, skip semantics, exit codes |
 | `test-features-off` (R014) | unit tests with a fake command function; the real step on a workspace written to a temporary directory | Expected command lines; tests that exist only with a feature on or off |
 | `status` | snapshot test of generated STATUS.md for a fixture | Committed snapshot |
@@ -718,3 +737,4 @@ Current: `usable` (promoted from `planned` in one step, M0-T010, 2026-11-09). Ne
 | 24 | 2026-11-10 | New R014: `ci` step `test-features-off` (each workspace package with Cargo features is tested with `--no-default-features`), its details and test approach; `doctor` lists the step for `rustc` and `cargo` | M1-T056 |
 | 25 | 2026-11-10 | `doctor` and `deny` details: probe stdin/stderr test and why the `Stdio::null()` calls are not observable; `confidence-threshold` test; new R085 (expiry of ignored advisories, checked by `hygiene`); `doctor` in the `checks` CI jobs; LIM-XTASK-0004 covers `deny.toml` | M1-T008 |
 | 26 | 2026-11-10 | R083 test approach: a second (local git index) registry is now tested; R084: the `unmaintained` case also covers a direct dependency (review 2 of M0-T009) | M1-T009 |
+| 27 | 2026-11-10 | New R090 (`check-arch`: engine crates in layers 0–4 have no benchmark targets, ADR-0023) with its details; R060: own file filter instead of cargo-llvm-cov's default, which skipped the `liminal_benches` crate at `benches/`; `adrs` adds ADR-0023 | M1-T016 |

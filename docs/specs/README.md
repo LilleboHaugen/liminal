@@ -17,6 +17,7 @@ Rules:
 
 | Spec | Crate | Prefix | Maturity |
 |---|---|---|---|
+| [liminal_benches.md](liminal_benches.md) | `liminal_benches` | BENCH | planned |
 | [liminal_core.md](liminal_core.md) | `liminal_core` | CORE | usable |
 | [liminal_ecs.md](liminal_ecs.md) | `liminal_ecs` | ECS | planned |
 | [liminal_jobs.md](liminal_jobs.md) | `liminal_jobs` | JOBS | planned |
@@ -49,5 +50,6 @@ Specs for M1 crates are written by dedicated M1 tasks, which the M1 kickoff task
 | PLAT | liminal_platform | CLI | liminal_cli |
 | MCP | liminal_mcp | COOK | liminal_cook |
 | XTASK | xtask | REFLD | liminal_reflect_derive |
+| BENCH | liminal_benches | | |
 
 These prefixes are also the `AREA` part of error codes (`LIM-ECS-0001`, ADR-0017).

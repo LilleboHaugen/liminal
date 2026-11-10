@@ -11,5 +11,6 @@
 # the result when coverage improves. Lowering a floor by hand requires a journal entry saying why.
 
 [floors]
+liminal_benches = 96.8
 liminal_core = 99.3
-xtask = 97.6
+xtask = 98.2

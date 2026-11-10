@@ -376,7 +376,14 @@ fn r031_members_are_registered_with_their_path_and_kind() {
             src_path: format!("crates/app/{kind}.rs"),
         });
     }
-    assert_eq!(check(&model(&text, vec![with_extras])), []);
+    // (The `bench` target of this layer 1 crate is an R090 finding, tested in
+    // `r090_engine_crates_have_no_benchmark_targets`; here only R031 is judged.)
+    let findings = check(&model(&text, vec![with_extras]));
+    assert!(
+        findings.iter().all(|f| f.rule != "XTASK-R031"),
+        "{:#?}",
+        summary(&findings)
+    );
     // An invalid registered kind is R030 only, not also an R031 mismatch.
     let invalid = text.replacen("kind = \"lib\"", "kind = \"library\"", 1);
     let findings = check(&model(&invalid, vec![package("app", &["lib"], Vec::new())]));
@@ -886,4 +893,57 @@ fn a_dependency_on_an_unregistered_workspace_crate_is_reported_by_r031_only() {
     let findings = check(&model(&text, packages));
     one(&findings, "XTASK-R031", "`ghost` is not registered");
     assert_eq!(findings[0].location, "crates/ghost/Cargo.toml");
+}
+
+/// Verifies: XTASK-R090
+#[test]
+fn r090_engine_crates_have_no_benchmark_targets() {
+    let text = format!(
+        "{HEADER}{}{}",
+        entry("engine", 4, "lib", NONE),
+        entry("tool", 5, "lib", NONE)
+    );
+    let bench = |name: &str, path: &str, kind: &str| Target {
+        kinds: vec![kind.to_string()],
+        src_path: format!("crates/{name}/{path}"),
+    };
+    let mut engine = package("engine", &["lib"], Vec::new());
+    let mut tool = package("tool", &["lib"], Vec::new());
+    tool.targets.push(bench("tool", "benches/tool.rs", "bench"));
+    let clean = model(&text, vec![engine.clone(), tool.clone()]);
+    // A layer 5 crate may have bench targets.
+    assert_eq!(check(&clean), []);
+
+    engine
+        .targets
+        .push(bench("engine", "benches/speed.rs", "bench"));
+    let findings = check(&model(&text, vec![engine.clone(), tool.clone()]));
+    one(&findings, "XTASK-R090", "`crates/engine/benches/speed.rs`");
+    assert_eq!(findings[0].location, "crates/engine/Cargo.toml");
+    assert!(
+        findings[0]
+            .message
+            .contains("engine crate `engine` (layer 4)")
+    );
+    assert!(findings[0].help.contains("liminal_benches"));
+
+    // A bench target at another path, and an example under `benches/`, are findings too.
+    engine.targets.pop();
+    engine
+        .targets
+        .push(bench("engine", "perf/speed.rs", "bench"));
+    one(
+        &check(&model(&text, vec![engine.clone(), tool.clone()])),
+        "XTASK-R090",
+        "`crates/engine/perf/speed.rs`",
+    );
+    engine.targets.pop();
+    engine
+        .targets
+        .push(bench("engine", "benches/demo.rs", "example"));
+    one(
+        &check(&model(&text, vec![engine, tool])),
+        "XTASK-R090",
+        "`crates/engine/benches/demo.rs`",
+    );
 }

@@ -279,12 +279,14 @@ mod tests {
         assert!(paths.contains(&"crates/liminal_core/src/lib.rs"));
         assert!(paths.contains(&"crates/liminal_core/tests/handles.rs"));
         // Every source is a `.rs` file of the workspace crate whose directory contains it
-        // (M1-T013 added the first engine crate, under `crates/`).
+        // (M1-T013 added the first engine crate, under `crates/`; M1-T016 `liminal_benches` at
+        // `benches/`).
+        assert!(paths.contains(&"benches/benches/liminal_core.rs"));
         assert!(model.sources.iter().all(|s| {
-            let directory = if s.crate_name == "xtask" {
-                "xtask/".to_string()
-            } else {
-                format!("crates/{}/", s.crate_name)
+            let directory = match s.crate_name.as_str() {
+                "xtask" => "xtask/".to_string(),
+                "liminal_benches" => "benches/".to_string(),
+                name => format!("crates/{name}/"),
             };
             s.path.starts_with(&directory)
                 && Path::new(&s.path)

@@ -20,7 +20,9 @@ use super::workspace::{self, Member};
 pub(crate) const CONFIG_PATH: &str = "ci/coverage.toml";
 
 /// Arguments after `cargo` that measure coverage (XTASK-R060). `--locked`: like every cargo step,
-/// it must not update `Cargo.lock` (XTASK-R010).
+/// it must not update `Cargo.lock` (XTASK-R010). The file filter replaces cargo-llvm-cov's
+/// default one, which skips every `benches/` directory and so the whole `liminal_benches` crate
+/// at `benches/` (M1-T016): see [`IGNORE_FILENAME_REGEX`].
 pub(crate) const LLVM_COV_ARGS: &[&str] = &[
     "llvm-cov",
     "--workspace",
@@ -28,7 +30,25 @@ pub(crate) const LLVM_COV_ARGS: &[&str] = &[
     "--locked",
     "--json",
     "--summary-only",
+    "--no-default-ignore-filename-regex",
+    "--ignore-filename-regex",
+    IGNORE_FILENAME_REGEX,
 ];
+
+/// Files not measured (spec "`coverage` details"): cargo-llvm-cov 0.9.1's default filter (`rustc`
+/// sources, `tests/`, `examples/` and `benches/` directories, `tests.rs` and `*_tests.rs` /
+/// `*-tests.rs` files, the target directory, the cargo registry and git checkouts, rustup
+/// toolchains), except that of `benches/` only the bench target directory `benches/benches/` is
+/// skipped. Separators match `/` and `\`.
+pub(crate) const IGNORE_FILENAME_REGEX: &str = concat!(
+    r"[/\\]rustc[/\\]([0-9a-f]+|[0-9]+\.[0-9]+\.[0-9]+)[/\\]",
+    r"|[/\\](tests|examples)[/\\]",
+    r"|[/\\]benches[/\\]benches[/\\]",
+    r"|[/\\](tests\.rs|[0-9a-zA-Z_-]+[_-]tests\.rs)$",
+    r"|[/\\]target[/\\]",
+    r"|[/\\]\.cargo[/\\](registry|git)[/\\]",
+    r"|[/\\]\.rustup[/\\]toolchains[/\\]",
+);
 
 /// Arguments after `cargo` of a command that succeeds only if `cargo-llvm-cov` is installed
 /// (XTASK-R064).

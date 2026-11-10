@@ -216,7 +216,7 @@ fn quoted<'a>(items: impl Iterator<Item = &'a str>) -> String {
 }
 
 /// `<manifest_dir>/Cargo.toml`, the location of findings about a package.
-fn manifest(package: &Package) -> String {
+pub(super) fn manifest(package: &Package) -> String {
     if package.manifest_dir.is_empty() {
         "Cargo.toml".to_string()
     } else {
@@ -250,7 +250,7 @@ fn entry<'a>(architecture: &'a Architecture, name: &str) -> Option<&'a CrateEntr
 /// The registry entry of a crate that R032–R036 judge: registered (else R031 reports it) and
 /// with a layer in 0–5 (else R030 reports it). Spec "`check-arch` details": these rules skip
 /// every other crate, so one registry mistake gives one finding.
-fn judged<'a>(architecture: &'a Architecture, name: &str) -> Option<&'a CrateEntry> {
+pub(super) fn judged<'a>(architecture: &'a Architecture, name: &str) -> Option<&'a CrateEntry> {
     entry(architecture, name).filter(|entry| valid_layer(entry.layer))
 }
 

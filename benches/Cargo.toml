@@ -1,0 +1,22 @@
+[package]
+name = "liminal_benches"
+version = "0.0.0"
+description = "Liminal benchmark harness (std only) and the engine benchmarks (docs/specs/liminal_benches.md, ADR-0023)."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# Layer 5 (architecture.toml). `liminal_core` is a normal dependency: the harness errors implement
+# its error model (ADR-0017), and the bench targets measure it.
+[dependencies]
+liminal_core = { path = "../crates/liminal_core" }
+
+# One bench target per benchmarked crate, named after that crate (spec §4 "Bench targets").
+[[bench]]
+name = "liminal_core"
+harness = false
+
+[lints]
+workspace = true
