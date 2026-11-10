@@ -257,3 +257,14 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   `kat.py` in the spec.
 - `crates/liminal_reflect/src/value/access.rs`: `field_mut` builds a full `TypeInfo` on every
   successful call (heap allocations per write). Measure before ECS field writes use it per tick.
+
+## M1-T015, M1-T016 — review 2026-11-10
+
+- `benches/src/config.rs` `number`: `u64::parse` accepts a leading `+`, so `--iterations +5` is
+  accepted; BENCH-R041 says "decimal integer". State it in the spec or reject the sign.
+- `xtask/src/check_arch/tests.rs` `r031_members_are_registered_with_their_path_and_kind` now only
+  asserts "no R031 finding"; asserting the exact remaining finding set (one R090) would be tighter.
+- `xtask/src/repo/coverage.rs` `IGNORE_FILENAME_REGEX`: no test shows which paths it keeps or
+  drops (only the argument list is compared); the coverage floors catch a crate measuring nothing.
+- `benches/tests/output.rs` R060 test: `manifest.contains("name = \"<stem>\"")` also matches the
+  `[package]` name, so a file `benches/benches/liminal_benches.rs` would pass undeclared.

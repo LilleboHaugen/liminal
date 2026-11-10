@@ -2,7 +2,7 @@
 id: M1-T015
 title: Write the spec for liminal_benches
 milestone: M1
-status: review
+status: done
 crates: [liminal_benches]
 depends_on: [M1-T014]
 requirements: []
@@ -77,4 +77,22 @@ Done as one unit with M1-T016 (ADR-0029 Decision 3), branch `task/M1-T015-M1-T01
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0029 Decision 3, ADR-0030; journal
+`docs/journal/2026-11-10-M1-T015-M1-T016-review.md`). Spec review (REVIEW.md §2) and task
+review of the criteria above. Outcome: **done**, no blocking finding against this task.
+
+Checked: all template sections present, `maturity: planned`, `spec_version: 1`, `adrs`
+ADR-0003/0017/0018/0023; purpose, scope and non-goals; every requirement has an ID, a level and a
+testable statement (no vague words); §5 API consistent with ADR-0023 Decisions 1, 2 and 4
+(10 ms samples, 30 samples, median/MAD/min/max, throughput, `version: 1`, machine metadata,
+single-threaded marker, fixed iterations for `k`/`2k`) and with `liminal_core::error`;
+error codes LIM-BENCH-0001 … 0006 with help; test plan with oracles and the statement that no
+optimized path exists; budgets: none, with the measuring task named; MUST assignment to M1-T016
+matches its `requirements`; four open questions; `docs/specs/README.md` row and prefix.
+
+The code/spec disagreement on BENCH-R024 is a required change of M1-T016 (item 5 there); if it is
+resolved by a spec change, the re-reviewer checks that change. This status reaches `main` with the
+merge of the shared branch after M1-T016's re-review (ADR-0029 Decision 3).
+
+Backlog: shared with M1-T016 (`docs/BACKLOG.md`, "M1-T015, M1-T016 — review 2026-11-10").
+Follow-up task: none.

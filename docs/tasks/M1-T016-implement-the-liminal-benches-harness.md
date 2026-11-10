@@ -2,7 +2,7 @@
 id: M1-T016
 title: Implement the liminal_benches harness
 milestone: M1
-status: review
+status: in-progress
 crates: [liminal_benches]
 depends_on: [M1-T015]
 requirements: [BENCH-R001, BENCH-R002, BENCH-R003, BENCH-R004, BENCH-R005, BENCH-R010, BENCH-R011, BENCH-R012, BENCH-R013, BENCH-R014, BENCH-R015, BENCH-R020, BENCH-R021, BENCH-R022, BENCH-R023, BENCH-R024, BENCH-R030, BENCH-R031, BENCH-R032, BENCH-R033, BENCH-R034, BENCH-R035, BENCH-R040, BENCH-R041, BENCH-R042, BENCH-R050, BENCH-R060, XTASK-R090]
@@ -72,4 +72,52 @@ Done with M1-T015 as one unit (ADR-0029 Decision 3), 2026-11-10. Status `review`
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0029 Decision 3, ADR-0030; journal
+`docs/journal/2026-11-10-M1-T015-M1-T016-review.md`). Outcome: **changes required** (first
+"changes required" outcome of this task).
+
+Required changes:
+
+1. **B4, BENCH-R004.** "whether it ran or was filtered out" is untested. Mutant (reverted):
+   in `benches/src/bench.rs` `Bench::run`, move the filter check before `self.seen.insert`;
+   every test passes, yet a second `run` of a filtered-out ID then returns `Ok(None)` instead
+   of `DuplicateCase`. Add a test that runs a filtered-out case twice.
+2. **B4, BENCH-R032.** The "not empty after trimming" rule and "no field is empty" are untested.
+   Mutant (reverted): remove `.filter(|v| !v.is_empty())` in `benches/src/machine.rs`
+   `detect_with`; every test passes, yet `LIMINAL_BENCH_MACHINE_ID=" "` gives `id: ""`. Test an
+   empty and a whitespace-only variable falling back to detection (and to `unknown`).
+3. **B4, BENCH-R032 / spec §5 "Machine metadata".** Detection through `$RUSTC -V` is untested.
+   Mutant (reverted): `let rustc = "rustc".to_string();`; every test passes. Test that the
+   injected `RUSTC` value is the program run.
+4. **B4, BENCH-R012.** `max(samples, 1)` when built without `from_args` is untested. Mutant
+   (reverted): `(0..config.samples)` in `measure`; every test passes, yet
+   `Config { samples: 0, .. }` then panics in `Bench::run` on the `expect("invariant: …")`
+   instead of taking one sample. Test `measure`/`run` with `samples: 0`.
+5. **B5, BENCH-R024.** The spec says `Summary::from_samples` returns `Some` for every non-empty
+   finite slice; `benches/src/stats.rs` returns `None` when the length exceeds `u32::MAX`
+   (`u32::try_from(...).ok()?`). Either state that case in R024 (spec bump) or change the code.
+
+Checked without a finding: every other acceptance criterion (crate at `benches/`, workspace
+member, `#![forbid(unsafe_code)]` in `src/lib.rs` and the bench target, floor 96.8 in
+`ci/coverage.toml`; public items documented with examples; statistics tests with hand-computed
+values and a fake clock; `tests/output.rs` parses a real fixed-iteration result file);
+`Verifies:` tags of R001–R003, R005, R010, R011, R013–R015, R020–R023, R030, R031, R033–R035,
+R040–R042, R050, R060 and XTASK-R090 against their tests; spec §5 API against the code; no
+`unsafe`, crate not deterministic; no new external dependency, `architecture.toml` entry
+matches. Bench target run by hand on the merged tree (`--iterations 1000 --samples 3`): five
+cases of BENCH-R061, file in the §5 layout; `--samples 0` prints LIM-BENCH-0005 and exits 1.
+`xtask` changes (XTASK-R090, coverage file filter) judged inside ADR-0030 Decision 9 (b): the
+task's scope names R090, and without the filter the new crate measured no lines, so its floor
+blocked this task. The two adapted `xtask` tests still check what they checked for their rule.
+Coverage floor raise `xtask` 97.6 → 98.2: by `--update-floors`, allowed (XTASK-R063), and
+`cargo xtask ci` coverage passes with it on the merged tree.
+Merge of `origin/main` (`483f277`): conflicts `Cargo.toml` (members: both), `ci/coverage.toml`
+(both floors), `docs/specs/xtask.md` (this task's history row renumbered **27 → 28**,
+`spec_version: 28`; M1-T010 took 27), `docs/STATUS.md` regenerated. The handoff above keeps
+"`spec_version` 27" as written. `cargo xtask ci` on the merged tree: 12 steps pass, none
+skipped, macOS 27.2 arm64, Rust 1.99.1.
+Session boundaries: implementation sub-agent #10 of `2026-11-10-session-m1-t014-review.md`
+(started 22:35, before the 22:40 cutoff), pair template. No workflow change (ADR-0028).
+
+Backlog: 4 entries in `docs/BACKLOG.md` ("M1-T015, M1-T016 — review 2026-11-10"). Follow-up
+task: none.
