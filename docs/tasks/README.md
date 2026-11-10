@@ -85,6 +85,7 @@ normal: leave a precise handoff note instead of rushing (AGENTS.md rule 2).
 | [M1-T057](M1-T057-liminal-reflect-spec-follow-ups.md) | `liminal_reflect` and `liminal_reflect_derive` spec follow-ups from the M1-T030 review |
 | [M1-T058](M1-T058-liminal-memory-spec-follow-ups.md) | `liminal_memory` spec follow-ups from the M1-T024 review |
 | [M1-T060](M1-T060-liminal-math-spec-follow-ups.md) | `liminal_math` spec follow-ups from the M1-T019 review |
+| [M1-T062](M1-T062-reflect-impls-for-liminal-math-and-liminal-core-types.md) | `Reflect` impls for `liminal_math` and `liminal_core` types |
 | [M2-T001](M2-T001-check-docs-markdown-follow-ups.md) | `check-docs` Markdown follow-ups from the M1-T002 review |
 | [M2-T002](M2-T002-workspace-member-path-follow-ups.md) | Workspace member path follow-ups from the M1-T005 review |
 | [M2-T003](M2-T003-status-requirement-tags.md) | `status` write-if-changed requirement tag follow-up from the M1-T007 review |

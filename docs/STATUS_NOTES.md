@@ -8,13 +8,12 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 M1 is in progress: 16 tasks became `done` on 2026-11-10 (journal
 `2026-11-10-session-m1-reviews.md`). `crates/liminal_core` exists on `main` (error model,
-handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs.
+handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs,
+ecs (M1-T037 `done` 2026-11-10; its `Reflect`-impls task was renumbered M1-T062 at the merge).
 
-In `review`, each on its own pushed task branch (not on `main`): M1-T014 (rest of
-`liminal_core`, with the evidence for `usable`), M1-T037 (ECS spec), M1-T058, M1-T008, T009,
-T010. Review M1-T014 first: M1-T020, M1-T015 and most other crates wait for it. Traps for those
-merges (task ID collision M1-T061 on the M1-T037 branch, `docs/specs/xtask.md` `spec_version`
-24, branches that predate ADR-0029) are in that journal entry.
+In `review`, each on its own pushed task branch (not on `main`): M1-T058, M1-T008, T009,
+T010. Traps for those merges (`docs/specs/xtask.md` `spec_version` 24, branches that predate
+ADR-0029) are in that journal entry.
 
 ADR-0030 (accepted 2026-11-10 on the owner's approval, supersedes ADR-0029, whose other
 decisions stay in force):
