@@ -559,7 +559,7 @@ as `output_tail` in both output modes.
   a fixture crate whose only dependency is a git dependency on a local repository
   (`file://<temp>/dep`, created by the test with `git`), which is rejected; and against a
   fixture crate whose only dependency comes from a second registry, which is rejected with
-  `error[source-not-allowed]` (added in `spec_version` 19). That registry is a git index the
+  `error[source-not-allowed]` (added in `spec_version` 25). That registry is a git index the
   test creates at a `file://` URL (named through `CARGO_REGISTRIES_FIXTURE_INDEX`), whose `dl`
   is a `file://` directory holding the `.crate` file of a crate of the repository `Cargo.lock`,
   copied from the local crates.io cache, with the checksum from `Cargo.lock`; cargo runs with a
@@ -570,7 +570,7 @@ as `output_tail` in both output modes.
   crates.io crate of the repository `Cargo.lock`. An `unmaintained` advisory and a vulnerability
   advisory are each rejected; the same database without either passes. The `unmaintained` case
   runs twice: once on a crate the fixture app reaches only through a path crate, once on a
-  direct dependency of the app (added in `spec_version` 19), so `unmaintained = "all"` is
+  direct dependency of the app (added in `spec_version` 25), so `unmaintained = "all"` is
   distinguished from `"workspace"` and `"transitive"`. The crates come from the
   local cargo registry cache, so no network is needed once the repository has been built.
   cargo-deny reads the database from `<db-path>/advisory-db-<hash of the URL>`; the test takes
