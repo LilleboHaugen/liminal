@@ -2,7 +2,7 @@
 id: M1-T054
 title: M1 kickoff follow-ups from the M1-T001 review
 milestone: M1
-status: todo
+status: review
 crates: []
 depends_on: [M1-T001]
 requirements: []
@@ -52,11 +52,11 @@ path (M1-T019) is written.
 
 ## Acceptance criteria
 
-- [ ] The reference-exposure rule is written in TESTING.md or PERFORMANCE.md, with the reason,
+- [x] The reference-exposure rule is written in TESTING.md or PERFORMANCE.md, with the reason,
       and the `todo` spec tasks listed in Scope item 1 reference it.
-- [ ] M1-T051 and M1-T052 (if `todo`) have the comparison-crate data AC.
-- [ ] The four stale passages are corrected (or the journal says which other task already did).
-- [ ] `cargo xtask ci` passes.
+- [x] M1-T051 and M1-T052 (if `todo`) have the comparison-crate data AC.
+- [x] The four stale passages are corrected (or the journal says which other task already did).
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -68,7 +68,27 @@ Written by the review of M1-T001 (2026-11-09).
 
 ## Handoff
 
-_Empty._
+2026-11-10, implementation sub-agent (ADR-0026), branch `task/M1-T054-m1-kickoff-follow-ups`.
+All four ACs met; status `review`.
+
+1. **Reference exposure.** Rule written in `docs/process/PERFORMANCE.md` "Reference
+   implementations reachable from benchmarks": a public, always-compiled, documented
+   `reference` module at the crate root, items named like their optimized counterpart, only for
+   optimized paths that exist or are specified; reasons against a cargo feature (resolver-3
+   feature unification gives two API surfaces) and `#[doc(hidden)]` (hidden from docs and,
+   assumption, from the `cargo public-api` snapshot) in a table. Needs no ADR-0023 change: the
+   items are public API. Pointers added to PERFORMANCE.md "Rules for optimization work" item 2
+   and the TESTING.md "Differential" row. The Context of M1-T019, M1-T024, M1-T034 and M1-T037
+   (all `todo`) names the rule.
+2. **Comparison-crate data.** New AC in M1-T051 (`glam`, `rayon`) and M1-T052 (`bevy_ecs`,
+   `hecs`), both `todo`.
+3. **Stale text.** `docs/ROADMAP.md` kickoff-rule sentence and §M1 "ADR required per OQ-004" →
+   ADR-0023; `docs/process/TESTING.md` Concurrency row adds `liminal_telemetry`;
+   `docs/specs/xtask.md` §2 and §12 (spec_version 20 → 21, history row; M1-T017 had not done it).
+4. `cargo xtask ci`: pass, 11 steps, macOS 27.2, Rust 1.99.1.
+
+Trap for the reviewer and for merges: `docs/specs/xtask.md` `spec_version` 21 may collide with
+another branch that also bumps it; renumber on merge, keeping both history rows.
 
 ## Review
 
