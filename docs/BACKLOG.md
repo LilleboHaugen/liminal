@@ -222,3 +222,11 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   passes. The spec says "the parent's stdin stays open"; a test could give the child an open pipe itself.
 - `xtask/src/hygiene/advisories.rs` (R085): a table entry with a valid `reason` but neither `id`
   nor `crate` passes R085 (named `entry`); cargo-deny rejects it, so R085 could too.
+
+## M1-T061 — review 2026-11-10
+
+- `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is
+  not in the list passes, so bare prelude names (`Clone`, `Default`, `Box`, `Into`) in generated
+  code pass test (1), and test (2) does not shadow them. Same gap as in `spec_version` 2; M1-T032
+  may extend the list or the shadowing test.
+- `docs/tasks/README.md`: no row for M1-T061 (task created by the M1-T057 review).
