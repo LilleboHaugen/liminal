@@ -4,8 +4,8 @@
 **Session ID:** Claude Code session `f51f9eb3-5cd6-44cb-89e9-4a0bf0d07ef2`
 **Session branch:** `session/2026-11-10-m1-reviews`, checked out in the primary checkout
 (`/Users/lillebohaugen/Documents/dev/liminal`), so `main` is free for merging reviewers.
-**Tasks touched:** none by the parent. Sub-agents: see the table.
-**Status of this entry:** in progress (committed before the first spawn; completed at the end).
+**Tasks touched:** none by the parent, except the merge of M1-T012 on the owner's instruction.
+Sub-agents: see the table.
 
 ## Identity (facts for reviewers, ADR-0026 Decision 8.1)
 
@@ -31,10 +31,12 @@
 ## Owner instructions that limit sub-agents (ADR-0026 Decision 1)
 
 - None at the start.
+- "Stop as soon as you have a clean exit point" (about 20:10 CET). From then on nothing was
+  spawned; the three running sub-agents (rows 21, 23, 26) ended on their own.
 
 ## Sub-agents
 
-Interim list, updated during the session; completed at the end. Worktrees under
+Worktrees under
 `../liminal-worktrees/`: `<ID>` for implementations, `<ID>-review` for reviews. Prompt "review
 template" / "impl template" = the ADR-0026 template verbatim. Status and commits are read from
 the repository. Sub-agent journals: `2026-11-10-<ID>.md` (implementation) and
@@ -61,11 +63,15 @@ the repository. Sub-agent journals: `2026-11-10-<ID>.md` (implementation) and
 | 17 | impl | M1-T059 | todo → review | `2366b2a` | — | impl template |
 | 18 | review | M1-T019 | review → done | `ceae17e` | `5e0a1ea` | review template |
 | 19 | review | M1-T059 | review → done | `86ecb7b` | `0daa063` | review template |
-| 20 | impl | M1-T060 | running | | | impl template |
-| 21 | impl | M1-T014 | running | | | impl template |
-| 22 | review | M1-T034 | running | | | review template |
+| 20 | impl | M1-T060 | todo → review | `9042dd5` | — | impl template |
+| 21 | impl | M1-T014 | todo → review | `fc7d13b` | — | impl template |
+| 22 | review | M1-T034 | review → done | `3c3a551` | `bef9c95` | review template |
+| 23 | impl | M1-T037 | todo → review | `d36b53c` | — | impl template |
+| 24 | review | M1-T060 | review → done | `72f4102` | `4c02a19` | review template |
+| 25 | review | M1-T056 | review → done | `3a70ac0` | `f8b9660` | review template |
+| 26 | review | M1-T057 | review → done | `80bb6c8` | `63774cb` | review template |
 
-Rows 15, 16, 18, 19 and 22 are reviews of tasks that implementation sub-agents of this session
+Rows 15, 16, 18, 19, 22, 24, 25 and 26 are reviews of tasks that implementation sub-agents of this session
 wrote, under ADR-0029 Decision 1 (in force on `main` from `c75a54e`).
 
 Further message to sub-agent 15, after it first declined the review because its worktree's
@@ -90,3 +96,70 @@ branch predated ADR-0029 (verbatim):
 3. ADR-0029. Owner: "You are hereby allowed by me to change the ADR with those points directly,
    and merge to main". Written and accepted by this session with no separate ADR review; merged,
    `main` at `c75a54e`; CI on the result: pass.
+
+## Done
+- 26 sub-agents (table): 14 reviews, each ended in `done` and a merge to `main` by the reviewer;
+  12 implementations, each ended in `review`. At most 3 ran at once, at most 1 review.
+- `done` on `main` through this session: M1-T012 (merge only), T054, T027, T004, T011, T030,
+  T024, T006, T013, T055, T019, T059, T034, T060, T056, T057.
+- In `review` at the end, each on its own pushed task branch: M1-T014 and M1-T037 (written by
+  this session, not reviewed), M1-T058 (written by this session), M1-T008, T009, T010 (written
+  by `2026-11-09-session-m1-subagents.md`).
+- ADR-0029 written, accepted and applied on the owner's instruction (item 3 above).
+- All worktrees under `../liminal-worktrees/` removed; each branch was pushed and clean first.
+
+## Verified
+- For every sub-agent: task status and last commit read from the branch and from `origin/main`;
+  worktree clean and branch equal to `origin` before removal.
+- `cargo xtask ci` by the parent: on the M1-T012 merge, the `session/2026-11-09-m1-reviews`
+  merge, the ADR-0029 merge, and this session branch after merging `main` (macOS 27.2 arm64,
+  Rust 1.99.1), all steps pass.
+- Not verified by the parent: the sub-agents' own `cargo xtask ci` claims, their branch CI runs,
+  and the CI runs on `main` after each merge.
+
+## Decisions
+- ADR-0029 (owner instruction). Its fourth offered point, moving M1-T008 … T010 to M2, was left
+  out: they are implemented and need only reviews.
+- Deviations from "refill a free slot at once" (ADR-0027 Decision 2.2):
+  - M1-T014 was held until the M1-T055 review ended, because M1-T055 changed M1-T014's
+    requirement list. The review then created M1-T059, which M1-T014 depends on.
+  - After the owner's stop instruction no slot was refilled.
+- Review order was chosen to unblock implementation tasks first (M1-T054, T027, T004, T011
+  before T030, T024, T006; later M1-T013, T055, T059, T060 before the others).
+
+## Oracle changes
+- None by the parent. Sub-agents' oracle changes are in their own journal entries (M1-T013 and
+  M1-T014: two relaxed `xtask` tests, coverage floor for `liminal_core`, recorded literals).
+
+## Problems and traps
+- **Task ID collision M1-T061.** The M1-T057 review created
+  `M1-T061-reflect-derive-path-check-definition.md` on `main`. The M1-T037 branch (in `review`,
+  not merged) also creates an M1-T061 (`Reflect` impls for `liminal_math` and `liminal_core`
+  types) and names it in `depends_on` of M1-T050 and M1-T053. Whoever merges M1-T037 renumbers
+  its task to the next free ID; the M1-T037 handoff lists what to change.
+- **Spec follow-up beside its implementation.** M1-T055 (spec change assigning CORE-R041 to
+  M1-T013) and M1-T013 ran at the same time; the requirement landed on a `done` task untested
+  and needed M1-T059. Do not run a contract-changing follow-up beside the task it changes
+  (now ADR-0029 Decision 2.3: list it in `depends_on`).
+- **Stale rules in review worktrees.** A review worktree is on the task branch. Branches created
+  before `c75a54e` carry the pre-ADR-0029 `AGENTS.md`. Sub-agent 15 declined its review for
+  that reason until told where the current text is; later reviewers read `main` themselves.
+  This applies to M1-T008, T009, T010 and M1-T058, whose branches predate `c75a54e`.
+- **`docs/specs/xtask.md` `spec_version`** is 24 on `main`. M1-T008, T009 and T010 each bump it
+  from an older base and must renumber on merge, keeping all history rows.
+- **M1-T014 oracles.** The reference C programs named in the core spec's test plan were not
+  run (compiling downloaded code was denied). Published vectors and an independent Python
+  implementation were used. The M1-T014 reviewer judges this.
+- **Dependabot** is active since `.github/dependabot.yml` reached `main` (M1-T006). A pull
+  request from it is outside code (ADR-0028 Decision 5).
+- The `origin` URL of the owner's checkout still names the repository `rust-game-engine`;
+  GitHub redirects it. Not changed.
+- The harness flagged sub-agent 5 (M1-T004 review) with "modify shared resources". The parent
+  checked the repository at that moment: a pushed review commit and a staged, unpushed merge in
+  its own worktree, which is the reviewer procedure.
+
+## Next
+- Start a new session. It reviews M1-T014 first (task review and the promotion review of
+  `liminal_core` to `usable`), then M1-T037, T058, T008, T009, T010, and assigns the eligible
+  implementation tasks (M1-T061 now; M1-T020 and M1-T015 with M1-T016 once M1-T014 is `done`).
+- Owner decisions open: see `docs/STATUS_NOTES.md` "Blockers needing an owner decision".

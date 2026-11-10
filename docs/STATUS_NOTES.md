@@ -6,22 +6,22 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M1-T001 (M1 kickoff) is done (review 2026-11-09); ADR-0023, ADR-0024 and ADR-0025 are accepted.
-M1 has 54 tasks: follow-ups T002–T010 and T054 (kickoff review follow-ups; M1-T019 depends on
-it) first, then the engine crates (plan in M1-T001 "Handoff"). M1-T002 is done (review
-2026-11-09; follow-ups in M2-T001).
+M1 is in progress: 16 tasks became `done` on 2026-11-10 (journal
+`2026-11-10-session-m1-reviews.md`). `crates/liminal_core` exists on `main` (error model,
+handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs.
 
-Parent session `2026-11-09-session-m1-subagents.md` set M1-T004, T006, T008–T012, T024, T027,
-T030 and T054 to `review`, each on its own pushed task branch (not on `main`). The next session
-reviews those still in `review`; no agent of that parent session may. Expect merge conflicts in
-`docs/specs/xtask.md` (`spec_version`), `xtask/src/repo.rs` and `docs/specs/README.md` (see that
-journal entry). Every new spec fails the `xtask` test `loads_the_real_repository` until M1-T012
-(or another spec task) is merged.
+In `review`, each on its own pushed task branch (not on `main`): M1-T014 (rest of
+`liminal_core`, with the evidence for `usable`), M1-T037 (ECS spec), M1-T058, M1-T008, T009,
+T010. Review M1-T014 first: M1-T020, M1-T015 and most other crates wait for it. Traps for those
+merges (task ID collision M1-T061 on the M1-T037 branch, `docs/specs/xtask.md` `spec_version`
+24, branches that predate ADR-0029) are in that journal entry.
 
-ADR-0027 (sub-agents by default, no per-session total) is accepted (ADR review 2026-11-09) and
-supersedes ADR-0026, whose other decisions stay in force through it. Sessions SHOULD act as a
-parent whenever two or more tasks are eligible, keep up to 3 sub-agents (1 review) running until
-nothing is eligible (AGENTS.md step 6, WORKFLOW.md §2).
+ADR-0029 (accepted 2026-11-10 on the owner's instruction, supersedes ADR-0021 and ADR-0027):
+a fresh review sub-agent may review a task a sibling sub-agent wrote; minor review findings go
+to `docs/BACKLOG.md`, only contract-changing ones become a task; a spec task and the first
+implementation task of a crate may be one unit. A session SHOULD act as a parent whenever two
+or more tasks are eligible and keep up to 3 sub-agents (1 review) running (AGENTS.md step 6,
+WORKFLOW.md §2).
 
 **The repository is public since 2026-11-09.** ADR-0028 is accepted (ADR review 2026-11-09)
 and adds AGENTS.md rule 17 and REVIEW.md item 11. Outside issues and pull requests, Dependabot's
@@ -87,4 +87,20 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
 
 ## Blockers needing an owner decision
 
-None.
+Not blocking a task today; each needs the owner before the named point.
+
+1. **Nightly toolchain and Miri** (ADR-0022): M1-T018 needs the install approved. M1-T022,
+   T025, T028 and T035 depend on M1-T018.
+2. **First pixels earlier.** The owner expected a visual demo early (2026-11-10). Options the
+   session offered, none chosen yet: (a) a throwaway spike outside the engine rules, using an
+   existing graphics library; (b) a thin first-pixels slice in the engine (window, Metal only,
+   triangle, cube) right after `liminal_core` and the scalar math types; (c) both. Each needs an
+   ADR, because it changes the milestone order in `docs/ROADMAP.md`.
+3. **Platforms and CI.** The owner asked about macOS only and local checks only. The session
+   suggested instead: keep CI but do not wait for it before a merge, and build Metal first with
+   Vulkan later. Not decided. Either needs an ADR (ADR-0005, ADR-0028 rule 17).
+4. **Parallel GPU track.** `docs/ROADMAP.md` allows M3 beside M1/M2 once `liminal_core` and
+   `liminal_math` are `usable`, when the owner records it here.
+5. **Engine-wide conventions** (handedness, axes, matrix layout, angle unit, clip depth) are set
+   in the `liminal_math` spec without an ADR; its open question 9 asks whether the owner wants
+   one before the M3 kickoff.
