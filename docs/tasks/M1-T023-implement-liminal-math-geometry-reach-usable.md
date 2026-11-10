@@ -4,8 +4,8 @@ title: Implement liminal_math geometry; reach usable
 milestone: M1
 status: todo
 crates: [liminal_math]
-depends_on: [M1-T022]
-requirements: []
+depends_on: [M1-T022, M1-T060]
+requirements: [MATH-R150, MATH-R151, MATH-R152, MATH-R153, MATH-R155, MATH-R156, MATH-R157, MATH-R160, MATH-R161, MATH-R165, MATH-R166, MATH-R167, MATH-R168, MATH-R169, MATH-R170, MATH-R175, MATH-R176, MATH-R177, MATH-R192]
 ---
 
 # M1-T023: Implement `liminal_math` geometry; reach `usable`
@@ -46,7 +46,7 @@ Requirements in frontmatter; property and differential tests.
 
 ## Notes
 
-_None._
+Added by the M1-T019 review (2026-11-10): depends on M1-T060, which corrects requirements this task implements (ADR-0029 Decision 2.3).
 
 ## Handoff
 

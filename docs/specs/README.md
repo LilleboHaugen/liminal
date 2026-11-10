@@ -18,6 +18,9 @@ Rules:
 | Spec | Crate | Prefix | Maturity |
 |---|---|---|---|
 | [liminal_core.md](liminal_core.md) | `liminal_core` | CORE | planned |
+| [liminal_jobs.md](liminal_jobs.md) | `liminal_jobs` | JOBS | planned |
+| [liminal_math.md](liminal_math.md) | `liminal_math` | MATH | planned |
+| [liminal_memory.md](liminal_memory.md) | `liminal_memory` | MEM | planned |
 | [liminal_telemetry.md](liminal_telemetry.md) | `liminal_telemetry` | TELE | planned |
 | [liminal_reflect.md](liminal_reflect.md) | `liminal_reflect` | REFL | planned |
 | [liminal_reflect_derive.md](liminal_reflect_derive.md) | `liminal_reflect_derive` | REFLD | planned |

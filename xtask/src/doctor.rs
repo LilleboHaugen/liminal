@@ -74,7 +74,15 @@ pub(crate) struct ToolSpec {
 }
 
 /// Every `ci` step that runs a cargo process.
-const CARGO_STEPS: &[&str] = &["fmt", "clippy", "test", "doc", "coverage", "deny"];
+const CARGO_STEPS: &[&str] = &[
+    "fmt",
+    "clippy",
+    "test",
+    "test-features-off",
+    "doc",
+    "coverage",
+    "deny",
+];
 
 /// Every tool, in output order (XTASK-R080).
 pub(crate) const TOOLS: &[ToolSpec] = &[

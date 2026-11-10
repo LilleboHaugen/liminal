@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc f0539f743c55d90e2c5dc7729c6ce67025c089caa520c25a0b4f1f289f317cfa # shrinks to slot_limit = 2, ops = [Allocate, Allocate, FreeLive(Index(0)), FreeLive(Index(0)), Allocate]
+cc f1a7308de213eae976a2fee69cef77387c67a62a678edd498ca00979fac7afe4 # shrinks to slot_limit = 2, ops = [Allocate, Allocate, FreeLive(Index(0)), FreeLive(Index(0)), Allocate]

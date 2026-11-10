@@ -302,13 +302,14 @@ mod tests {
             })
             .collect();
         assert_eq!(excluded, Vec::<&String>::new());
-        assert_eq!(
-            model
-                .members
+        // The real workspace gains a member per engine crate; check membership, not the exact
+        // list (M1-T013 added the first engine crate).
+        let members: Vec<&str> = model.members.iter().map(|m| m.name.as_str()).collect();
+        assert!(members.contains(&"xtask") && members.contains(&"liminal_core"));
+        assert!(
+            members
                 .iter()
-                .map(|m| m.name.as_str())
-                .collect::<Vec<_>>(),
-            ["xtask"]
+                .all(|name| *name == "xtask" || name.starts_with("liminal_"))
         );
         assert!(model.architecture.crates.iter().any(|c| c.name == "xtask"));
 
@@ -317,7 +318,8 @@ mod tests {
         assert!(!adrs.contains(&"0000-template.md") && !adrs.contains(&"README.md"));
         let specs: Vec<&str> = model.spec_files().map(|(path, _)| path).collect();
         // The real repository gains a spec per crate; check membership and exclusions, not the
-        // exact list (M1-T012 added the first engine spec).
+        // exact list (M1-T012 added the first engine spec). The loader must find xtask's spec
+        // and must skip the template and the index.
         assert!(specs.contains(&"docs/specs/xtask.md"));
         assert!(specs.iter().all(|path| path.starts_with("docs/specs/")));
         assert!(

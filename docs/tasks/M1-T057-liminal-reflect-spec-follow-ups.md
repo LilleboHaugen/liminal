@@ -2,7 +2,7 @@
 id: M1-T057
 title: liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review
 milestone: M1
-status: review
+status: done
 crates: [liminal_reflect, liminal_reflect_derive]
 depends_on: [M1-T030]
 requirements: []
@@ -176,4 +176,88 @@ moved or withdrawn.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent of parent session `2026-11-10-session-m1-reviews.md`, fresh context
+(journal `2026-11-10-M1-T057-review.md`). This agent wrote no part of M1-T057. The author was an
+implementation sub-agent of the same parent; ADR-0029 Decision 1 allows that (see "Session
+boundaries"). macOS 27.2 (arm64), Rust 1.99.1, worktree `liminal-worktrees/M1-T057-review`,
+branch at `9903681` before the review commits. Rules read from `main` at `f8b9660` (ADR-0029
+wording of `AGENTS.md` and `REVIEW.md`); the branch itself predated them.
+
+Outcome: **done**, no blocking finding. Backlog entries: 3 (`docs/BACKLOG.md`, heading
+"M1-T057 — review 2026-11-10"). Follow-up task: M1-T061 (contract-changing: it changes
+REFLD-R003, which M1-T032 implements; M1-T032 has it in `depends_on` now).
+
+Checked (REVIEW.md §1; the changed spec text also against §2):
+1. Acceptance criteria. The diff `ae6bdf7..9903681` was read in full.
+   - Item 1: the §5.2 example was compiled and run by this review: `rustc --edition 2024`
+     1.99.1 on one file with a reduced copy of the §5 API (`Reflect: Any`, `Typed`,
+     `ReflectFields`, `ReflectRef`, `ReflectMut`, the four inherent methods of `dyn Reflect`,
+     three `ReflectError` variants, impls for `f32`, a hand-written impl for `Velocity`) and the
+     example's `main` verbatim, under `#![forbid(unsafe_code)]` and `#![deny(warnings)]`: exit
+     0. With `r.field("z").unwrap_err()` the same file fails with E0277. `EngineError::code`
+     is a trait method in `docs/specs/liminal_core.md` §5. Not checked: the example with the
+     real derive or as a doc test (no crate yet).
+   - Item 2: §5.3, §11, REFL-R065 agree with each other; `TypeInfo` and its parts derive
+     `Debug` (§5.1), so the stated output is defined; REFL-R065 is in M1-T031's `requirements`
+     and in no other task's.
+   - Item 3: REFL-R043, REFL-R080, REFL-R100, INV-4. The wrong impls of R043 and R100 reach
+     the missing-value check of R080 (the descriptor checks before it pass for them).
+   - Item 4: both examples walked by hand against the stated order: `E` gives `x`, `F` gives
+     `A`. The "invalid descriptor whose ID is already stored" test of §10 can be built for 0002
+     and 0003.
+   - Item 5, 7, 9a to 9f: read. 9a: 8 + 4 + 4 + 4 + 4 + 8 + 1 = 33 bytes. 9c: CORE-R050, R053,
+     R054, R056, R098 are textually identical on the branch and in the core spec at
+     `spec_version` 3 on `main` (diffed row by row).
+   - Item 6: done as the item asks, but the definition of the new token check is wrong
+     (finding 1, M1-T061).
+   - Item 8: probe crate built offline by this review (`proc-macro2` 1.0.107, `syn` 3.0.9,
+     `quote` 1.0.47 from the local registry, nothing installed): with `span-locations`, every
+     token of `syn::Error::to_compile_error()` for an error at the `union` token of
+     `"#[derive(Reflect)]\nunion U { … }"` reports line 2, column 0. `Span::start()` is
+     `#[cfg(span_locations)]` in the source, and its doc comment says what §3 says about stable
+     toolchains. XTASK-R034 read in `xtask/src/check_arch/rules.rs`: a dev-dependency needs
+     scope `dev`. `architecture.toml`, DEPENDENCIES.md and ADR-0003 have no rule on features.
+   - `spec_version` 2 with a history row in both specs.
+2. `cargo xtask ci` on the merge of `main` (`f8b9660`) into the branch with the review edits:
+   pass, 12 steps, none skipped. Not run separately on `9903681`: branch CI run 42870451446
+   on that commit is a success (`gh run list`).
+3. Tests: none in this task (documentation). 4. No fake progress: no item declined or shrunk; no
+   oracle touched. 5. Spec agreement: no code exists for either crate. 6, 7, 9: no code, no
+   dependency change. 8. Docs: M1-T031 and M1-T032 notes point at the v2 changes.
+10. Session boundaries: below. 11. Public repository: `.github/workflows/` unchanged by the
+    task; no issue or pull request acted on.
+
+Findings (none is B1 to B5):
+1. **REFLD-R003 test (1) cannot pass as defined** (contract-changing, M1-T061). A path "starts
+   with `::`" only if the `::` follows neither an identifier nor `>`. In a `proc_macro2` stream
+   the leading `::` of `impl ::liminal_reflect::… for X` follows the identifier `impl`, that of
+   `-> ::std::string::String` and `=> ::core::option::Option::Some(…)` follows `>`, and those
+   in `<T as ::liminal_reflect::…>` and `&dyn ::liminal_reflect::…` follow `as` and `dyn`
+   (probe by this review, table in M1-T061). Each such path then breaks the second and fourth
+   rule of the test, and every expansion has an `impl … for`. Also: `String` is a "primitive
+   type name" (allowed field type of the test inputs) and one of the identifiers the fourth
+   rule forbids. Why not blocking: item 6 asked for the rewording and for the check, and both
+   were written; the defect is in the wording of a test that M1-T032 implements, none of B1
+   to B5 names a spec defect, and the M1-T030 review treated a normative example that does not
+   compile the same way. It is recorded as a task that M1-T032 depends on, so M1-T032 cannot
+   start against it.
+2. Backlog: reflect §3 names core `spec_version` 1 and 2 (core is at 3; text identical).
+3. Backlog: derive §3 writes `workspace = true` for `proc-macro2`; no workspace entry exists.
+4. Backlog: REFL-R080 fixes `expected` / `actual` only for the missing-value case.
+
+Merge edits by this review (ADR-0026 Decision 6, no task work): `docs/STATUS.md` regenerated
+with `cargo xtask status` after the merge of `main`.
+
+Session boundaries (item 10), stated as facts:
+- The author's journal names its parent `2026-11-10-session-m1-reviews.md`. That entry (branch
+  `session/2026-11-10-m1-reviews`, "in progress", read at `b32bbab`) lists the author as row 12,
+  "impl template". It does not list this review yet.
+- This review has the same parent. My prompt was the ADR-0026 review template verbatim, with
+  nothing added. The worktree's `AGENTS.md` and the copy in my context forbade a review by a
+  sibling; `main` carries ADR-0029, which allows it, and the text on `main` is in force. I read
+  that from the repository.
+- ADR-0029 was written and merged by this parent session on an owner instruction that the ADR
+  quotes. I cannot check the quote. If the owner did not give it, this review is void under
+  ADR-0026 Decision 5.1 and the task needs a review by another session.
+- M1-T057 had one implementation sub-agent and this one review sub-agent. Neither ran an
+  install; I spawned no agent.
