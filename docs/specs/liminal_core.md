@@ -700,8 +700,10 @@ checked by the session that reviews it.
 
 - [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
       review of M1-T012).
-- [ ] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T013).
+- [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
+      registered in `ci/coverage.toml` (evidence: M1-T013, 2026-11-10: `cargo xtask ci` passes
+      with `crates/liminal_core/clippy.toml` and the floor `liminal_core = 98.9`; modules `error`
+      and `handle` only, to be checked by the reviewer of M1-T013).
 - [ ] All MUST requirements traced: `cargo xtask trace --crate liminal_core` with
       `maturity: usable` applied on a scratch copy reports every MUST tested (evidence: M1-T014).
 - [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T014).
