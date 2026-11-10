@@ -73,7 +73,7 @@
 | [M1-T058](tasks/M1-T058-liminal-memory-spec-follow-ups.md) | liminal_memory spec follow-ups from the M1-T024 review | todo | M1-T024 |
 | [M1-T059](tasks/M1-T059-liminal-core-default-requirement-follow-ups.md) | liminal_core Default requirement follow-ups from the M1-T055 review | done | M1-T055, M1-T013 |
 | [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | done | M1-T019 |
-| [M1-T061](tasks/M1-T061-reflect-derive-path-check-definition.md) | Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review) | todo | M1-T057 |
+| [M1-T061](tasks/M1-T061-reflect-derive-path-check-definition.md) | Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review) | review | M1-T057 |
 
 ## Blocked tasks
 
@@ -84,7 +84,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 61 | 40 | 0 | 0 | 0 | 21 |
+| M1 (Headless core) | 61 | 39 | 0 | 0 | 1 | 21 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates

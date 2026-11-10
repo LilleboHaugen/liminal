@@ -2,7 +2,7 @@
 id: M1-T061
 title: Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review)
 milestone: M1
-status: todo
+status: review
 crates: [liminal_reflect_derive]
 depends_on: [M1-T057]
 requirements: []
@@ -70,9 +70,9 @@ names another crate fails it.
 
 ## Acceptance criteria
 
-- [ ] Items 1 to 3 are done; the handoff says how item 3 was run.
-- [ ] `docs/specs/liminal_reflect_derive.md` has a `spec_version` bump with a history row.
-- [ ] `cargo xtask ci` passes.
+- [x] Items 1 to 3 are done; the handoff says how item 3 was run.
+- [x] `docs/specs/liminal_reflect_derive.md` has a `spec_version` bump with a history row.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -84,8 +84,52 @@ _None._
 
 ## Handoff
 
-_Filled in by the implementing session(s): date, what is done, what is not, the exact next step,
-traps found._
+2026-11-10 (implementation sub-agent, journal `docs/journal/2026-11-10-M1-T061.md`).
+
+**Done.** `docs/specs/liminal_reflect_derive.md` `spec_version` 2 → 3 (history row). No
+requirement ID added or removed; only REFLD-R003 test (1), §3, §10 and two "not in
+`spec_version`" references changed.
+
+| Item | Result |
+|---|---|
+| 1 | Candidate (b), `syn`. The expansion is parsed with `syn::parse2::<syn::File>` and visited with `syn::visit::Visit`. It fails on (a) `use` / `extern crate` items, (b) a `QSelf` without `as`, (c) a macro whose path is not absolute with root `liminal_reflect`, `core` or `std`, or whose body is not a comma-separated expression list (the expressions are visited too), (d) a `syn::Path` that is none of: absolute with a root first; relative with `Self` or a generic parameter first; relative, one segment, not a listed identifier. §3 records `syn` features `full` and `visit` on the normal dependency, with the reason and the unmeasured compile-time effect. Rules (a) and (b) are new: (a) because a `use` tree is not a `syn::Path`; (b) because `syn` stores `<T>::f` as an *absolute* path with first segment `f` (probe output below), which (d) would reject with a misleading message. The test also runs the checker on two failing streams so it cannot be vacuous. |
+| 2 | `String` excluded from the field types of the test inputs (field types are primitive types other than `String`, or generic parameters). No exemption for copied tokens. |
+| 3 | Probe, see below. |
+
+**How item 3 was run.** A throwaway Cargo binary in the session scratchpad (not committed):
+`syn` =3.0.9 (features `derive`, `parsing`, `printing`, `proc-macro`, `full`, `visit`), `quote`
+=1.0.47, `proc-macro2` =1.0.107, `cargo run --offline`, macOS arm64, Rust 1.99.1. It holds
+hand-written expansions (`impl Reflect`, `Typed`, `ReflectFields`, and `ReflectEnum` for the
+enum, every path absolute) of `struct Health { current: u32, max: u32 }`,
+`struct Pos(f32, #[reflect(ignore)] u8, f64)`, `enum Figure { Empty, Point(f32, f32), Rect { w:
+f32, h: f32 } }` and `struct Pair<T, U> where T: Clone { a: T, b: U }`, the checker of the new
+definition, and the token rule of `spec_version` 2.
+
+| Check | Result |
+|---|---|
+| `spec_version` 2 rule on the four correct expansions | 32, 32, 45, 39 listed identifiers reported outside a `::` path; leading `::` not counted after `impl`, `as`, `dyn`, `->`, `=>`, and `>` closing `impl<…>` (the review's finding reproduced) |
+| New check on the four correct expansions | all pass |
+| New check, 12 wrong expansions | all fail: `::liminal_core::…` path; bare `None`; bare `Option` in a return type; bare `Some`; `<Self as Typed>::…`; bound `T: Typed`; `format!` without path; `::liminal_core::…` inside `::std::format!` arguments; `Vec::new()`; `use ::liminal_core::x as _;` in a fn body; `<U>::type_path()`; field type `String` |
+| `syn` representation | `<T as ::liminal_reflect::value::Typed>::type_path` → absolute, segments `liminal_reflect, value, Typed, type_path`, qself position 3; `<T as Typed>::type_path` → relative `Typed, type_path`; `<T>::type_path` → absolute (!) `type_path`, position 0 |
+
+The checker in the probe, for M1-T032 to reuse: a `Visit` impl that overrides `visit_path`
+(rule d, then `syn::visit::visit_path`), `visit_macro` (rule c on `m.path`, then visit the
+path's segment arguments, then `m.parse_body_with(Punctuated::<Expr, Token![,]>::parse_terminated)`
+and `visit_expr` on each), `visit_qself` (rule b, then `syn::visit::visit_qself`),
+`visit_item_use` and `visit_item_extern_crate` (rule a). `visit_macro` must not call
+`visit_path` on the macro path, or a correct `::core::concat!` path is checked twice (harmless)
+and a relative macro path is reported as a plain path instead of as a macro.
+
+**CI.** `cargo xtask ci` on macOS arm64: pass, 12 of 12 steps, none skipped.
+
+**Not done / not verified.** The hand-written expansions were parsed by `syn` but not compiled
+against a `liminal_reflect` crate (none exists). The compile-time effect of `full` and `visit`
+is not measured. Not verified on Windows or Linux.
+
+**Traps.** Generated code that needs `vec![x; n]` or another non-expression macro body fails
+rule (c); write such code without that macro form, or change the spec.
+
+**Next step.** Review of M1-T061; then M1-T032 (its other dependency, M1-T031, must be `done`).
 
 ## Review
 

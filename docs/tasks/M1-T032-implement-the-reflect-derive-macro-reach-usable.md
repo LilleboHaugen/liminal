@@ -53,6 +53,13 @@ Requirements in frontmatter; differential and compile-fail tests.
   REFLD-R003 has two tests (token walk over the expansion; shadowing integration test).
   REFLD-R033: the hand-written twins return the derived types' paths and are never registered
   in the same `TypeRegistry` as the derived type. REFL-R120 is reworded.
+- 2026-11-10 (M1-T061): the derive spec is at `spec_version` 3. REFLD-R003 test (1) is no longer
+  a token walk: it parses the expansion as a `syn::File` and checks it with `syn::visit::Visit`
+  (rules (a) to (d) in the requirement), so the derive crate enables the `syn` features `full`
+  and `visit` on its normal dependency (§3). Its inputs have no field of type `String`. The test
+  also runs the check on two hand-written streams (one naming `::liminal_core`, one with a bare
+  `Option`) and asserts that it fails. A working version of the checker is described in the
+  M1-T061 handoff.
 
 ## Handoff
 
