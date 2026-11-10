@@ -2,7 +2,7 @@
 id: M1-T058
 title: liminal_memory spec follow-ups from the M1-T024 review
 milestone: M1
-status: todo
+status: review
 crates: [liminal_memory]
 depends_on: [M1-T024]
 requirements: []
@@ -106,10 +106,10 @@ Q2, Q3).
 
 ## Acceptance criteria
 
-- [ ] Items 1 to 8 are done, or a declined item is written into this task with the reason.
-- [ ] Spec changes bump `spec_version` with a history row; requirement IDs added or moved are in
+- [x] Items 1 to 8 are done, or a declined item is written into this task with the reason.
+- [x] Spec changes bump `spec_version` with a history row; requirement IDs added or moved are in
       exactly one task's `requirements` frontmatter (M1-T025 or M1-T026).
-- [ ] `cargo xtask ci` passes.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -122,7 +122,44 @@ The review probes (reduced copies, not committed) are described in
 
 ## Handoff
 
-_Empty._
+2026-11-10, implementation sub-agent (ADR-0026/0027) of parent session
+`2026-11-10-session-m1-reviews.md`. Branch `task/M1-T058-liminal-memory-spec-follow-ups`,
+worktree `liminal-worktrees/M1-T058`. Journal: `docs/journal/2026-11-10-M1-T058.md`.
+
+**Done.** `docs/specs/liminal_memory.md` is at `spec_version` 2 (history row in §14). No item
+declined. No requirement ID was added, moved or withdrawn, so the `requirements` frontmatter of
+M1-T025 and M1-T026 is unchanged (36 MUST + MEM-R074, each still in exactly one task). M1-T025
+and M1-T026 were both `todo`, so no code had to be checked.
+
+| Item | Decision | Where in the spec |
+|---|---|---|
+| 1 | Third allocation of the diagram changed to a `u64` (16–24, `used() = 24`); a sentence gives the `[u8; 16]` case (12, 28). | §4 |
+| 2 | One statement "Zero-size request": runs check steps 1 to 3; then always succeeds (also capacity 0); `used()` unchanged; address non-null and a multiple of the effective alignment, otherwise unspecified; counts in `allocations`. | §4; MEM-R011, MEM-R063, MEM-R070 refer to it; unsafe-table row |
+| 3 | `AlignedBuf::new`: LIM-MEM-0003 on the effective alignment `max(align, align_of::<T>())`; LIM-MEM-0002 when the size rounded up to the effective alignment exceeds `isize::MAX`; LIM-MEM-0004 fields are those of the `Layout` passed to the system allocator, for every producer; LIM-MEM-0003 fields stated. | §5 notes, MEM-R060, MEM-R040 |
+| 4 | One reservation with a computed layout: block area, then a `u32` free stack at `round_up(blocks × S, 4)`; `pool_size`, `pool_align = max(align_of::<T>(), 4)`. Size check, LIM-MEM-0004 fields, "base" and `capacity_bytes` (block area only) follow. | §4 "Pool layout", MEM-R040, MEM-R045, MEM-R046, MEM-R072, unsafe table |
+| 5 | `begin_frame` returns `()`. Pattern: `begin_frame()`, then `arena()`. | §5 API and note, MEM-R031, MEM-R032 |
+| 6 | Rows for MEM-R031 (frame model), MEM-R040 zero-sized half, MEM-R074; "does not compile" = "does not build", with the review's measurements. | §5 "Compile-time rejections", §10, MEM-R014, MEM-R040 |
+| 7 | Q1 closed: `EngineError`, `help() -> Option<String>` (always `Some`), `write_display`, `validate_error(&e, "MEM")`, context key order per variant; `Rng`, `StreamKey`, `StateHasher` named with the hash encoding. | §3, §5, MEM-R002, MEM-R042, §11, §12 |
+| 8 | `AlignedBuf` not tracked (§2); `PoolBox` neither `Send` nor `Sync` (MEM-R046, §10); MEM-R012 says why the sum cannot overflow; W1 call and W3 cases (§11); `alloc_zeroed` removed, `NonNull` and `from_raw_parts(_mut)` added (§3, unsafe table); M1-T013 reached through M1-T014, stated in §13 (`depends_on` of M1-T025 not changed). | as listed |
+
+Also changed: "Notes" of M1-T025 and M1-T026 list the spec v2 changes that affect each;
+`docs/STATUS.md` regenerated.
+
+**Not done / not verified.**
+- Nothing in the spec was compiled in this session. The statements about `cargo build` against
+  `cargo check`, the `begin_frame` borrow and `Layout::from_size_align` are the M1-T024 review's
+  measurements, cited as such. The zero-sized-`T` rejection in `Pool::<T>::with_capacity` uses
+  the same mechanism as the arena case but is unmeasured; the spec says so and assigns the check
+  to M1-T026.
+- `last_reviewed` in the spec frontmatter is unchanged (2026-11-09); the reviewer sets it.
+
+**For the reviewer.** The three decisions with alternatives are items 4 (one reservation, not
+two, and not a per-slot minimum size of 4 bytes), 5 (`()` return, not a documented borrow) and
+2 (address unspecified beyond non-null and aligned). Each changes the contract M1-T025 or
+M1-T026 implements.
+
+**Next step.** Review of this task (another session). Then M1-T025 once M1-T014 and M1-T018
+are `done`.
 
 ## Review
 

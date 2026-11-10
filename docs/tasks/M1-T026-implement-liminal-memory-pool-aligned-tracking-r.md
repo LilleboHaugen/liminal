@@ -46,7 +46,13 @@ Requirements in frontmatter; property tests; Miri.
 
 ## Notes
 
-_None._
+- Spec v2 changes that affect this task (M1-T058, 2026-11-10): the pool is one reservation that
+  holds the blocks and a `u32` free list (§4 "Pool layout"; MEM-R040, MEM-R045, MEM-R046,
+  MEM-R072); `AlignedBuf::new` checks the effective alignment and the rounded size (MEM-R060);
+  `PoolBox` is neither `Send` nor `Sync` (MEM-R046); LIM-MEM-0005 passes `validate_error`
+  (MEM-R042); the zero-sized-`T` rejection of `Pool` is a build error in
+  `Pool::<T>::with_capacity`, not measured yet: verify it with a `compile_fail` doc test
+  (§5 "Compile-time rejections", §10); W1 and W3 details and the hash encoding are in §11.
 
 ## Handoff
 
