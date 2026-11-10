@@ -1,10 +1,10 @@
 ---
 id: ADR-0027
 title: Sub-agents by default, no per-session total
-status: accepted
+status: superseded
 date: 2026-11-09
 supersedes: [ADR-0026]
-superseded_by: []
+superseded_by: [ADR-0029]
 ---
 
 # ADR-0027: Sub-agents by default, no per-session total

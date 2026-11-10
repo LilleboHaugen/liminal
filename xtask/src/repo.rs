@@ -318,7 +318,8 @@ mod tests {
         assert!(!adrs.contains(&"0000-template.md") && !adrs.contains(&"README.md"));
         let specs: Vec<&str> = model.spec_files().map(|(path, _)| path).collect();
         // The real repository gains a spec per crate; check membership and exclusions, not the
-        // exact list (M1-T012 added the first engine spec).
+        // exact list (M1-T012 added the first engine spec). The loader must find xtask's spec
+        // and must skip the template and the index.
         assert!(specs.contains(&"docs/specs/xtask.md"));
         assert!(specs.iter().all(|path| path.starts_with("docs/specs/")));
         assert!(

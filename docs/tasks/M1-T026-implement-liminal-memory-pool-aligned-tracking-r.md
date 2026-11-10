@@ -5,7 +5,7 @@ milestone: M1
 status: todo
 crates: [liminal_memory]
 depends_on: [M1-T025, M1-T017]
-requirements: []
+requirements: [MEM-R040, MEM-R041, MEM-R042, MEM-R043, MEM-R044, MEM-R045, MEM-R046, MEM-R047, MEM-R060, MEM-R061, MEM-R062, MEM-R063, MEM-R064, MEM-R070, MEM-R071, MEM-R072, MEM-R073, MEM-R074, MEM-R080, MEM-R081]
 ---
 
 # M1-T026: Implement `liminal_memory`: pool, aligned, tracking; reach `usable`

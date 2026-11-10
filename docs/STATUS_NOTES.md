@@ -78,7 +78,12 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
   on macOS). Its spec frontmatter still says `maturity: planned`: only a reviewing session
   changes it (MATURITY.md).
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
-  Linux; `coverage` and `deny` run in their own Linux jobs.
+  Linux; `coverage` and `deny` run in their own Linux jobs. There is no `pull_request` trigger
+  (M1-T006). Dependabot (`.github/dependabot.yml`) opens a monthly grouped pull request for the
+  SHA-pinned actions (`gh pr list --author app/dependabot`). Such a pull request is a signal
+  only: an agent never merges, checks out or cherry-picks it, and acts on it only when the owner
+  points to it; the pins are then updated by hand in a task (ADR-0028 Decision 5, rule 17).
+  Wording of the workflow header and the open Dependabot questions: M2-T007.
 
 ## Blockers needing an owner decision
 

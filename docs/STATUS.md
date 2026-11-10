@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 10 of 56 tasks done.
+**M1** (Headless core): 14 of 58 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -18,14 +18,14 @@
 | [M1-T003](tasks/M1-T003-check-arch-follow-ups.md) | check-arch follow-ups from the M0-T004 review | done | M0-T004 |
 | [M1-T004](tasks/M1-T004-trace-hygiene-follow-ups.md) | trace and hygiene follow-ups from the M0-T005 review | done | M0-T005 |
 | [M1-T005](tasks/M1-T005-coverage-follow-ups.md) | coverage follow-ups from the M0-T006 review | done | M0-T006 |
-| [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | todo | M0-T007 |
+| [M1-T006](tasks/M1-T006-ci-workflow-follow-ups.md) | CI workflow follow-ups from the M0-T007 review | done | M0-T007 |
 | [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | done | M0-T008 |
 | [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | todo | M0-T009 |
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | todo | M0-T009 |
 | [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | done | M1-T001 |
 | [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | done | M1-T001 |
-| [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | review | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
+| [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | done | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
 | [M1-T014](tasks/M1-T014-implement-liminal-core-hashing-rng-collections-t.md) | Implement liminal_core — hashing, RNG, collections, time; reach usable | todo | M1-T013 |
 | [M1-T015](tasks/M1-T015-write-the-spec-for-liminal-benches.md) | Write the spec for liminal_benches | todo | M1-T014 |
 | [M1-T016](tasks/M1-T016-implement-the-liminal-benches-harness.md) | Implement the liminal_benches harness | todo | M1-T015 |
@@ -36,13 +36,13 @@
 | [M1-T021](tasks/M1-T021-implement-liminal-mathdet.md) | Implement liminal_math::det | todo | M1-T020 |
 | [M1-T022](tasks/M1-T022-implement-liminal-math-simd-paths.md) | Implement liminal_math SIMD paths | todo | M1-T021, M1-T017, M1-T018 |
 | [M1-T023](tasks/M1-T023-implement-liminal-math-geometry-reach-usable.md) | Implement liminal_math geometry; reach usable | todo | M1-T022 |
-| [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | todo | M1-T001 |
+| [M1-T024](tasks/M1-T024-write-the-spec-for-liminal-memory.md) | Write the spec for liminal_memory | done | M1-T001 |
 | [M1-T025](tasks/M1-T025-implement-liminal-memory-arena-and-frame-allocat.md) | Implement liminal_memory — arena and frame allocators | todo | M1-T024, M1-T014, M1-T018 |
 | [M1-T026](tasks/M1-T026-implement-liminal-memory-pool-aligned-tracking-r.md) | Implement liminal_memory — pool, aligned, tracking; reach usable | todo | M1-T025, M1-T017 |
 | [M1-T027](tasks/M1-T027-write-the-spec-for-liminal-telemetry.md) | Write the spec for liminal_telemetry | done | M1-T001 |
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
-| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | todo | M1-T001 |
+| [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | done | M1-T001 |
 | [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | todo | M1-T030, M1-T014 |
 | [M1-T032](tasks/M1-T032-implement-the-reflect-derive-macro-reach-usable.md) | Implement the Reflect derive macro; reach usable for both reflect crates | todo | M1-T031 |
 | [M1-T033](tasks/M1-T033-instruction-count-regression-gate-in-ci.md) | Instruction-count regression gate in CI | todo | M1-T017, M1-T022, M1-T006 |
@@ -69,6 +69,8 @@
 | [M1-T054](tasks/M1-T054-m1-kickoff-follow-ups.md) | M1 kickoff follow-ups from the M1-T001 review | done | M1-T001 |
 | [M1-T055](tasks/M1-T055-liminal-core-spec-follow-ups.md) | liminal_core spec follow-ups from the M1-T012 review | todo | M1-T012 |
 | [M1-T056](tasks/M1-T056-liminal-telemetry-spec-follow-ups.md) | liminal_telemetry spec follow-ups from the M1-T027 review | todo | M1-T027 |
+| [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | todo | M1-T030 |
+| [M1-T058](tasks/M1-T058-liminal-memory-spec-follow-ups.md) | liminal_memory spec follow-ups from the M1-T024 review | todo | M1-T024 |
 
 ## Blocked tasks
 
@@ -79,8 +81,8 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 56 | 45 | 0 | 0 | 1 | 10 |
-| M2 (Agent interface v0) | 6 | 6 | 0 | 0 | 0 | 0 |
+| M1 (Headless core) | 58 | 44 | 0 | 0 | 0 | 14 |
+| M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates
 
@@ -88,9 +90,9 @@ None.
 |---|---|---|---|
 | liminal_core | 0 | planned | [liminal_core.md](specs/liminal_core.md) |
 | liminal_math | 0 | planned | — |
-| liminal_memory | 0 | planned | — |
-| liminal_reflect | 0 | planned | — |
-| liminal_reflect_derive | 0 | planned | — |
+| liminal_memory | 0 | planned | [liminal_memory.md](specs/liminal_memory.md) |
+| liminal_reflect | 0 | planned | [liminal_reflect.md](specs/liminal_reflect.md) |
+| liminal_reflect_derive | 0 | planned | [liminal_reflect_derive.md](specs/liminal_reflect_derive.md) |
 | liminal_telemetry | 0 | planned | [liminal_telemetry.md](specs/liminal_telemetry.md) |
 | liminal_app | 1 | planned | — |
 | liminal_assets | 1 | planned | — |
