@@ -2,7 +2,7 @@
 id: M1-T055
 title: liminal_core spec follow-ups from the M1-T012 review
 milestone: M1
-status: todo
+status: review
 crates: [liminal_core]
 depends_on: [M1-T012]
 requirements: []
@@ -51,9 +51,9 @@ M1 spec tasks use the reserved requirement prefixes.
 
 ## Acceptance criteria
 
-- [ ] Items 1 to 5 are done, or a declined item is written into this task with the reason.
-- [ ] Spec changes bump `spec_version` with a history row.
-- [ ] `cargo xtask ci` passes.
+- [x] Items 1 to 5 are done, or a declined item is written into this task with the reason.
+- [x] Spec changes bump `spec_version` with a history row.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -61,7 +61,39 @@ None beyond the requirement(s) added by item 2, which their implementation task 
 
 ## Handoff
 
-_Empty._
+2026-11-10, implementation sub-agent (ADR-0026/0027), branch
+`task/M1-T055-liminal-core-spec-follow-ups`, worktree `../liminal-worktrees/M1-T055`. Journal:
+`docs/journal/2026-11-10-M1-T055.md`.
+
+Done (`docs/specs/liminal_core.md`, `spec_version` 1 → 2, history row added):
+
+| Item | Change |
+|---|---|
+| 1 | §5.2: `Default` removed from the `HandleAllocator` derive list; `impl Default for HandleAllocator { /* new() */ }` added, as for `HandleMap`. No code to check: M1-T013 is `todo` and `crates/` does not exist. |
+| 2 | Three new MUST requirements, one per requirement group so each has one implementing task: CORE-R041 (`HandleAllocator`, `HandleMap`; M1-T013), CORE-R057 (`StateHasher`; M1-T014), CORE-R076 (`DetHashMap`, `DetHashSet`; M1-T014). IDs written into the `requirements` frontmatter of M1-T013 and M1-T014 and into the §6 assignment table; §10 row ranges updated. |
+| 3 | CORE-R060 reworded and the §10 `FixedState` row changed: recorded literals only for `Hasher` call sequences the test makes on a `DetHasher` directly; `hash_one(&v)` is compared in-process only and its value is not part of the contract across Rust releases. The first option of the task item was taken, without the "integer types" variant: that `u64::hash` calls `write_u64` exactly once is std behaviour, not a documented guarantee. |
+| 4 | §9: the two "Not scheduled" rows (`HandleAllocator`, `DetHashMap`) dropped. A paragraph under the table and open question 6 say that the task preparing the `stable` promotion adds them. No such task exists, so no task could be named. |
+| 5 | M1-T047 (`todo`): `TK-Rnnn` → `TKIT-Rnnn`, `LIM-TK-NNNN` → `LIM-TKIT-NNNN`. Spec §12 item 4 marked resolved (kept in place, because other text refers to open questions by number). M1-T027: see "Declined". |
+
+Declined (one half of item 5): the M1-T027 task file is not edited. M1-T027 is no longer `todo`:
+on its pushed branch `task/M1-T027-write-the-spec-for-liminal-telemetry` (`a7accd2`, not merged
+to `main` when this task ran) it is `review`, its spec uses `req_prefix: TELE` and
+`LIM-TELE-NNNN`, and the task file carries a scope note explaining the difference from its
+acceptance-criteria wording. The item's condition ("if they are still `todo`") is not met, and
+an edit of the same lines here would conflict with that branch for no gain.
+
+Not done, outside the scope (five named types) and left for the reviewer to judge: `ErrorContext`,
+`Tick` and `TickDuration` derive `Default`, and no requirement states their default value
+(empty; count 0). The derived values are the obvious ones, unlike `HandleAllocator`.
+
+Verified: `cargo xtask ci` on macOS 27.2: pass, 11 of 11 steps, none skipped. Windows and Linux: not run locally;
+branch CI result not checked by this session.
+
+Traps: `docs/STATUS.md` is regenerated in this branch; on merge regenerate it, do not resolve by
+side. The M1-T027 branch predates the `liminal_core` spec on `main`; its merge is unaffected by
+this change (it does not touch `docs/specs/liminal_core.md`).
+
+Next step: review (REVIEW.md §1 and §2, spec change) by a session that did not write this task.
 
 ## Review
 
