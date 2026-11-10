@@ -116,3 +116,19 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
   holds under `panic = "abort"` (the process aborts; the requirements apply to unwinding
   builds only). §4 "Helping": spans of an unrelated job run by a waiting thread nest under
   that thread's open span; say so for readers of traces.
+
+## M1-T060 — review 2026-11-10
+
+- `docs/specs/liminal_math.md` §10 "Validation errors": the row lists the vectors for MATH-R160,
+  MATH-R165 and MATH-R175 together. As frustum plane coefficients `(1e-30, 0, 0)` gives
+  LIM-MATH-0014, not LIM-MATH-0001, and the accepted boundary `(2^−63, 0, 0)` needs a matrix
+  whose other five planes are valid; MATH-R175 states neither case, and MATH-R165 does not
+  list `(2^−64, 0, 0)` and `(1e-30, 0, 0)`. State the cases per constructor.
+- `docs/specs/liminal_math.md` MATH-R160: `Plane::from_points` with finite points whose
+  difference or edge cross product overflows (edge lengths above about 1.8e19) reports
+  LIM-MATH-0013, whose message says the points are collinear or too close. Same class as the
+  MATH-R049 entry under "M1-T019 — review 2026-11-10"; decide both together.
+- `docs/specs/liminal_math.md` MATH-R073, MATH-R049: `Quat::from_axis_angle` and `Mat4::look_to`
+  normalize without the `length_squared() < f32::MIN_POSITIVE` check of MATH-R160, so an axis
+  such as `(1e-22, 5e-23, 0)` gives `Ok` with a quaternion of length about 0.9956. No invariant
+  covers them and their property domains use unit vectors. Reject as in MATH-R160 or state it.

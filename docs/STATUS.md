@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 18 of 60 tasks done.
+**M1** (Headless core): 19 of 60 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -72,7 +72,7 @@
 | [M1-T057](tasks/M1-T057-liminal-reflect-spec-follow-ups.md) | liminal_reflect and liminal_reflect_derive spec follow-ups from the M1-T030 review | todo | M1-T030 |
 | [M1-T058](tasks/M1-T058-liminal-memory-spec-follow-ups.md) | liminal_memory spec follow-ups from the M1-T024 review | todo | M1-T024 |
 | [M1-T059](tasks/M1-T059-liminal-core-default-requirement-follow-ups.md) | liminal_core Default requirement follow-ups from the M1-T055 review | done | M1-T055, M1-T013 |
-| [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | todo | M1-T019 |
+| [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | done | M1-T019 |
 
 ## Blocked tasks
 
@@ -83,7 +83,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 60 | 42 | 0 | 0 | 0 | 18 |
+| M1 (Headless core) | 60 | 41 | 0 | 0 | 0 | 19 |
 | M2 (Agent interface v0) | 7 | 7 | 0 | 0 | 0 | 0 |
 
 ## Crates
