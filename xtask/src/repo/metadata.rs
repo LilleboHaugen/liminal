@@ -240,12 +240,7 @@ pub(crate) fn run_cargo(root: &Path, cargo: &OsStr) -> Result<String, LoadError>
         .current_dir(root)
         .stdin(Stdio::null())
         .output()
-        .map_err(|error| {
-            failed(format!(
-                "could not start `{}`: {error}",
-                cargo.to_string_lossy()
-            ))
-        })?;
+        .map_err(|error| failed(crate::process::start_error(cargo, root, &error)))?;
     if !output.status.success() {
         return Err(failed(format!(
             "failed ({}): {}",

@@ -1,0 +1,27 @@
+LIM-REFL-0001: stable type ID `00abcdef01234567` of type `refl_test::TwinB` is already used by type `refl_test::TwinA`. help: give one of the types a distinct path with `#[reflect(type_path = "…")]`.
+{"code":"LIM-REFL-0001","message":"stable type ID `00abcdef01234567` of type `refl_test::TwinB` is already used by type `refl_test::TwinA`.","help":"give one of the types a distinct path with `#[reflect(type_path = \"…\")]`.","context":{"id":"00abcdef01234567","existing_path":"refl_test::TwinA","new_path":"refl_test::TwinB"}}
+
+LIM-REFL-0002: type `refl_test::WrongId` reports stable type ID `0000000000000001`, but its path hashes to `ffff0000ffff0000`. help: compute the ID with `StableTypeId::of_path` in hand-written `Typed` impls.
+{"code":"LIM-REFL-0002","message":"type `refl_test::WrongId` reports stable type ID `0000000000000001`, but its path hashes to `ffff0000ffff0000`.","help":"compute the ID with `StableTypeId::of_path` in hand-written `Typed` impls.","context":{"type_path":"refl_test::WrongId","id":"0000000000000001","expected_id":"ffff0000ffff0000"}}
+
+LIM-REFL-0003: type `refl_test::E` uses the field or variant name `x` more than once. help: give each field of a struct or variant, and each variant of an enum, a distinct name.
+{"code":"LIM-REFL-0003","message":"type `refl_test::E` uses the field or variant name `x` more than once.","help":"give each field of a struct or variant, and each variant of an enum, a distinct name.","context":{"type_path":"refl_test::E","name":"x"}}
+
+LIM-REFL-0004: a type descriptor has an empty type path. help: return a non-empty path from `Typed::type_path`, for example `my_crate::module::Type`.
+{"code":"LIM-REFL-0004","message":"a type descriptor has an empty type path.","help":"return a non-empty path from `Typed::type_path`, for example `my_crate::module::Type`.","context":{}}
+
+LIM-REFL-0005: value of type `refl_test::Fake` at `.items[2].0` does not match its descriptor: expected struct with 2 fields, found list. help: make `reflect_ref` agree with `type_info` in the hand-written impl, or use `#[derive(Reflect)]`.
+{"code":"LIM-REFL-0005","message":"value of type `refl_test::Fake` at `.items[2].0` does not match its descriptor: expected struct with 2 fields, found list.","help":"make `reflect_ref` agree with `type_info` in the hand-written impl, or use `#[derive(Reflect)]`.","context":{"type_path":"refl_test::Fake","at":".items[2].0","expected":"struct with 2 fields","actual":"list"}}
+
+LIM-REFL-0010: type `refl_test::Sample` has no field `z`. help: use a field name from the type's `TypeInfo`; tuple fields are named `0`, `1`, …
+{"code":"LIM-REFL-0010","message":"type `refl_test::Sample` has no field `z`.","help":"use a field name from the type's `TypeInfo`; tuple fields are named `0`, `1`, …","context":{"type_path":"refl_test::Sample","field":"z"}}
+
+LIM-REFL-0011: value has type `u32`, not `i32`. help: request the type listed in the field's `FieldInfo`.
+{"code":"LIM-REFL-0011","message":"value has type `u32`, not `i32`.","help":"request the type listed in the field's `FieldInfo`.","context":{"expected":"i32","actual":"u32"}}
+
+LIM-REFL-0012: type `Vec<u8>` is a list and has no fields. help: read list elements through `ReflectRef::List`, and primitive values with `downcast_ref`.
+{"code":"LIM-REFL-0012","message":"type `Vec<u8>` is a list and has no fields.","help":"read list elements through `ReflectRef::List`, and primitive values with `downcast_ref`.","context":{"type_path":"Vec<u8>","shape":"list"}}
+
+LIM-REFL-0013: field `target` of type `refl_test::Mode` does not exist in the current variant `Fleeing`. help: check `ReflectEnum::variant_name` before accessing a variant's fields.
+{"code":"LIM-REFL-0013","message":"field `target` of type `refl_test::Mode` does not exist in the current variant `Fleeing`.","help":"check `ReflectEnum::variant_name` before accessing a variant's fields.","context":{"type_path":"refl_test::Mode","variant":"Fleeing","field":"target"}}
+

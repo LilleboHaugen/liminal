@@ -2,10 +2,10 @@
 id: M1-T010
 title: Real-binary test and stale-root follow-ups from the review of M0-T011
 milestone: M1
-status: todo
+status: done
 crates: [xtask]
 depends_on: [M0-T011]
-requirements: [XTASK-R001, XTASK-R072, XTASK-R080]
+requirements: [XTASK-R001, XTASK-R015, XTASK-R072, XTASK-R080]
 ---
 
 # M1-T010: Real-binary test and stale-root follow-ups from the review of M0-T011
@@ -55,13 +55,13 @@ tags claim.
 
 ## Acceptance criteria
 
-- [ ] Item 1: specified in `docs/specs/xtask.md` (`spec_version` bumped); a test runs a command
+- [x] Item 1: specified in `docs/specs/xtask.md` (`spec_version` bumped); a test runs a command
       with a root that does not exist and asserts the single error and exit code; the empty-path
       message is fixed.
-- [ ] Item 2: the tag matches what the test checks.
-- [ ] Item 3: a mutant that prints a present tool's line without its version fails a test
+- [x] Item 2: the tag matches what the test checks.
+- [x] Item 3: a mutant that prints a present tool's line without its version fails a test
       (record in the journal).
-- [ ] `cargo xtask ci` passes.
+- [x] `cargo xtask ci` passes.
 
 ## Test requirements
 
@@ -70,8 +70,68 @@ the `doctor` test.
 
 ## Handoff
 
-_No session has worked on this task yet._
+Implementation sub-agent session, 2026-11-09. Status `review`.
+
+Done:
+- **Item 1.** Kept the compile-time root (R001) and added a check before it is used: new
+  **XTASK-R014** and **LIM-XTASK-0007** in `docs/specs/xtask.md` (`spec_version` 20, §6, §8,
+  §10, §14). `xtask::run` now calls `cli::run_in(&repo::root(), …)`, which for every command
+  except `help` runs `repo::check_root` first (root is a directory with `architecture.toml`);
+  on failure it prints one line `error: LIM-XTASK-0007: <root>: … (help: … run `cargo clean -p
+  xtask` …)`, nothing on stdout, exit 1. Run-time root discovery from the current directory was
+  not chosen: it changes which repository a command checks and needs a rule for nested
+  fixtures; the check is smaller and keeps R001 as is.
+  - Empty path: `repo::walk` names the root itself by its absolute path (`xtask/src/repo.rs`).
+  - Missing working directory: `process::start_error` reports `working directory `<path>` does
+    not exist` instead of `could not start <program>`; used by `RealRunner`, the `cargo metadata`
+    loader and the `cargo llvm-cov` loader.
+  - Tests: `cli::tests::every_command_but_help_reports_one_error_for_a_missing_root`,
+    `cli::tests::a_root_without_architecture_toml_is_rejected_and_help_still_works`,
+    `repo::tests::check_root_accepts_the_real_root_and_names_a_missing_one` (all
+    `Verifies: XTASK-R014`), `repo::tests::an_unreadable_root_is_named_by_its_absolute_path`,
+    `process::tests::a_missing_working_directory_is_not_reported_as_a_missing_program`.
+  - The R014 tests are library tests through `run_in`: the binary's compiled-in root cannot be
+    changed without rebuilding it. Checked by hand once: built xtask in a copy of the
+    repository under the scratchpad, renamed the copy, ran the binary: `check-docs` printed the
+    single LIM-XTASK-0007 line and exited 1; `help` exited 0.
+- **Item 2.** Dropped `Verifies: XTASK-R072` from the binary test
+  `status_check_passes_and_status_leaves_an_up_to_date_file_unchanged` and wrote why in its doc
+  comment: the binary cannot see a stale `docs/STATUS.md` without changing the repository
+  (R010). R072 stays verified on both sides by `src/status/tests.rs`.
+- **Item 3.** `doctor_reports_every_tool_whatever_is_installed` now asserts the whole state after
+  the tool name: `missing`, the `--json` `version`, or `present (no version output)`.
+
+Mutants (all restored afterwards):
+- `tool_lines` printing `present` instead of the version: the binary `doctor` test fails.
+- `run_in` checking the compiled-in root instead of the given one: both R014 cli tests fail.
+
+Trap: the R014 cli tests pass an option no command accepts (`--xtask-test-bogus`), so if the
+root check is ever removed, the commands fail with a usage error instead of really running
+`ci`/`coverage` (an earlier version of the test used `--json` and, under the mutant, started a
+nested `ci` run).
+
+`cargo xtask ci`: pass on macOS (all 11 steps, none skipped); `xtask` coverage 98.13 %.
 
 ## Review
 
-_Empty._
+2026-11-10, review sub-agent (ADR-0026, ADR-0030; journal `docs/journal/2026-11-10-M1-T010-review.md`).
+Outcome: **done**, no blocking finding.
+
+Checked:
+- Item 1: `repo::check_root`, `cli::run_in` (every command but `help` checks the root before
+  parsing its arguments), `process::start_error` at all three call sites, the non-empty root path
+  in `repo::walk`; spec text against code; the two cli tests iterate `COMMANDS` and compare the
+  whole stderr line. Item 2: tag removed, reason in the doc comment. Item 3: mutant
+  `tool_lines` printing `"present"` for a versioned tool (reverted): the binary `doctor` test fails.
+- Merge of `origin/main` (`70dac69`, then `e652b0c`): main's `spec_version` 24 (M1-T056) took XTASK-R014, so this
+  task's requirement is renumbered **XTASK-R014 → XTASK-R015** (spec row, LIM-XTASK-0007 row,
+  test-plan row, `Verifies:` tags in `xtask/src/cli.rs` and `xtask/src/repo.rs`, this file's
+  `requirements`); this task's spec change is history row 27 (main reached 26). LIM-XTASK-0007
+  was free. `docs/STATUS.md` regenerated. The handoff above keeps the old ID as written.
+- `cargo xtask ci` on the merged tree with the review edits: 12 steps pass, none skipped, macOS
+  27.2 arm64.
+- Session boundaries: implementation sub-agent #11 of `2026-11-09-session-m1-subagents.md`.
+  No workflow change (ADR-0028).
+
+Backlog: 2 entries in `docs/BACKLOG.md` ("M1-T010 — review 2026-11-10"). Follow-up task: none
+(ADR-0030 Decision 9: `xtask` is frozen; neither entry changes a pending contract).

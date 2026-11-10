@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 27 of 62 tasks done.
+**M1** (Headless core): 29 of 62 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -22,7 +22,7 @@
 | [M1-T007](tasks/M1-T007-status-follow-ups.md) | status generator follow-ups from the M0-T008 review | done | M0-T008 |
 | [M1-T008](tasks/M1-T008-deny-doctor-follow-ups.md) | deny policy and doctor follow-ups from the M0-T009 review | done | M0-T009 |
 | [M1-T009](tasks/M1-T009-deny-policy-test-gaps.md) | deny policy test gaps from review 2 of M0-T009 | done | M0-T009 |
-| [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | todo | M0-T011 |
+| [M1-T010](tasks/M1-T010-binary-test-follow-ups.md) | Real-binary test and stale-root follow-ups from the review of M0-T011 | done | M0-T011 |
 | [M1-T011](tasks/M1-T011-check-arch-determinism-lint-configuration-for-de.md) | check-arch — determinism lint configuration for deterministic crates | done | M1-T001 |
 | [M1-T012](tasks/M1-T012-write-the-spec-for-liminal-core.md) | Write the spec for liminal_core | done | M1-T001 |
 | [M1-T013](tasks/M1-T013-implement-liminal-core-error-model-and-generatio.md) | Implement liminal_core — error model and generational handles | done | M1-T012, M1-T011, M1-T003, M1-T004, M1-T005 |
@@ -43,7 +43,7 @@
 | [M1-T028](tasks/M1-T028-implement-liminal-telemetry-logs-spans-counters.md) | Implement liminal_telemetry — logs, spans, counters, per-thread buffers | todo | M1-T027, M1-T014, M1-T018 |
 | [M1-T029](tasks/M1-T029-implement-liminal-telemetry-frame-stats-and-expo.md) | Implement liminal_telemetry — frame stats and export; reach usable | todo | M1-T028, M1-T017 |
 | [M1-T030](tasks/M1-T030-write-the-spec-for-liminal-reflect.md) | Write the spec for liminal_reflect | done | M1-T001 |
-| [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | todo | M1-T030, M1-T014 |
+| [M1-T031](tasks/M1-T031-implement-liminal-reflect-type-info-stable-ids-f.md) | Implement liminal_reflect — type info, stable IDs, field access | done | M1-T030, M1-T014 |
 | [M1-T032](tasks/M1-T032-implement-the-reflect-derive-macro-reach-usable.md) | Implement the Reflect derive macro; reach usable for both reflect crates | todo | M1-T031, M1-T061 |
 | [M1-T033](tasks/M1-T033-instruction-count-regression-gate-in-ci.md) | Instruction-count regression gate in CI | todo | M1-T017, M1-T022, M1-T006 |
 | [M1-T034](tasks/M1-T034-write-the-spec-for-liminal-jobs.md) | Write the spec for liminal_jobs | done | M1-T027 |
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 33 | 0 | 0 | 2 | 27 |
+| M1 (Headless core) | 62 | 31 | 0 | 0 | 2 | 29 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates

@@ -6,7 +6,7 @@
 
 use std::fmt;
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Process exit status of an xtask invocation (XTASK-R007).
 ///
@@ -206,10 +206,25 @@ pub const COMMANDS: &[Command] = &[
 /// assert_eq!(exit.code(), 2);
 /// ```
 pub fn run(args: &[String], stdout: &mut dyn Write, stderr: &mut dyn Write) -> Exit {
+    run_in(&crate::repo::root(), args, stdout, stderr)
+}
+
+/// [`run`] with the repository root `root` checked before any command except `help` runs
+/// (XTASK-R015). Commands themselves use the compiled-in root; tests pass a root that does not
+/// exist to exercise the check.
+pub(crate) fn run_in(
+    root: &Path,
+    args: &[String],
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Exit {
     let result = match args.split_first() {
         None => help(&[], stdout),
         Some((name, rest)) => match find_command(name) {
-            Ok(command) => (command.run)(rest, stdout),
+            Ok(command) if command.name == "help" => (command.run)(rest, stdout),
+            Ok(command) => crate::repo::check_root(root)
+                .map_err(CommandError::from)
+                .and_then(|()| (command.run)(rest, stdout)),
             Err(error) => Err(error),
         },
     };
@@ -377,6 +392,59 @@ mod tests {
                 .unwrap()
                 .starts_with("error: could not write output: broken pipe")
         );
+    }
+
+    /// Verifies: XTASK-R015
+    #[test]
+    fn every_command_but_help_reports_one_error_for_a_missing_root() {
+        let missing = crate::repo::root().join("target/xtask-test-no-such-root");
+        // An option no command accepts: if the root check did not come first, each command would
+        // fail fast with a usage error instead of running (and possibly writing) anything.
+        for command in COMMANDS {
+            let args = vec![command.name.to_string(), "--xtask-test-bogus".to_string()];
+            let mut stdout = Vec::new();
+            let mut stderr = Vec::new();
+            let exit = run_in(&missing, &args, &mut stdout, &mut stderr);
+            let stderr = String::from_utf8(stderr).unwrap();
+            if command.name == "help" {
+                // `help` reads no repository; its usage error is unchanged.
+                assert_eq!(exit, Exit::Usage);
+                continue;
+            }
+            assert_eq!(exit, Exit::Failure, "{}: {stderr}", command.name);
+            assert_eq!(stdout, b"", "{}", command.name);
+            assert_eq!(
+                stderr,
+                format!(
+                    "error: LIM-XTASK-0007: {}: the repository root compiled into xtask does not \
+                     exist (help: The checkout was moved or renamed after xtask was built: run \
+                     `cargo clean -p xtask`, then the command again)\n",
+                    missing.display()
+                ),
+                "{}",
+                command.name
+            );
+        }
+    }
+
+    /// Verifies: XTASK-R015
+    #[test]
+    fn a_root_without_architecture_toml_is_rejected_and_help_still_works() {
+        let not_a_root = crate::repo::root().join("xtask");
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        let args = ["status".to_string(), "--xtask-test-bogus".to_string()];
+        let exit = run_in(&not_a_root, &args, &mut stdout, &mut stderr);
+        assert_eq!(exit, Exit::Failure);
+        assert_eq!(stdout, b"");
+        let stderr = String::from_utf8(stderr).unwrap();
+        assert!(stderr.starts_with("error: LIM-XTASK-0007: "), "{stderr}");
+        assert!(stderr.contains("has no architecture.toml"), "{stderr}");
+        assert_eq!(stderr.lines().count(), 1, "{stderr}");
+
+        let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+        let exit = run_in(&not_a_root, &[], &mut stdout, &mut stderr);
+        assert_eq!(exit, Exit::Success);
+        assert_eq!(String::from_utf8(stdout).unwrap(), usage());
     }
 
     #[test]

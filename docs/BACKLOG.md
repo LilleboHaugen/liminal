@@ -236,3 +236,24 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `xtask/tests/deny_policy.rs` `git_dependencies_are_rejected` writes a checkout of its fixture
   repository into the user's `$CARGO_HOME/git/` on every run (the reviewer's machine holds 10+
   `dep-*` entries). Run it with a temporary `CARGO_HOME`, as `other_registry_dependencies_are_rejected` does.
+
+## M1-T010 — review 2026-11-10
+
+- `docs/specs/xtask.md` §8 says a probe whose working directory is missing is reported as
+  `working directory <path> does not exist`; `xtask/src/doctor.rs` `RealProber::probe` reports the
+  tool `missing`. Unreachable today (R015 checks the root first); align the spec sentence or the code.
+- `xtask/src/repo/metadata.rs`, `xtask/src/repo/coverage.rs`: no test shows the missing-working-
+  directory message reaches these two `start_error` call sites (only `RealRunner` is tested).
+
+## M1-T031 — review 2026-11-10
+
+- `docs/specs/liminal_reflect.md` REFL-R060 says `register` returns `Ok(T::stable_type_id())`;
+  `crates/liminal_reflect/src/registry.rs` returns the stored descriptor's `id`. They differ only
+  for an impl that breaks REFL-R002. State the stored `id` in the requirement (spec bump).
+- `docs/specs/liminal_reflect.md` §7 INV-1 names a `debug_assert!` in `TypeRegistry::register`;
+  the code rejects the case with LIM-REFL-0002 instead (REFL-R061). Correct the spec sentence.
+- `docs/specs/liminal_reflect.md` §10 names `xxhsum -H64` as the cross-check of the REFL-R005
+  literals; `crates/liminal_reflect/tests/info.rs` used `kat.py xxh64`. Run `xxhsum` once or name
+  `kat.py` in the spec.
+- `crates/liminal_reflect/src/value/access.rs`: `field_mut` builds a full `TypeInfo` on every
+  successful call (heap allocations per write). Measure before ECS field writes use it per tick.
