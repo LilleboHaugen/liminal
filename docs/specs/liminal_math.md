@@ -770,8 +770,9 @@ function cannot use. Messages and help below are normative; `{x}` is the value o
 
 Each message ends with `.`. `parameter`, `axis` and `plane` are `Text` context values; `value`,
 `min`, `max`, `determinant` and `length_squared` are `Float` (`f32` widened exactly; NaN and
-infinities render as `null` in JSON, CORE-R010). Codes 0006 to 0009 and 0016 onward are unassigned; new codes take the
-next free number in their group (0001–0009 linear algebra, 0010–0019 geometry).
+infinities render as `null` in JSON, CORE-R010). Codes 0006 to 0009 and 0016 onward are
+unassigned; new codes take the next free number in their group (0001–0009 linear algebra,
+0010–0019 geometry).
 
 ## 9. Performance budgets
 
