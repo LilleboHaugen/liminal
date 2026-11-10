@@ -172,10 +172,7 @@ fn struct_children<'a, 'i, F: ReflectFields + ?Sized>(
 }
 
 /// The elements of a list view, all of type `element`; `Err((expected, actual))`.
-fn list_children<'a, 'i>(
-    element: &'i TypeRef,
-    view: &'a dyn ReflectList,
-) -> Children<'a, 'i> {
+fn list_children<'a, 'i>(element: &'i TypeRef, view: &'a dyn ReflectList) -> Children<'a, 'i> {
     (0..view.len())
         .map(|index| match view.get(index) {
             Some(child) => Ok((format!("[{index}]"), child, element)),

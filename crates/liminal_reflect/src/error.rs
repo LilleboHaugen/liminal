@@ -118,7 +118,9 @@ impl EngineError for ReflectError {
                  `{expected_id}`."
             ),
             ReflectError::DuplicateName { type_path, name } => {
-                format!("type `{type_path}` uses the field or variant name `{name}` more than once.")
+                format!(
+                    "type `{type_path}` uses the field or variant name `{name}` more than once."
+                )
             }
             ReflectError::EmptyTypePath => "a type descriptor has an empty type path.".to_string(),
             ReflectError::ShapeMismatch {

@@ -224,10 +224,7 @@ mod tests {
     #[test]
     fn display_is_sixteen_lowercase_hex_digits() {
         assert_eq!(StableTypeId::new(0).to_string(), "0000000000000000");
-        assert_eq!(
-            StableTypeId::new(u64::MAX).to_string(),
-            "ffffffffffffffff"
-        );
+        assert_eq!(StableTypeId::new(u64::MAX).to_string(), "ffffffffffffffff");
         assert_eq!(
             StableTypeId::new(0x0123_4567_89ab_cdef).to_string(),
             "0123456789abcdef"
