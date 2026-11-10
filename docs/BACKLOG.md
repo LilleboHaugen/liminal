@@ -214,3 +214,11 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 - `docs/specs/liminal_memory.md` INV-2 ("live arena allocations lie within `[base, base +
   used())`") holds for zero-size allocations only vacuously (§4: their address may lie outside
   the base). Say so in INV-2 so the `debug_assert!`/property test does not check their address.
+
+## M1-T061 — review 2026-11-10
+
+- `docs/specs/liminal_reflect_derive.md` REFLD-R003 test (1) rule (d): a one-segment path that is
+  not in the list passes, so bare prelude names (`Clone`, `Default`, `Box`, `Into`) in generated
+  code pass test (1), and test (2) does not shadow them. Same gap as in `spec_version` 2; M1-T032
+  may extend the list or the shadowing test.
+- `docs/tasks/README.md`: no row for M1-T061 (task created by the M1-T057 review).

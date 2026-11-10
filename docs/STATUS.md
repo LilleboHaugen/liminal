@@ -9,7 +9,7 @@
 
 ## Current milestone
 
-**M1** (Headless core): 24 of 62 tasks done.
+**M1** (Headless core): 25 of 62 tasks done.
 
 | Task | Title | Status | Depends on |
 |---|---|---|---|
@@ -73,7 +73,7 @@
 | [M1-T058](tasks/M1-T058-liminal-memory-spec-follow-ups.md) | liminal_memory spec follow-ups from the M1-T024 review | done | M1-T024 |
 | [M1-T059](tasks/M1-T059-liminal-core-default-requirement-follow-ups.md) | liminal_core Default requirement follow-ups from the M1-T055 review | done | M1-T055, M1-T013 |
 | [M1-T060](tasks/M1-T060-liminal-math-spec-follow-ups.md) | liminal_math spec follow-ups from the M1-T019 review | done | M1-T019 |
-| [M1-T061](tasks/M1-T061-reflect-derive-path-check-definition.md) | Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review) | todo | M1-T057 |
+| [M1-T061](tasks/M1-T061-reflect-derive-path-check-definition.md) | Fix the path-check definition of REFLD-R003 (follow-up of the M1-T057 review) | done | M1-T057 |
 | [M1-T062](tasks/M1-T062-reflect-impls-for-liminal-math-and-liminal-core-types.md) | Reflect impls for liminal_math and liminal_core types | todo | M1-T032, M1-T020 |
 
 ## Blocked tasks
@@ -85,7 +85,7 @@ None.
 | Milestone | Tasks | todo | in-progress | blocked | review | done |
 |---|---|---|---|---|---|---|
 | M0 (Guardrails) | 11 | 0 | 0 | 0 | 0 | 11 |
-| M1 (Headless core) | 62 | 38 | 0 | 0 | 0 | 24 |
+| M1 (Headless core) | 62 | 37 | 0 | 0 | 0 | 25 |
 | M2 (Agent interface v0) | 8 | 8 | 0 | 0 | 0 | 0 |
 
 ## Crates
