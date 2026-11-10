@@ -6,16 +6,20 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 ## Next step for the project owner
 
-M1 is in progress. Session `2026-11-10-session-m1-t014-review.md` set M1-T014, T037, T058,
-T061, T008, T009 and T010 to `done`. `liminal_core` is `usable`. Specs on `main`: core, math,
-memory, telemetry, reflect (+derive), jobs, ecs (M1-T037's `Reflect`-impls task was renumbered
-M1-T062 at the merge).
+M1 is in progress. Session `2026-11-10-session-m1-t020-t031-review.md` set M1-T031 to `done`
+(merged). `liminal_core` is `usable`. Specs on `main`: core, math, memory, telemetry, reflect
+(+derive), jobs, ecs.
 
-In `review`, each on its own pushed task branch (not on `main`): M1-T020 (`liminal_math` types),
-M1-T031 (`liminal_reflect`), M1-T015 with M1-T016 (`liminal_benches` spec and harness; one
-review of both). Next session: review M1-T020 and M1-T031 in parallel, then M1-T015/T016.
-Traps for those merges (the M1-T015/T016 branch sets `xtask` `spec_version` 27, which `main`
-already has; its `xtask` changes under the ADR-0030 freeze) are in that journal entry.
+On pushed task branches, not on `main`:
+- M1-T020 (`liminal_math` types): `review`, second and last round (ADR-0021).
+- M1-T015 `done` + M1-T016 `review` (second and last round), branch
+  `task/M1-T015-M1-T016-liminal-benches`; it merges when M1-T016 is `done`. `xtask`
+  `spec_version` already renumbered to 28 there.
+- M1-T032 (Reflect derive): `in-progress` after review round 1. Blocking: `cargo xtask ci`
+  fails on Windows (`xtask.exe` rebuilt while running; see its Review note). Needs a green
+  GitHub run on all three platforms on the task branch.
+
+Next session: review M1-T020 and M1-T016 in parallel, then the M1-T032 changes.
 
 ADR-0030 (accepted 2026-11-10 on the owner's approval, supersedes ADR-0029, whose other
 decisions stay in force):
