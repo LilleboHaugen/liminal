@@ -36,10 +36,10 @@ Follow-up tasks written before 2026-11-10 (M1-T055 … M1-T058, M2-T001 … M2-T
 
 ## M1-T055 — review 2026-11-10
 
-- `docs/specs/liminal_core.md` §5.1, §5.6: `ErrorContext`, `Tick` and `TickDuration` derive
-  `Default`, and no requirement states the value (empty context; count 0). The derived values
-  are the only reasonable ones and `ErrorContext::default()` is already tested as empty; add
-  the statement to CORE-R007 / CORE-R111 when those rows are next edited, or leave it.
+- `docs/specs/liminal_core.md` §5.1: `ErrorContext` derives `Default`, and no requirement
+  states the value (the empty context). `ErrorContext::default()` is already tested as empty;
+  add the statement to CORE-R007 when that row is next edited, or leave it. (The `Tick` and
+  `TickDuration` part of this entry was fixed by M1-T014: CORE-R114, `spec_version` 4.)
 - `docs/process/DOCUMENTATION.md`, `docs/specs/_TEMPLATE.md`: the spec frontmatter field
   `last_reviewed` has no stated meaning (date of the last spec review, or of the last change?).
   `docs/specs/liminal_core.md` v2 keeps 2026-11-09, the review date of v1. Define the field.

@@ -698,8 +698,12 @@ operation mix) are fixed in the test; changing them changes the literal and is a
 | `det_map_churn` (CORE-R132) | 10,000 seeded insert/remove/get operations on `DetHashMap<u64, u64>` over a key space of 300 keys; every result hashed, and the map's `StateHash` every 100 operations | Yes (iteration order does not depend on hash values, CORE-R073) |
 | `time_conversions` (CORE-R133) | `dt_secs_f32`, `dt_secs_f64` for every tick rate 1..=1000; `ticks_to_secs_f64` and `ticks_from_millis` for 10 fixed counts including 0, 2^53 + 1 and `u64::MAX`; results hashed by bits | Yes (one correctly rounded IEEE 754 division per value) |
 
-Cross-platform bit-identity has **not been verified yet**: it is claimed for all four workloads and
-verified when M1-T014's tests pass on the three CI operating systems.
+Cross-platform bit-identity is claimed for all four workloads and **verified** for the recorded
+literals on the three CI operating systems: GitHub Actions run 42882724790 (commit `9760608`,
+2026-11-10) passed `cargo xtask ci`, which runs `tests/determinism.rs` and the known-answer tests
+of CORE-R056 and CORE-R098, on `macos-latest` (arm64), `windows-latest` (x86_64) and
+`ubuntu-latest` (x86_64). Every later CI run repeats the check. Not verified: any other target
+(x86_64 macOS, aarch64 Linux or Windows).
 
 ## 12. Open questions
 
@@ -731,25 +735,39 @@ verified when M1-T014's tests pass on the three CI operating systems.
 
 ## 13. Maturity
 
-Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T014 and
-checked by the session that reviews it.
+Current: `planned`. Next target: `usable` (via `experimental`), evidence prepared by M1-T014
+(2026-11-10, measured on macOS 27.2 arm64, Rust 1.99.1) and checked by the session that reviews it.
 
-- [ ] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
-      review of M1-T012).
+- [x] Spec follows `docs/specs/_TEMPLATE.md` and passed a spec review (REVIEW.md §2) (evidence:
+      review of M1-T012, 2026-11-09, "Review" note in
+      `docs/tasks/M1-T012-write-the-spec-for-liminal-core.md`; versions 2 and 3 reviewed with
+      M1-T055 and M1-T059; version 4 is reviewed with M1-T014).
 - [x] Compiles, all lints pass, determinism lint configuration accepted by `check-arch`,
-      registered in `ci/coverage.toml` (evidence: M1-T013, 2026-11-10: `cargo xtask ci` passes
-      with `crates/liminal_core/clippy.toml` and the floor `liminal_core = 98.9`; modules `error`
-      and `handle` only, to be checked by the reviewer of M1-T013).
-- [ ] All MUST requirements traced: `cargo xtask trace --crate liminal_core` with
-      `maturity: usable` applied on a scratch copy reports every MUST tested (evidence: M1-T014).
-- [ ] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: M1-T014).
-- [ ] Every public item documented; the primary entry points of §10 have runnable `# Examples`.
-- [ ] Integration tests in `crates/liminal_core/tests/` use only the public API.
-- [ ] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
-      three CI operating systems.
-- [ ] At least one example or dependent crate uses it. Open item: no dependent crate exists when
-      M1-T014 finishes; `liminal_math` (M1-T020) is the first. M1-T014 either adds a runnable
-      example under `crates/liminal_core/examples/` or the promotion waits for M1-T020.
+      registered in `ci/coverage.toml` (evidence: `cargo xtask ci` passes, 11 steps, none skipped;
+      `crates/liminal_core/clippy.toml`; floor `liminal_core = 99.3`).
+- [x] All MUST requirements traced (evidence: `cargo xtask trace --crate liminal_core` on a
+      scratch copy of the repository with `maturity: usable` in this file: `tested: MUST 58/58,
+      SHOULD 1/2`, `trace: ok`. The untested SHOULD is CORE-R075, checked by review).
+- [x] Line coverage ≥ 85 % (layer 0 pure logic, TESTING.md) (evidence: `cargo xtask coverage`:
+      99.37 %, 1753 of 1764 lines. The 11 uncovered lines are in `error` and `handle` (panic
+      arms of test helpers and assertion messages); `hash`, `collections`, `rng` and `time` have
+      no uncovered line).
+- [x] Every public item documented; the primary entry points of §10 have runnable `# Examples`
+      (evidence: `missing_docs = "deny"` passes; `cargo test --doc -p liminal_core` runs 24 doc
+      tests, among them `StateHasher`, `state_hash_of`, `StateHash`, `FixedState`, `DetHasher`,
+      `DetHashMap`, `DetHashSet`, `Rng`, `StreamKey`, `TickRate`, `Tick`, `TickDuration`).
+- [x] Integration tests in `crates/liminal_core/tests/` use only the public API (evidence:
+      `error_model.rs`, `handles.rs`, `hashing.rs`, `collections.rs`, `rng.rs`, `time.rs`,
+      `determinism.rs`; 99 tests. Three behaviours need private access and are unit tests inside
+      the crate: the generation wrap, the private `splitmix64`, the lookup table).
+- [x] `tests/determinism.rs` with the four workloads of §11 and recorded literals, passing on the
+      three CI operating systems (evidence: GitHub Actions run 42882724790 on `9760608`, §11).
+- [x] At least one example or dependent crate uses it (evidence:
+      `crates/liminal_core/examples/seeded_world.rs`, run with
+      `cargo run -p liminal_core --example seeded_world`; it uses `handle`, `hash`,
+      `collections`, `rng`, `time` and `error` and fails if two runs with one seed differ.
+      `cargo test` compiles it; no CI step runs it. `liminal_math` (M1-T020) will be the first
+      dependent crate).
 
 ## 14. History
 
