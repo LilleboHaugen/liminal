@@ -8,13 +8,12 @@ this file short: facts an agent needs at session start, not history (that is in 
 
 M1 is in progress: 16 tasks became `done` on 2026-11-10 (journal
 `2026-11-10-session-m1-reviews.md`). `crates/liminal_core` exists on `main` (error model,
-handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs.
+handles; M1-T013). Specs on `main`: core, math, memory, telemetry, reflect (+derive), jobs,
+ecs (M1-T037 `done` 2026-11-10; its `Reflect`-impls task was renumbered M1-T062 at the merge).
 
-In `review`, each on its own pushed task branch (not on `main`): M1-T014 (rest of
-`liminal_core`, with the evidence for `usable`), M1-T037 (ECS spec), M1-T058, M1-T008, T009,
-T010. Review M1-T014 first: M1-T020, M1-T015 and most other crates wait for it. Traps for those
-merges (task ID collision M1-T061 on the M1-T037 branch, `docs/specs/xtask.md` `spec_version`
-24, branches that predate ADR-0029) are in that journal entry.
+In `review`, each on its own pushed task branch (not on `main`): M1-T058, M1-T008, T009,
+T010. Traps for those merges (`docs/specs/xtask.md` `spec_version` 24, branches that predate
+ADR-0029) are in that journal entry.
 
 ADR-0030 (accepted 2026-11-10 on the owner's approval, supersedes ADR-0029, whose other
 decisions stay in force):
@@ -86,10 +85,12 @@ first in M1 (M1-T013, the first engine implementation task, depends on T003–T0
 - Workspace crates: `xtask` and `liminal_core` (which specs exist: `docs/specs/README.md`).
   `xtask` line coverage is 98.05 % (floor 97.6 in `ci/coverage.toml`; measured on macOS in
   M0-T011). `xtask` is `usable` (M0-T010, 2026-11-09).
-- `liminal_core` (M1-T013, 2026-11-10) has the modules `error` and `handle`; `hash`,
-  `collections`, `rng` and `time` come with M1-T014. Line coverage 98.96 % (floor 98.9, measured
-  on macOS). Its spec frontmatter still says `maturity: planned`: only a reviewing session
-  changes it (MATURITY.md).
+- `liminal_core` (M1-T013, M1-T014, 2026-11-10) has all six modules of its spec: `error`,
+  `handle`, `hash`, `collections`, `rng`, `time`. Line coverage 99.37 % (floor 99.3, measured
+  on macOS). `liminal_core` is `usable` (promoted by the M1-T014 review, 2026-11-10; evidence
+  in the spec's §13). Recorded hash and RNG
+  literals in its tests are oracles; `crates/liminal_core/tests/reference/kat.py` (Python 3,
+  standard library, not run by CI) reproduces the ones it names.
 - CI (GitHub Actions, M0-T007) runs `cargo xtask ci` on every push on macOS (arm64), Windows and
   Linux; `coverage` and `deny` run in their own Linux jobs. There is no `pull_request` trigger
   (M1-T006). Dependabot (`.github/dependabot.yml`) opens a monthly grouped pull request for the
