@@ -1,9 +1,10 @@
 # Review
 
-Reviews are done by a session that did **not** write the work being reviewed, starting from a fresh
-context. That reviewer is a session the project owner started, or a review sub-agent spawned by such
-a session with a fresh context and only the ADR-0026 review prompt. It is never the author, the
-author's parent session, or any sub-agent of that session (ADR-0026). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
+Reviews are done by an agent that did **not** write the work being reviewed, starting from a fresh
+context. That reviewer is a session the project owner started that did not work on the task, or a
+review sub-agent spawned by such a session with a fresh context and only the ADR-0026 review
+prompt. It is never an agent that worked on the task, and never a parent session. A review
+sub-agent may review a task that a sibling implementation sub-agent wrote (ADR-0029). The reviewer's job is to find what is wrong, not to confirm what was claimed. A review that
 finds nothing should say what it checked.
 
 ## 1. Task review (status `review` → `done`)
@@ -24,10 +25,12 @@ Check, in order:
    is included in the state hash.
 8. **Docs:** public items documented; examples run; no stale docs elsewhere.
 9. **Architecture:** no new dependency without ADR; layer rules hold.
-10. **Session boundaries (ADR-0026):** from the journals and the task file: each session that
+10. **Session boundaries (ADR-0026, ADR-0029):** from the journals and the task file: each session that
     worked on the task was owner-started, or a sub-agent listed in its parent's journal (within
-    any limit the owner set for that session); no agent of a session that implemented any part of the
-    task reviewed it; a review sub-agent's prompt was the ADR-0026 template verbatim; no
+    any limit the owner set for that session); no agent that implemented any part of the
+    task reviewed it, and no parent session reviewed or implemented; the task had at most one
+    implementation and one review sub-agent per parent session; a review sub-agent's prompt was
+    the ADR-0026 template verbatim; no
     sub-agent spawned agents or ran an install; merges to `main` were serial with CI green.
 11. **Public repository (ADR-0028):** a change to `.github/workflows/` keeps ADR-0028 Decision 4
     (read-only default permissions, every action SHA-pinned, `persist-credentials: false`, no
@@ -35,7 +38,7 @@ Check, in order:
     acted on an issue, pull request or comment the owner did not point to, or merged outside code
     (bot pull requests included). A violation is a blocking finding (B2).
 
-### Findings and outcome (ADR-0021)
+### Findings and outcome (ADR-0021, ADR-0029)
 
 Classify every finding. It is **blocking** only if it is one of:
 - **B1.** An acceptance criterion is not met, or `cargo xtask ci` fails.
@@ -47,15 +50,21 @@ Classify every finding. It is **blocking** only if it is one of:
   (accepted/rejected, a value, a finding) and no test fails. Message wording alone is not B4.
 - **B5.** Code and spec disagree on behaviour.
 
-Everything else is a **follow-up**. Write all follow-ups of the review into one new task file
-(`status: todo`, next free ID, current milestone only if an exit criterion needs it) and name it
-in the review note. Follow-ups never block `done`.
+Everything else is a **follow-up**. Follow-ups never block `done`.
+- Append each follow-up to `docs/BACKLOG.md` under a heading with the reviewed task and the date:
+  the finding and the file it concerns, in one to three lines.
+- Only **contract-changing** follow-ups become a task: they change a spec requirement, a public
+  API, an error code or an acceptance criterion that a `todo` or `in-progress` task implements,
+  or a milestone exit criterion needs them. Write all of them into one new task file
+  (`status: todo`, next free ID, current milestone), and add it to `depends_on` of the tasks
+  whose contract it changes.
+- The review note names the number of backlog entries and the follow-up task, if any.
 
 **Re-reviews** (the task had a review before) check only: each previous blocking finding is fixed,
 the diff since the previous review, and `cargo xtask ci`. A finding in unchanged code blocks only
 under B1, B2 or B3.
 
-Outcome, recorded in a "Review" note in the task (reviewer, date, what was checked, follow-up task):
+Outcome, recorded in a "Review" note in the task (reviewer, date, what was checked, backlog entries, follow-up task):
 - No blocking findings: set `status: done`.
 - Blocking findings, and the task has had fewer than two "changes required" outcomes: set
   `status: in-progress` with a numbered list of required changes, each with its class (B1–B5).
