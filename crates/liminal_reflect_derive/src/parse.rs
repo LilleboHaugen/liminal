@@ -399,8 +399,9 @@ fn fields(fields: &syn::Fields, errors: &mut Vec<syn::Error>) -> Fields {
             for item in items {
                 match item {
                     Item::Ignore if ignored => {
-                        let message =
-                            format!("field `{name}` is marked `#[reflect(ignore)]` more than once.");
+                        let message = format!(
+                            "field `{name}` is marked `#[reflect(ignore)]` more than once."
+                        );
                         errors.push(diagnostic(
                             attribute,
                             9,

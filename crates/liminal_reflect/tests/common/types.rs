@@ -6,6 +6,11 @@
 //!   variants.
 //! - [`Fake`]: a value whose descriptor and views are set by the test, to build deliberately
 //!   wrong impls (REFL-R043, REFL-R080, REFL-R100, REFL-R104).
+//! - [`derived`]: the derived twins of `Sample`, `Pair`, `Marker` and `Mode` (REFLD-R033). Each
+//!   has a `type_path` override `refl_test::…`, and the hand-written impls above return the
+//!   derived type's path, so the paths and IDs that the M1-T031 tests record are unchanged. A
+//!   derived type and its hand-written twin share one stable type ID: never register both in one
+//!   `TypeRegistry` (LIM-REFL-0001).
 
 // Each test binary includes this file and uses a subset of it.
 #![allow(dead_code)]
@@ -18,6 +23,42 @@ use liminal_reflect::info::{
 use liminal_reflect::value::{
     PrimitiveRef, Reflect, ReflectEnum, ReflectFields, ReflectList, ReflectMut, ReflectRef, Typed,
 };
+
+/// Derived types structurally identical to the hand-written ones (REFLD-R033).
+pub mod derived {
+    use liminal_reflect::value::Reflect;
+
+    /// Derived twin of [`super::Sample`].
+    #[derive(Clone, Debug, PartialEq, Reflect)]
+    #[reflect(type_path = "refl_test::Sample")]
+    pub struct Sample {
+        pub x: f32,
+        pub count: u64,
+        pub name: String,
+        pub tags: Vec<u8>,
+        pub limit: Option<i16>,
+    }
+
+    /// Derived twin of [`super::Pair`].
+    #[derive(Clone, Debug, PartialEq, Reflect)]
+    #[reflect(type_path = "refl_test::Pair")]
+    pub struct Pair(pub i32, pub Option<u8>);
+
+    /// Derived twin of [`super::Marker`].
+    #[derive(Clone, Debug, PartialEq, Reflect)]
+    #[reflect(type_path = "refl_test::Marker")]
+    pub struct Marker;
+
+    /// Derived twin of [`super::Mode`].
+    #[derive(Clone, Debug, PartialEq, Reflect)]
+    #[reflect(type_path = "refl_test::Mode")]
+    pub enum Mode {
+        Idle,
+        Moving(f32, f32),
+        Fleeing { from: u32, speed: f32 },
+        Chasing { target: u32, speed: f32 },
+    }
+}
 
 /// A field descriptor.
 pub fn field<T: Typed>(name: &'static str) -> FieldInfo {
@@ -71,11 +112,11 @@ reflect_via_typed!(Sample, Struct);
 
 impl Typed for Sample {
     fn type_path() -> String {
-        "refl_test::Sample".to_string()
+        <derived::Sample as Typed>::type_path()
     }
     fn type_info() -> TypeInfo {
         info(
-            "refl_test::Sample",
+            &Self::type_path(),
             Shape::Struct {
                 kind: StructKind::Named,
                 fields: vec![
@@ -129,11 +170,11 @@ reflect_via_typed!(Pair, Struct);
 
 impl Typed for Pair {
     fn type_path() -> String {
-        "refl_test::Pair".to_string()
+        <derived::Pair as Typed>::type_path()
     }
     fn type_info() -> TypeInfo {
         info(
-            "refl_test::Pair",
+            &Self::type_path(),
             Shape::Struct {
                 kind: StructKind::Tuple,
                 fields: vec![field::<i32>("0"), field::<Option<u8>>("1")],
@@ -175,11 +216,11 @@ reflect_via_typed!(Marker, Struct);
 
 impl Typed for Marker {
     fn type_path() -> String {
-        "refl_test::Marker".to_string()
+        <derived::Marker as Typed>::type_path()
     }
     fn type_info() -> TypeInfo {
         info(
-            "refl_test::Marker",
+            &Self::type_path(),
             Shape::Struct {
                 kind: StructKind::Unit,
                 fields: Vec::new(),
@@ -219,12 +260,12 @@ reflect_via_typed!(Mode, Enum);
 
 impl Typed for Mode {
     fn type_path() -> String {
-        "refl_test::Mode".to_string()
+        <derived::Mode as Typed>::type_path()
     }
     fn type_info() -> TypeInfo {
         let variant = |name, kind, fields| VariantInfo { name, kind, fields };
         info(
-            "refl_test::Mode",
+            &Self::type_path(),
             Shape::Enum {
                 variants: vec![
                     variant("Idle", StructKind::Unit, Vec::new()),

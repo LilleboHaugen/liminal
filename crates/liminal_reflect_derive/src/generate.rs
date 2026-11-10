@@ -36,7 +36,11 @@ pub(crate) fn generate(model: &Model) -> TokenStream {
     let type_path = type_path(model);
     let shape = shape(&model.body);
     let (tables, fields_body, enum_impl) = match &model.body {
-        Body::Struct(fields) => (struct_table(fields), struct_fields(fields), TokenStream::new()),
+        Body::Struct(fields) => (
+            struct_table(fields),
+            struct_fields(fields),
+            TokenStream::new(),
+        ),
         Body::Enum(variants) => {
             let enum_header = header(quote!(::liminal_reflect::value::ReflectEnum));
             let enum_body = enum_methods(variants);
@@ -92,7 +96,9 @@ fn type_path(model: &Model) -> TokenStream {
         return match &model.base {
             Base::Module(name) => {
                 let suffix = format!("::{name}");
-                quote!(::std::string::String::from(::core::concat!(::core::module_path!(), #suffix)))
+                quote!(::std::string::String::from(
+                    ::core::concat!(::core::module_path!(), #suffix)
+                ))
             }
             Base::Override(path) => quote!(::std::string::String::from(#path)),
         };
@@ -149,7 +155,9 @@ fn shape(body: &Body) -> TokenStream {
                 let infos = field_infos(&variant.fields);
                 quote!(::liminal_reflect::info::VariantInfo { name: #name, kind: #kind, fields: #infos })
             });
-            quote!(::liminal_reflect::info::Shape::Enum { variants: ::std::vec![#(#variants),*] })
+            quote!(::liminal_reflect::info::Shape::Enum {
+                variants: ::std::vec![#(#variants),*]
+            })
         }
     }
 }
@@ -234,7 +242,7 @@ fn variant_pattern(variant: &Variant) -> TokenStream {
 }
 
 /// The arms `(Self::V { m: f, .. }, i) => Some(f)` of every reflected field of every variant.
-fn field_arms<'a>(variants: &'a [Variant]) -> impl Iterator<Item = TokenStream> + 'a {
+fn field_arms(variants: &[Variant]) -> impl Iterator<Item = TokenStream> + '_ {
     let binding = format_ident!("__liminal_reflect_field");
     variants.iter().flat_map(move |variant| {
         let ident = &variant.ident;
